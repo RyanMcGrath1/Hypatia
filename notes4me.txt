@@ -1,0 +1,10 @@
+Just some basic stuff to remember:
+
+1.  Layout determines the structure of a document.
+2.  Index just determines what gets rendered first
+3.  If you are going to have nested files you have to use layout everytime
+
+
+Development Loop:
+1. At the highest level you have to have a view, you cannot render without one
+2.
