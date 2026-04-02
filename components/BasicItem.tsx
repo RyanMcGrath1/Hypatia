@@ -49,8 +49,9 @@ const styles = StyleSheet.create({
         alignItems: 'center', // Center align items horizontally
         gap: 8, // Space between child elements
         borderWidth: 2, // Outline thickness
-        borderColor: '#007AFF', // Outline color
+        borderColor: '#2f855a', // Outline color
         borderRadius: 12, // Rounded corners
+        backgroundColor: '#f3f4f6',
     },
     title: {
         fontSize: 24, // Font size for the title
@@ -64,14 +65,14 @@ const styles = StyleSheet.create({
         paddingHorizontal: 16, // Horizontal padding for the button
         paddingVertical: 10, // Vertical padding for the button
         borderRadius: 12, // Rounded corners for the button
-        backgroundColor: '#222', // Button background color
+        backgroundColor: '#1f2937', // Button background color
     },
     buttonPressed: {
         opacity: 0.85, // Slightly reduce opacity when pressed
         transform: [{ scale: 0.98 }], // Slightly shrink the button when pressed
     },
     buttonText: {
-        color: '#fff', // Text color for the button
+        color: '#d1fae5', // Text color for the button
         fontWeight: '600', // Semi-bold font weight for the button text
     },
 });

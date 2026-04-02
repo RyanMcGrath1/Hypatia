@@ -1,5 +1,5 @@
 import {Image} from 'expo-image';
-import {Platform, SafeAreaView, StyleSheet, View} from 'react-native';
+import {Platform, StyleSheet, View} from 'react-native';
 import React from 'react';
 
 import {HelloWave} from '@/components/HelloWave';
@@ -15,7 +15,7 @@ export default function RyanScreen() {
     return (
         <View style={{flex: 1}}>
             <ParallaxScrollView
-                headerBackgroundColor={{light: '#A1CEDC', dark: '#1D3D47'}}
+                headerBackgroundColor={{light: '#d1d5db', dark: '#1f2937'}}
                 headerImage={
                     <Image
                         source={require('@/assets/images/partial-react-logo.png')}
@@ -27,20 +27,18 @@ export default function RyanScreen() {
                     <HelloWave/>
                 </ThemedView>
                 <ThemedView style={styles.stepContainer}>
-                    <SafeAreaView style={{flex: 1}}>
-                        <ComponentCarousel peek>
-                            <NewsCard label="First component" bg="#BFDBFE" text={'hello'}/>
-                            <NewsCard label="Second component" bg="#BBF7D0"/>
-                            <NewsCard label="Third component" bg="#FECACA"/>
-                            <NewsCard label="First component" bg="#BFDBFE" text={'hello'}/>
-                            <NewsCard label="Second component" bg="#BBF7D0"/>
-                            <NewsCard label="Third component" bg="#FECACA"/>
-                            <NewsCard label="First component" bg="#BFDBFE" text={'hello'}/>
-                            <NewsCard label="Second component" bg="#BBF7D0"/>
-                            <NewsCard label="Third component" bg="#FECACA"/>
-                            <BasicItem title= "Sample Title" color="#FF5733" />
-                        </ComponentCarousel>
-                    </SafeAreaView>
+                    <ComponentCarousel peek>
+                        <NewsCard label="First component" bg="#e5e7eb" text={'hello'}/>
+                        <NewsCard label="Second component" bg="#d1fae5"/>
+                        <NewsCard label="Third component" bg="#f3f4f6"/>
+                        <NewsCard label="First component" bg="#e5e7eb" text={'hello'}/>
+                        <NewsCard label="Second component" bg="#d1fae5"/>
+                        <NewsCard label="Third component" bg="#f3f4f6"/>
+                        <NewsCard label="First component" bg="#e5e7eb" text={'hello'}/>
+                        <NewsCard label="Second component" bg="#d1fae5"/>
+                        <NewsCard label="Third component" bg="#f3f4f6"/>
+                        <BasicItem title= "Sample Title" color="#2f855a" />
+                    </ComponentCarousel>
                     <ThemedText type="subtitle">Step 1: Try it</ThemedText>
                     <ThemedText>
                         Edit <ThemedText type="defaultSemiBold">app/(tabs)/index.tsx</ThemedText> to see changes.

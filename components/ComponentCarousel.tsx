@@ -2,13 +2,11 @@ import React from 'react';
 import {
     View,
     FlatList,
-    Dimensions,
     StyleSheet,
     NativeScrollEvent,
     NativeSyntheticEvent,
+    useWindowDimensions,
 } from 'react-native';
-
-const { width } = Dimensions.get('window');
 
 interface ComponentCarouselProps {
     children: React.ReactNode;        // any React Native components passed as children
@@ -21,6 +19,7 @@ export default function ComponentCarousel({
                                               borderRadius = 16,
                                               peek = false,
                                           }: ComponentCarouselProps) {
+    const { width } = useWindowDimensions();
     // Convert children (React components passed into the carousel) into an array
     const slides = React.Children.toArray(children);
 
@@ -30,11 +29,11 @@ export default function ComponentCarousel({
     // TODO These two lines change the size of the actual cards
     // slideWidth determines the width of each slide. If `peek` is true, the width is reduced to 45% of the screen width to allow peeking at adjacent slides.
     // Adjust the multiplier (e.g., 0.45) to control how much of the next/previous slide is visible.
-    const slideWidth = peek ? width * 0.12 : width;
+    const slideWidth = peek ? width * 0.82 : width;
 
     // sideSpacer determines the padding on the sides of the carousel when `peek` is enabled.
     // Adjust the divisor (e.g., 100) to control the spacing between slides and the screen edges.
-    const sideSpacer = peek ? (width - slideWidth) / 100 : 0;
+    const sideSpacer = peek ? (width - slideWidth) / 2 : 0;
 
     // Handles the scroll event to update the active slide index
     const onScroll = (e: NativeSyntheticEvent<NativeScrollEvent>) => {
@@ -66,6 +65,7 @@ export default function ComponentCarousel({
                 contentContainerStyle={{
                     paddingHorizontal: sideSpacer, // Adds side padding for peeking
                 }}
+                contentInsetAdjustmentBehavior="automatic"
             />
 
             {/* Dots indicator for the active slide */}
@@ -95,11 +95,11 @@ const styles = StyleSheet.create({
         width: 8, // Default dot size
         height: 8,
         borderRadius: 999, // Makes the dots circular
-        backgroundColor: '#D1D5DB', // Default dot color
+        backgroundColor: '#9ca3af', // Default dot color
     },
     dotActive: {
         width: 10, // Slightly larger size for the active dot
         height: 10,
-        backgroundColor: '#111827', // Active dot color
+        backgroundColor: '#2f855a', // Active dot color
     },
 });

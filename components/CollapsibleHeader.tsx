@@ -29,7 +29,7 @@ export default function CollapsibleHeader({ title }: { title: string }) {
 
 const styles = StyleSheet.create({
     header: {
-        backgroundColor: '#fff',
+        backgroundColor: '#f3f4f6',
         justifyContent: 'center',
         alignItems: 'center',
         elevation: 4,
