@@ -30,7 +30,7 @@ export default function ComponentCarousel({
     // TODO These two lines change the size of the actual cards
     // slideWidth determines the width of each slide. If `peek` is true, the width is reduced to 45% of the screen width to allow peeking at adjacent slides.
     // Adjust the multiplier (e.g., 0.45) to control how much of the next/previous slide is visible.
-    const slideWidth = peek ? width * 0.45 : width;
+    const slideWidth = peek ? width * 0.12 : width;
 
     // sideSpacer determines the padding on the sides of the carousel when `peek` is enabled.
     // Adjust the divisor (e.g., 100) to control the spacing between slides and the screen edges.

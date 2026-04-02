@@ -1,18 +1,14 @@
 import {Image} from 'expo-image';
-import {Platform, StyleSheet, View, SafeAreaView} from 'react-native';
+import {Platform, SafeAreaView, StyleSheet, View} from 'react-native';
 import React from 'react';
-import CollapsibleHeader from '@/components/CollapsibleHeader';
 
 import {HelloWave} from '@/components/HelloWave';
 import ParallaxScrollView from '@/components/ParallaxScrollView';
 import {ThemedText} from '@/components/ThemedText';
 import {ThemedView} from '@/components/ThemedView';
-import BasicItem from '@/components/BasicItem';
 import ComponentCarousel from "@/components/ComponentCarousel";
 import NewsCard from "@/components/NewsCard";
-
-
-
+import BasicItem from "@/components/BasicItem";
 
 
 export default function RyanScreen() {
@@ -42,6 +38,7 @@ export default function RyanScreen() {
                             <NewsCard label="First component" bg="#BFDBFE" text={'hello'}/>
                             <NewsCard label="Second component" bg="#BBF7D0"/>
                             <NewsCard label="Third component" bg="#FECACA"/>
+                            <BasicItem title= "Sample Title" color="#FF5733" />
                         </ComponentCarousel>
                     </SafeAreaView>
                     <ThemedText type="subtitle">Step 1: Try it</ThemedText>
@@ -92,8 +89,6 @@ const styles = StyleSheet.create({
         flexDirection: 'row', // Arrange child elements in a horizontal row
         alignItems: 'center', // Vertically center-align child elements
         gap: 8, // Add 8 units of spacing between child elements
-        borderWidth: 2, // Set the thickness of the border to 2 units
-        borderColor: '#A1CEDC', // Set the border color to a light blue shade
     },
     stepContainer: {
         gap: 8,

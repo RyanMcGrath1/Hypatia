@@ -7,7 +7,7 @@ interface MyComponentProps {
     color: string; // Text color for the title
 }
 
-export default function MyComponent({ title, color }: MyComponentProps) {
+export default function BasicItem({ title, color }: MyComponentProps) {
     // State to track the number of button presses
     const [count, setCount] = React.useState(0);
 
