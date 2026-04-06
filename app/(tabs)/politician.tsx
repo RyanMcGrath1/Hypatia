@@ -10,6 +10,7 @@ import {
   View,
 } from 'react-native';
 
+import PoliticianLineChart from '@/components/PoliticianLineChart';
 import { PoliticianResultCard } from '@/components/PoliticianResultCard';
 import { ThemedText } from '@/components/ThemedText';
 import { ThemedView } from '@/components/ThemedView';
@@ -64,6 +65,8 @@ export default function PoliticianScreen() {
             <ThemedText type="title" style={styles.title}>
               Politician
             </ThemedText>
+
+            <PoliticianLineChart />
 
             <View style={styles.searchRowOuter}>
               <View
