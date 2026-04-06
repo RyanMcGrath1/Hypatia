@@ -1,5 +1,4 @@
 import { Image } from 'expo-image';
-import React from 'react';
 import { Platform, StyleSheet, View } from 'react-native';
 
 import { HelloWave } from '@/components/HelloWave';
@@ -7,7 +6,7 @@ import ParallaxScrollView from '@/components/ParallaxScrollView';
 import { ThemedText } from '@/components/ThemedText';
 import { ThemedView } from '@/components/ThemedView';
 
-// This is the main screen of the app's "Explore" tab, featuring a collapsible header and a parallax scroll view.
+// Home tab: parallax header and welcome content.
 export default function HomeScreen() {
     return (
         <View style={{flex: 1}}>
@@ -82,11 +81,6 @@ const styles = StyleSheet.create({
         bottom: 0,
         left: 0,
         position: 'absolute',
-    },
-    square: {
-        width: 100,
-        height: 100,
-        backgroundColor: '#2f855a',
     },
 });
 

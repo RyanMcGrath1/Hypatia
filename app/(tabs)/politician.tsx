@@ -1,5 +1,5 @@
 import FontAwesome from '@expo/vector-icons/FontAwesome';
-import React from 'react';
+import { useCallback, useState } from 'react';
 import {
   KeyboardAvoidingView,
   Platform,
@@ -34,16 +34,21 @@ function summarizeForHelper(data: unknown): string {
 }
 
 export default function PoliticianScreen() {
-  const [query, setQuery] = React.useState('');
-  const { isLoading, error, apiData } = useFlaskHelloSearch(query);
+  const [input, setInput] = useState('');
+  const [submittedQuery, setSubmittedQuery] = useState('');
+  const { isLoading, error, apiData } = useFlaskHelloSearch(submittedQuery);
   const colorScheme = useColorScheme() ?? 'light';
   const theme = Colors[colorScheme];
   const textColor = useThemeColor({}, 'text');
   const iconColor = useThemeColor({}, 'icon');
   const placeholderColor = '#9ca3af';
 
+  const submitSearch = useCallback(() => {
+    setSubmittedQuery(input.trim());
+  }, [input]);
+
   const showResultCard =
-    !!query.trim() && !isLoading && !error && apiData !== null;
+    !!submittedQuery.trim() && !isLoading && !error && apiData !== null;
 
   return (
     <ThemedView style={styles.screen}>
@@ -71,12 +76,14 @@ export default function PoliticianScreen() {
                 ]}>
                 <FontAwesome name="search" size={16} color={iconColor} />
                 <TextInput
-                  value={query}
-                  onChangeText={setQuery}
+                  value={input}
+                  onChangeText={setInput}
                   placeholder="Search politicians..."
                   placeholderTextColor={placeholderColor}
                   style={[styles.searchInput, { color: textColor }]}
                   returnKeyType="search"
+                  submitBehavior="submit"
+                  onSubmitEditing={submitSearch}
                   clearButtonMode="while-editing"
                 />
                 <FontAwesome name="sliders" size={16} color={iconColor} />
@@ -84,21 +91,21 @@ export default function PoliticianScreen() {
             </View>
 
             <ThemedText style={[styles.helperText, { color: theme.icon }]}>
-              {!query.trim() && 'Type to search politicians'}
-              {!!query.trim() && isLoading && 'Searching...'}
-              {!!query.trim() && !isLoading && error && error}
-              {!!query.trim() && !isLoading && !error && apiData !== null && `Received: ${summarizeForHelper(apiData)}`}
-              {!!query.trim() && !isLoading && !error && apiData === null && `Searching for: "${query.trim()}"`}
+              {!input.trim() && !submittedQuery && 'Type a search and press Enter'}
+              {!!input.trim() && !submittedQuery && 'Press Enter to search'}
+              {!!submittedQuery && isLoading && 'Searching...'}
+              {!!submittedQuery && !isLoading && error && error}
+              {!!submittedQuery && !isLoading && !error && apiData !== null && `Received: ${summarizeForHelper(apiData)}`}
             </ThemedText>
 
             <View style={styles.responseCenter}>
-              {!query.trim() && (
-                <ThemedText style={{ color: theme.icon }}>Search to load data from the API</ThemedText>
+              {!submittedQuery && (
+                <ThemedText style={{ color: theme.icon }}>Press Enter in the search field to load data</ThemedText>
               )}
-              {!!query.trim() && isLoading && (
+              {!!submittedQuery && isLoading && (
                 <ThemedText style={{ color: theme.icon }}>Waiting for response...</ThemedText>
               )}
-              {!!query.trim() && !isLoading && error && (
+              {!!submittedQuery && !isLoading && error && (
                 <ThemedText style={styles.errorText}>{error}</ThemedText>
               )}
               {showResultCard && (
