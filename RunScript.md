@@ -1,6 +1,6 @@
 # Run this project from scratch
 
-This app is an [Expo](https://expo.dev) (SDK 54) project using [Expo Router](https://docs.expo.dev/router/introduction/), React Native, and TypeScript. Follow the steps below on a clean machine.
+**Hypatia** is an [Expo](https://expo.dev) (SDK 54) project using [Expo Router](https://docs.expo.dev/router/introduction/), React Native, and TypeScript. Follow the steps below on a clean machine.
 
 ## 1. Install prerequisites
 
@@ -35,7 +35,7 @@ If you are cloning from a repository, install [Git](https://git-scm.com/download
 Clone or copy the project folder, then open a terminal **in the project root** (the directory that contains `package.json`).
 
 ```bash
-cd path/to/test
+cd path/to/hypatia
 ```
 
 ## 3. Install dependencies
