@@ -1,8 +1,9 @@
-import { Image } from 'expo-image';
 import FontAwesome from '@expo/vector-icons/FontAwesome';
+import { Image } from 'expo-image';
 import { Href, usePathname, useRouter } from 'expo-router';
 import { useMemo, useRef, useState } from 'react';
 import { Animated, Easing, Pressable, StyleSheet, View } from 'react-native';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { ThemedText } from '@/components/ThemedText';
 import { ThemedView } from '@/components/ThemedView';
@@ -24,6 +25,7 @@ const MENU_ITEMS: MenuItem[] = [
 
 export function AppBanner() {
   const [isPanelMounted, setIsPanelMounted] = useState(false);
+  const insets = useSafeAreaInsets();
   const router = useRouter();
   const pathname = usePathname();
   const colorScheme = useColorScheme() ?? 'light';
@@ -91,7 +93,7 @@ export function AppBanner() {
         </Pressable>
 
         <Image
-          source={require('@/assets/images/react-logo.png')}
+          source={require('@/assets/images/hypatia-logo.png')}
           style={styles.image}
           contentFit="contain"
           accessibilityLabel="App banner"
@@ -110,7 +112,11 @@ export function AppBanner() {
           <Animated.View
             style={[
               styles.sidePanel,
-              { backgroundColor: panelColors.panelBg, borderColor: panelColors.panelBorder },
+              {
+                backgroundColor: panelColors.panelBg,
+                borderColor: panelColors.panelBorder,
+                paddingTop: insets.top + 12,
+              },
               {
                 transform: [
                   {
@@ -170,6 +176,7 @@ const styles = StyleSheet.create({
     borderBottomWidth: StyleSheet.hairlineWidth,
     justifyContent: 'center',
     alignItems: 'center',
+    paddingBottom: 2,
     position: 'relative',
     zIndex: 20,
   },
@@ -183,15 +190,11 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
   },
   image: {
-    width: 28,
-    height: 28,
+    width: 38,
+    height: 38,
   },
   overlayWrap: {
-    position: 'absolute',
-    top: 44,
-    left: 0,
-    right: 0,
-    bottom: 0,
+    ...StyleSheet.absoluteFillObject,
     zIndex: 120,
   },
   scrim: {
@@ -208,7 +211,6 @@ const styles = StyleSheet.create({
     width: '74%',
     maxWidth: 320,
     borderRightWidth: 1,
-    paddingTop: 60,
     paddingHorizontal: 16,
   },
   sidePanelContent: {
