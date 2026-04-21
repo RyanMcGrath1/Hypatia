@@ -187,7 +187,11 @@ const styles = StyleSheet.create({
     height: 28,
   },
   overlayWrap: {
-    ...StyleSheet.absoluteFillObject,
+    position: 'absolute',
+    top: 44,
+    left: 0,
+    right: 0,
+    bottom: 0,
     zIndex: 120,
   },
   scrim: {

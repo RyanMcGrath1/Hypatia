@@ -260,6 +260,7 @@ export default function PoliticianScreen() {
               Search a name to view a compact overview of office details, priorities, and headlines.
             </ThemedText>
 
+            {/* Search controls and type-ahead suggestions */}
             <View
               style={[
                 styles.searchCard,
@@ -318,11 +319,12 @@ export default function PoliticianScreen() {
 
             <ThemedText style={[styles.helperText, { color: theme.icon }]}>{statusCopy}</ThemedText>
 
+            {/* Empty and loading states */}
             {!hasSearched && (
               <View
                 style={[
-                  styles.emptyState,
-                  { backgroundColor: palette.sectionBackground, borderColor: palette.cardBorder },
+                  styles.resultCard,
+                  { backgroundColor: palette.cardBackground, borderColor: palette.cardBorder },
                 ]}>
                 <ThemedText type="defaultSemiBold">Start with a politician name</ThemedText>
                 <ThemedText style={[styles.emptyStateBody, { color: theme.icon }]}>
@@ -332,7 +334,12 @@ export default function PoliticianScreen() {
             )}
 
             {isLoading && (
-              <View style={styles.loadingWrap}>
+              <View
+                style={[
+                  styles.resultCard,
+                  styles.loadingWrap,
+                  { backgroundColor: palette.cardBackground, borderColor: palette.cardBorder },
+                ]}>
                 <ActivityIndicator size="small" color={theme.tint} />
                 <ThemedText style={{ color: theme.icon }}>Fetching mock profile data...</ThemedText>
               </View>
@@ -341,8 +348,8 @@ export default function PoliticianScreen() {
             {hasSearched && !isLoading && !selectedProfile && (
               <View
                 style={[
-                  styles.emptyState,
-                  { backgroundColor: palette.sectionBackground, borderColor: palette.cardBorder },
+                  styles.resultCard,
+                  { backgroundColor: palette.cardBackground, borderColor: palette.cardBorder },
                 ]}>
                 <ThemedText type="defaultSemiBold">No match found</ThemedText>
                 <ThemedText style={[styles.emptyStateBody, { color: theme.icon }]}>
@@ -351,10 +358,12 @@ export default function PoliticianScreen() {
               </View>
             )}
 
+            {/* Main politician profile results */}
             {selectedProfile && !isLoading && (
               <View style={styles.profileWrap}>
                 <View
                   style={[
+                    styles.resultCard,
                     styles.profileCard,
                     { backgroundColor: palette.cardBackground, borderColor: palette.cardBorder },
                   ]}>
@@ -377,9 +386,11 @@ export default function PoliticianScreen() {
                   <ThemedText style={styles.bioText}>{selectedProfile.bio}</ThemedText>
                 </View>
 
+                {/* At-a-glance metrics */}
                 <View style={styles.metricsRow}>
                   <View
                     style={[
+                      styles.resultCard,
                       styles.metricChip,
                       { backgroundColor: palette.badgeBackground, borderColor: palette.cardBorder },
                     ]}>
@@ -388,6 +399,7 @@ export default function PoliticianScreen() {
                   </View>
                   <View
                     style={[
+                      styles.resultCard,
                       styles.metricChip,
                       { backgroundColor: palette.badgeBackground, borderColor: palette.cardBorder },
                     ]}>
@@ -396,6 +408,7 @@ export default function PoliticianScreen() {
                   </View>
                   <View
                     style={[
+                      styles.resultCard,
                       styles.metricChip,
                       { backgroundColor: palette.badgeBackground, borderColor: palette.cardBorder },
                     ]}>
@@ -404,8 +417,10 @@ export default function PoliticianScreen() {
                   </View>
                 </View>
 
+                {/* Policy highlights */}
                 <View
                   style={[
+                    styles.resultCard,
                     styles.sectionCard,
                     { backgroundColor: palette.cardBackground, borderColor: palette.cardBorder },
                   ]}>
@@ -418,8 +433,10 @@ export default function PoliticianScreen() {
                   ))}
                 </View>
 
+                {/* Recent news headlines */}
                 <View
                   style={[
+                    styles.resultCard,
                     styles.sectionCard,
                     { backgroundColor: palette.cardBackground, borderColor: palette.cardBorder },
                   ]}>
@@ -434,8 +451,10 @@ export default function PoliticianScreen() {
                   ))}
                 </View>
 
+                {/* Approval trend chart */}
                 <View
                   style={[
+                    styles.resultCard,
                     styles.sectionCard,
                     { backgroundColor: palette.cardBackground, borderColor: palette.cardBorder },
                   ]}>
@@ -467,7 +486,7 @@ const styles = StyleSheet.create({
     flexGrow: 1,
     paddingHorizontal: 16,
     paddingTop: 12,
-    paddingBottom: 28,
+    paddingBottom: 112,
   },
   title: {
     marginBottom: 6,
@@ -524,13 +543,15 @@ const styles = StyleSheet.create({
     marginTop: 2,
   },
   helperText: {
-    marginBottom: 14,
+    marginBottom: 10,
+  },
+  resultCard: {
+    borderWidth: 1,
+    borderRadius: 14,
+    padding: 12,
+    marginBottom: 10,
   },
   emptyState: {
-    borderWidth: 1,
-    borderRadius: 12,
-    padding: 14,
-    marginBottom: 14,
     gap: 6,
   },
   emptyStateBody: {
@@ -546,9 +567,6 @@ const styles = StyleSheet.create({
     gap: 12,
   },
   profileCard: {
-    borderWidth: 1,
-    borderRadius: 12,
-    padding: 14,
     gap: 5,
   },
   profileHeader: {
@@ -582,9 +600,8 @@ const styles = StyleSheet.create({
   },
   metricChip: {
     flex: 1,
-    borderWidth: 1,
     borderRadius: 10,
-    paddingVertical: 10,
+    paddingVertical: 12,
     paddingHorizontal: 8,
     alignItems: 'center',
     gap: 4,
@@ -593,9 +610,6 @@ const styles = StyleSheet.create({
     fontSize: 12,
   },
   sectionCard: {
-    borderWidth: 1,
-    borderRadius: 12,
-    padding: 14,
     gap: 10,
   },
   bulletRow: {
