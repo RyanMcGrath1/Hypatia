@@ -1,4 +1,5 @@
 import FontAwesome from '@expo/vector-icons/FontAwesome';
+import { Image } from 'expo-image';
 import { useCallback, useMemo, useRef, useState } from 'react';
 import {
   ActivityIndicator,
@@ -28,6 +29,7 @@ type NewsItem = {
 
 type PoliticianProfile = {
   name: string;
+  photoUrl: string;
   party: string;
   role: string;
   location: string;
@@ -42,6 +44,7 @@ type PoliticianProfile = {
 const MOCK_POLITICIANS: PoliticianProfile[] = [
   {
     name: 'Alex Harper',
+    photoUrl: 'https://ui-avatars.com/api/?name=Alex+Harper&background=1d4ed8&color=fff',
     party: 'Independent',
     role: 'U.S. Senator',
     location: 'Colorado',
@@ -69,6 +72,7 @@ const MOCK_POLITICIANS: PoliticianProfile[] = [
   },
   {
     name: 'Monica Reyes',
+    photoUrl: 'https://ui-avatars.com/api/?name=Monica+Reyes&background=059669&color=fff',
     party: 'Democratic',
     role: 'Governor',
     location: 'New Mexico',
@@ -96,6 +100,7 @@ const MOCK_POLITICIANS: PoliticianProfile[] = [
   },
   {
     name: 'Daniel Brooks',
+    photoUrl: 'https://ui-avatars.com/api/?name=Daniel+Brooks&background=b91c1c&color=fff',
     party: 'Republican',
     role: 'House Representative',
     location: 'Florida 7th District',
@@ -145,11 +150,13 @@ function findPoliticianProfile(query: string): PoliticianProfile | null {
 
 export default function PoliticianScreen() {
   const [input, setInput] = useState('');
+  const [isInputFocused, setIsInputFocused] = useState(false);
   const [submittedQuery, setSubmittedQuery] = useState('');
   const [hasSearched, setHasSearched] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
   const [selectedProfile, setSelectedProfile] = useState<PoliticianProfile | null>(null);
   const timeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const blurTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   const colorScheme = useColorScheme() ?? 'light';
   const theme = Colors[colorScheme];
@@ -169,6 +176,7 @@ export default function PoliticianScreen() {
 
   const submitSearch = useCallback(() => {
     Keyboard.dismiss();
+    setIsInputFocused(false);
     const query = input.trim();
     if (!query) {
       return;
@@ -187,6 +195,39 @@ export default function PoliticianScreen() {
       setIsLoading(false);
     }, 550);
   }, [input]);
+
+  const suggestions = useMemo(() => {
+    const query = input.trim().toLowerCase();
+    if (!query) {
+      return [];
+    }
+
+    return MOCK_POLITICIANS
+      .filter((profile) => profile.name.toLowerCase().includes(query))
+      .slice(0, 5);
+  }, [input]);
+
+  const handleSelectSuggestion = useCallback((name: string) => {
+    if (blurTimeoutRef.current) {
+      clearTimeout(blurTimeoutRef.current);
+    }
+
+    setInput(name);
+    Keyboard.dismiss();
+    setIsInputFocused(false);
+    setSubmittedQuery(name);
+    setHasSearched(true);
+    setIsLoading(true);
+
+    if (timeoutRef.current) {
+      clearTimeout(timeoutRef.current);
+    }
+
+    timeoutRef.current = setTimeout(() => {
+      setSelectedProfile(findPoliticianProfile(name));
+      setIsLoading(false);
+    }, 550);
+  }, []);
 
   const statusCopy = useMemo(() => {
     if (!hasSearched) {
@@ -233,6 +274,12 @@ export default function PoliticianScreen() {
                 <TextInput
                   value={input}
                   onChangeText={setInput}
+                  onFocus={() => setIsInputFocused(true)}
+                  onBlur={() => {
+                    blurTimeoutRef.current = setTimeout(() => {
+                      setIsInputFocused(false);
+                    }, 120);
+                  }}
                   placeholder="Type a politician name"
                   placeholderTextColor="#9ca3af"
                   style={[styles.searchInput, { color: textColor }]}
@@ -241,6 +288,26 @@ export default function PoliticianScreen() {
                   onSubmitEditing={submitSearch}
                 />
               </View>
+
+              {isInputFocused && suggestions.length > 0 && (
+                <View
+                  style={[
+                    styles.suggestionsList,
+                    { borderColor: palette.cardBorder, backgroundColor: palette.sectionBackground },
+                  ]}>
+                  {suggestions.map((profile) => (
+                    <Pressable
+                      key={profile.name}
+                      style={styles.suggestionItem}
+                      onPress={() => handleSelectSuggestion(profile.name)}>
+                      <ThemedText type="defaultSemiBold">{profile.name}</ThemedText>
+                      <ThemedText style={[styles.suggestionMeta, { color: theme.icon }]}>
+                        {profile.role}
+                      </ThemedText>
+                    </Pressable>
+                  ))}
+                </View>
+              )}
 
               <Pressable
                 style={[styles.searchButton, { backgroundColor: palette.buttonBackground }]}
@@ -291,13 +358,22 @@ export default function PoliticianScreen() {
                     styles.profileCard,
                     { backgroundColor: palette.cardBackground, borderColor: palette.cardBorder },
                   ]}>
-                  <ThemedText type="subtitle">{selectedProfile.name}</ThemedText>
-                  <ThemedText style={[styles.roleLine, { color: theme.icon }]}>
-                    {selectedProfile.role} - {selectedProfile.party}
-                  </ThemedText>
-                  <ThemedText style={[styles.locationLine, { color: theme.icon }]}>
-                    {selectedProfile.location}
-                  </ThemedText>
+                  <View style={styles.profileHeader}>
+                    <Image
+                      source={{ uri: selectedProfile.photoUrl }}
+                      style={styles.profileImage}
+                      contentFit="cover"
+                    />
+                    <View style={styles.profileHeaderText}>
+                      <ThemedText type="subtitle">{selectedProfile.name}</ThemedText>
+                      <ThemedText style={[styles.roleLine, { color: theme.icon }]}>
+                        {selectedProfile.role} - {selectedProfile.party}
+                      </ThemedText>
+                      <ThemedText style={[styles.locationLine, { color: theme.icon }]}>
+                        {selectedProfile.location}
+                      </ThemedText>
+                    </View>
+                  </View>
                   <ThemedText style={styles.bioText}>{selectedProfile.bio}</ThemedText>
                 </View>
 
@@ -432,6 +508,21 @@ const styles = StyleSheet.create({
     fontSize: 15,
     fontWeight: '600',
   },
+  suggestionsList: {
+    borderWidth: 1,
+    borderRadius: 10,
+    overflow: 'hidden',
+  },
+  suggestionItem: {
+    paddingHorizontal: 12,
+    paddingVertical: 10,
+    borderBottomWidth: StyleSheet.hairlineWidth,
+    borderBottomColor: '#9ca3af',
+  },
+  suggestionMeta: {
+    fontSize: 12,
+    marginTop: 2,
+  },
   helperText: {
     marginBottom: 14,
   },
@@ -459,6 +550,21 @@ const styles = StyleSheet.create({
     borderRadius: 12,
     padding: 14,
     gap: 5,
+  },
+  profileHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 10,
+  },
+  profileHeaderText: {
+    flex: 1,
+  },
+  profileImage: {
+    width: 48,
+    height: 48,
+    borderRadius: 24,
+    borderWidth: 1,
+    borderColor: '#d1d5db',
   },
   roleLine: {
     fontSize: 14,
