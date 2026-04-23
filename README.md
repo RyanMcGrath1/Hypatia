@@ -1,50 +1,77 @@
 # Hypatia
 
-This is an [Expo](https://expo.dev) project created with [`create-expo-app`](https://www.npmjs.com/package/create-expo-app).
+Hypatia is an Expo + React Native app with a tab-based interface for experimenting with political profile UX.  
+The current app includes a searchable **Politician Profiles** experience backed by local mock data (name suggestions, profile cards, key positions, headlines, and an approval trend chart), plus starter tabs for additional features.
 
-## Get started
+## What the project does
 
-1. Install dependencies
+- Provides a multi-tab mobile/web app scaffold using `expo-router`.
+- Includes a fully styled `Politician` tab with:
+  - type-ahead name search,
+  - loading/empty/result states,
+  - profile summary and metrics,
+  - key positions and recent headlines,
+  - approval trend visualization.
+- Keeps supporting tabs (`Home`, `Explore`, and `Ryan`) for additional feature development.
+
+## Tech stack
+
+- [Expo](https://expo.dev) + React Native
+- [expo-router](https://docs.expo.dev/router/introduction/) for file-based routing
+- TypeScript
+
+## Quick start
+
+1. Install dependencies:
 
    ```bash
    npm install
    ```
 
-2. Start the app
+2. Create local env file from the template:
+
+   ```bash
+   cp .env.example .env
+   ```
+
+   On Windows PowerShell:
+
+   ```powershell
+   Copy-Item .env.example .env
+   ```
+
+3. Start the development server:
 
    ```bash
    npx expo start
    ```
 
-In the output, you'll find options to open the app in a
+4. Open the app in Expo Go, simulator, emulator, or web from the Expo CLI menu.
 
-- [development build](https://docs.expo.dev/develop/development-builds/introduction/)
-- [Android emulator](https://docs.expo.dev/workflow/android-studio-emulator/)
-- [iOS simulator](https://docs.expo.dev/workflow/ios-simulator/)
-- [Expo Go](https://expo.dev/go), a limited sandbox for trying out app development with Expo
+## Environment variables and API keys
 
-You can start developing by editing the files inside the **app** directory. This project uses [file-based routing](https://docs.expo.dev/router/introduction).
+- `EXPO_PUBLIC_*` variables are bundled into the client and are public.
+- Use `.env` for local client config (for example `EXPO_PUBLIC_API_BASE_URL`).
+- Store secret API keys only in your backend/Flask environment, never in the Expo app.
 
-## Get a fresh project
+## Useful scripts
 
-When you're ready, run:
+- `npm run start` - Start Expo.
+- `npm run android` - Open Android target.
+- `npm run ios` - Open iOS target.
+- `npm run web` - Run web target.
+- `npm run typecheck` - Run TypeScript checks.
+- `npm run lint` - Run linting.
+- `npm run check` - Run typecheck + lint.
 
-```bash
-npm run reset-project
-```
+## Project structure
 
-This command will move the starter code to the **app-example** directory and create a blank **app** directory where you can start developing.
+- `app/` - Route screens (tabs and layouts).
+- `components/` - Shared UI components.
+- `hooks/` - Reusable hooks.
+- `constants/` - Shared constants and theme values.
+- `scripts/` - Helper scripts for local tooling.
 
-## Learn more
+## Notes
 
-To learn more about developing your project with Expo, look at the following resources:
-
-- [Expo documentation](https://docs.expo.dev/): Learn fundamentals, or go into advanced topics with our [guides](https://docs.expo.dev/guides).
-- [Learn Expo tutorial](https://docs.expo.dev/tutorial/introduction/): Follow a step-by-step tutorial where you'll create a project that runs on Android, iOS, and the web.
-
-## Join the community
-
-Join our community of developers creating universal apps.
-
-- [Expo on GitHub](https://github.com/expo/expo): View our open source platform and contribute.
-- [Discord community](https://chat.expo.dev): Chat with Expo users and ask questions.
+- This project started from `create-expo-app` and has been customized for Hypatia-specific UI flows.
