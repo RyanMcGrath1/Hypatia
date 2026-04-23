@@ -4,7 +4,8 @@ import { ActivityIndicator, Pressable, ScrollView, StyleSheet, View } from 'reac
 import { ThemedText } from '@/components/ThemedText';
 import { ThemedView } from '@/components/ThemedView';
 import {
-  fetchFlaskHello,
+  DEFAULT_CIVIC_SAMPLE_ADDRESS,
+  fetchCivicRepresentatives,
   getFlaskApiBaseUrl,
   getFlaskHelloNetworkErrorMessage,
 } from '@/hooks/useFlaskHelloSearch';
@@ -22,7 +23,7 @@ export default function ExploreScreen() {
     };
   }, []);
 
-  const loadHello = useCallback(async () => {
+  const loadRepresentatives = useCallback(async () => {
     abortRef.current?.abort();
     const controller = new AbortController();
     abortRef.current = controller;
@@ -31,8 +32,15 @@ export default function ExploreScreen() {
     setIsLoading(true);
     setError(null);
 
+    const base = getFlaskApiBaseUrl();
+    const params = new URLSearchParams({ address: DEFAULT_CIVIC_SAMPLE_ADDRESS });
+    const url = `${base}/api/civic/representatives?${params.toString()}`;
+
     try {
-      const data = await fetchFlaskHello(controller.signal);
+      const data = await fetchCivicRepresentatives(
+        DEFAULT_CIVIC_SAMPLE_ADDRESS,
+        controller.signal,
+      );
       if (requestIdRef.current !== requestId) {
         return;
       }
@@ -44,22 +52,26 @@ export default function ExploreScreen() {
       if (requestIdRef.current !== requestId) {
         return;
       }
-      const url = `${getFlaskApiBaseUrl()}/hello`;
       if (err instanceof Error) {
         console.error(
-          `[Explore] GET /hello failed url=${url} ${err.name}: ${err.message}${err.stack ? `\n${err.stack}` : ''}`,
+          `[Explore] GET /api/civic/representatives failed url=${url} ${err.name}: ${err.message}${err.stack ? `\n${err.stack}` : ''}`,
         );
       } else {
-        console.error(`[Explore] GET /hello failed url=${url}`, String(err));
+        console.error(`[Explore] GET /api/civic/representatives failed url=${url}`, String(err));
       }
       setApiData(null);
-      setError(getFlaskHelloNetworkErrorMessage());
+      const hint = getFlaskHelloNetworkErrorMessage();
+      const detail = err instanceof Error && err.message ? err.message : null;
+      setError(detail ? `${hint}\n\n${detail}` : hint);
     } finally {
       if (requestIdRef.current === requestId) {
         setIsLoading(false);
       }
     }
   }, []);
+
+  /** Same handler; keeps a `loadHello` binding for Metro/HMR if an old reference lingers. */
+  const loadHello = loadRepresentatives;
 
   const responseText =
     apiData === null
@@ -73,15 +85,16 @@ export default function ExploreScreen() {
       <ScrollView contentContainerStyle={styles.scroll} keyboardShouldPersistTaps="handled">
         <ThemedText type="title">Explore</ThemedText>
         <ThemedText style={styles.subtitle}>
-          Call local Flask on <ThemedText type="defaultSemiBold">port 5000</ThemedText>:{' '}
-          <ThemedText type="defaultSemiBold">GET /hello</ThemedText> at{' '}
-          <ThemedText type="defaultSemiBold">{getFlaskApiBaseUrl()}/hello</ThemedText>.
+          Call local Flask <ThemedText type="defaultSemiBold">GET /api/civic/representatives</ThemedText> with the
+          sample White House address (same query as{' '}
+          <ThemedText type="defaultSemiBold">
+            {`curl "http://127.0.0.1:5000/api/civic/representatives?address=..."`}
+          </ThemedText>
+          ). Base URL: <ThemedText type="defaultSemiBold">{getFlaskApiBaseUrl()}</ThemedText>.
           {'\n'}
-          Defaults match <ThemedText type="defaultSemiBold">curl http://127.0.0.1:5000/hello</ThemedText> on web
-          and iOS simulator; Android emulator uses <ThemedText type="defaultSemiBold">10.0.2.2:5000</ThemedText>.
-          On a physical device, set <ThemedText type="defaultSemiBold">EXPO_PUBLIC_API_BASE_URL</ThemedText> to your
-          computer's LAN URL (for example <ThemedText type="defaultSemiBold">http://192.168.x.x:5000</ThemedText>
-          ).
+          On a physical device, use your computer's LAN IP or{' '}
+          <ThemedText type="defaultSemiBold">EXPO_PUBLIC_API_BASE_URL</ThemedText>; run Flask on{' '}
+          <ThemedText type="defaultSemiBold">0.0.0.0:5000</ThemedText> for device access.
         </ThemedText>
 
         <Pressable
@@ -94,7 +107,7 @@ export default function ExploreScreen() {
               <ThemedText style={styles.buttonLabel}>Loading…</ThemedText>
             </View>
           ) : (
-            <ThemedText style={styles.buttonLabel}>Fetch /hello</ThemedText>
+            <ThemedText style={styles.buttonLabel}>Fetch representatives</ThemedText>
           )}
         </Pressable>
 

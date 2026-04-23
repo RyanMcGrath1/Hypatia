@@ -119,23 +119,62 @@ export function getFlaskHelloNetworkErrorMessage(): string {
   return `Unable to reach Flask at ${getFlaskApiBaseUrl()}. On a real device, the app uses your dev machine's LAN IP (same as Metro). Run Flask bound to all interfaces, e.g. flask run --host=0.0.0.0 --port=5000, or set EXPO_PUBLIC_API_BASE_URL.`;
 }
 
-/** `GET {base}/hello` — same contract as `curl http://127.0.0.1:5000/hello` when using default base on web/simulator. */
-export async function fetchFlaskHello(signal?: AbortSignal): Promise<unknown> {
+async function fetchFlaskGet(
+  path: string,
+  searchParams: Record<string, string> | undefined,
+  signal: AbortSignal | undefined,
+): Promise<unknown> {
   const apiBaseUrl = getFlaskApiBaseUrl();
-  const response = await fetch(`${apiBaseUrl}/hello`, {
-    method: 'GET',
-    headers: {
-      Accept: 'application/json, text/plain, */*',
-    },
-    signal,
-  });
+  const normalizedPath = path.startsWith('/') ? path : `/${path}`;
+  const qs =
+    searchParams && Object.keys(searchParams).length > 0
+      ? `?${new URLSearchParams(searchParams).toString()}`
+      : '';
+  const url = `${apiBaseUrl}${normalizedPath}${qs}`;
 
-  if (!response.ok) {
-    throw new Error(`Request failed with status ${response.status}`);
+  let response: Response;
+  try {
+    response = await fetch(url, {
+      method: 'GET',
+      headers: {
+        Accept: 'application/json, text/plain, */*',
+      },
+      signal,
+    });
+  } catch (e) {
+    const msg = e instanceof Error ? e.message : String(e);
+    throw new Error(`Network error for ${url}: ${msg}`);
   }
 
   const text = await response.text();
+  if (!response.ok) {
+    const snippet = text.trim().slice(0, 400);
+    throw new Error(
+      `HTTP ${response.status} ${response.statusText} for ${url}${snippet ? ` — ${snippet}` : ''}`,
+    );
+  }
   return parseResponseBody(text);
+}
+
+/** `GET {base}/hello` — same contract as `curl http://127.0.0.1:5000/hello` when using default base on web/simulator. */
+export async function fetchFlaskHello(signal?: AbortSignal): Promise<unknown> {
+  return fetchFlaskGet('/hello', undefined, signal);
+}
+
+/** Sample address matching `curl "http://127.0.0.1:5000/api/civic/representatives?address=1600%20Pennsylvania%20..."`. */
+export const DEFAULT_CIVIC_SAMPLE_ADDRESS =
+  '1600 Pennsylvania Avenue NW Washington DC';
+
+/** `GET {base}/api/civic/representatives?address=...` — base URL follows the same rules as `/hello`. */
+export async function fetchCivicRepresentatives(
+  address: string,
+  signal?: AbortSignal,
+): Promise<unknown> {
+  return fetchFlaskGet(
+    '/api/civic/representatives',
+    { address: address.trim() },
+    signal,
+  );
 }
 
 export function useFlaskHelloSearch(query: string): UseFlaskHelloSearchResult {
