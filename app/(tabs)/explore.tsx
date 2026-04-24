@@ -4,8 +4,8 @@ import { ActivityIndicator, Pressable, ScrollView, StyleSheet, View } from 'reac
 import { ThemedText } from '@/components/ThemedText';
 import { ThemedView } from '@/components/ThemedView';
 import {
-  DEFAULT_CIVIC_SAMPLE_ADDRESS,
-  fetchCivicRepresentatives,
+  DEFAULT_CIVIC_DIVISIONS_SAMPLE_ADDRESS,
+  fetchCivicDivisionsByAddress,
   getFlaskApiBaseUrl,
   getFlaskHelloNetworkErrorMessage,
 } from '@/hooks/useFlaskHelloSearch';
@@ -23,7 +23,7 @@ export default function ExploreScreen() {
     };
   }, []);
 
-  const loadRepresentatives = useCallback(async () => {
+  const loadDivisionsByAddress = useCallback(async () => {
     abortRef.current?.abort();
     const controller = new AbortController();
     abortRef.current = controller;
@@ -33,12 +33,12 @@ export default function ExploreScreen() {
     setError(null);
 
     const base = getFlaskApiBaseUrl();
-    const params = new URLSearchParams({ address: DEFAULT_CIVIC_SAMPLE_ADDRESS });
-    const url = `${base}/api/civic/representatives?${params.toString()}`;
+    const params = new URLSearchParams({ address: DEFAULT_CIVIC_DIVISIONS_SAMPLE_ADDRESS });
+    const url = `${base}/api/civic/divisions-by-address?${params.toString()}`;
 
     try {
-      const data = await fetchCivicRepresentatives(
-        DEFAULT_CIVIC_SAMPLE_ADDRESS,
+      const data = await fetchCivicDivisionsByAddress(
+        DEFAULT_CIVIC_DIVISIONS_SAMPLE_ADDRESS,
         controller.signal,
       );
       if (requestIdRef.current !== requestId) {
@@ -54,10 +54,10 @@ export default function ExploreScreen() {
       }
       if (err instanceof Error) {
         console.error(
-          `[Explore] GET /api/civic/representatives failed url=${url} ${err.name}: ${err.message}${err.stack ? `\n${err.stack}` : ''}`,
+          `[Explore] GET /api/civic/divisions-by-address failed url=${url} ${err.name}: ${err.message}${err.stack ? `\n${err.stack}` : ''}`,
         );
       } else {
-        console.error(`[Explore] GET /api/civic/representatives failed url=${url}`, String(err));
+        console.error(`[Explore] GET /api/civic/divisions-by-address failed url=${url}`, String(err));
       }
       setApiData(null);
       const hint = getFlaskHelloNetworkErrorMessage();
@@ -71,7 +71,7 @@ export default function ExploreScreen() {
   }, []);
 
   /** Same handler; keeps a `loadHello` binding for Metro/HMR if an old reference lingers. */
-  const loadHello = loadRepresentatives;
+  const loadHello = loadDivisionsByAddress;
 
   const responseText =
     apiData === null
@@ -85,10 +85,10 @@ export default function ExploreScreen() {
       <ScrollView contentContainerStyle={styles.scroll} keyboardShouldPersistTaps="handled">
         <ThemedText type="title">Explore</ThemedText>
         <ThemedText style={styles.subtitle}>
-          Call local Flask <ThemedText type="defaultSemiBold">GET /api/civic/representatives</ThemedText> with the
-          sample White House address (same query as{' '}
+          Call local Flask <ThemedText type="defaultSemiBold">GET /api/civic/divisions-by-address</ThemedText> with
+          address <ThemedText type="defaultSemiBold">{DEFAULT_CIVIC_DIVISIONS_SAMPLE_ADDRESS}</ThemedText> (same as{' '}
           <ThemedText type="defaultSemiBold">
-            {`curl "http://127.0.0.1:5000/api/civic/representatives?address=..."`}
+            {`curl "http://127.0.0.1:5000/api/civic/divisions-by-address?address=${DEFAULT_CIVIC_DIVISIONS_SAMPLE_ADDRESS}"`}
           </ThemedText>
           ). Base URL: <ThemedText type="defaultSemiBold">{getFlaskApiBaseUrl()}</ThemedText>.
           {'\n'}
@@ -107,7 +107,7 @@ export default function ExploreScreen() {
               <ThemedText style={styles.buttonLabel}>Loading…</ThemedText>
             </View>
           ) : (
-            <ThemedText style={styles.buttonLabel}>Fetch representatives</ThemedText>
+            <ThemedText style={styles.buttonLabel}>Fetch divisions by address</ThemedText>
           )}
         </Pressable>
 

@@ -177,6 +177,21 @@ export async function fetchCivicRepresentatives(
   );
 }
 
+/** Sample address for divisions-by-address (e.g. ZIP `07834`), matching Postman `?address=07834`. */
+export const DEFAULT_CIVIC_DIVISIONS_SAMPLE_ADDRESS = '07834';
+
+/** `GET {base}/api/civic/divisions-by-address?address=...` — base URL follows the same rules as `/hello`. */
+export async function fetchCivicDivisionsByAddress(
+  address: string,
+  signal?: AbortSignal,
+): Promise<unknown> {
+  return fetchFlaskGet(
+    '/api/civic/divisions-by-address',
+    { address: address.trim() },
+    signal,
+  );
+}
+
 export function useFlaskHelloSearch(query: string): UseFlaskHelloSearchResult {
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
