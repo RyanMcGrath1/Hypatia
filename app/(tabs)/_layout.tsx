@@ -54,14 +54,6 @@ export default function TabLayout() {
                     tabBarIcon: ({color}) => <FontAwesome name="university" size={22} color={color}/>,
                 }}
             />
-            <Tabs.Screen
-                name="economy/[sectorId]"
-                options={{
-                    href: null,
-                    headerShown: true,
-                    title: 'Sector details',
-                }}
-            />
         </Tabs>
     );
 }

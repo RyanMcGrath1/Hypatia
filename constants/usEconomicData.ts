@@ -6,6 +6,12 @@ export type SectorMetric = {
   note: string;
 };
 
+export type EconomicPulseSeries = {
+  label: string;
+  values: number[];
+  color: string;
+};
+
 export type EconomicSector = {
   id: string;
   title: string;
@@ -121,6 +127,36 @@ export const US_ECONOMIC_SECTORS: EconomicSector[] = [
       { label: 'Consumer Sentiment', value: '74.8', note: 'Improved from prior month' },
     ],
     updatedAt: 'Apr 2026',
+  },
+];
+
+export const ECONOMIC_PULSE_MONTH_LABELS = ['Nov', 'Dec', 'Jan', 'Feb', 'Mar', 'Apr'];
+
+/**
+ * Indexed trend lines (Nov = 100) for at-a-glance visual comparison.
+ * This avoids mixing incompatible units (percent, level, and annualized rates)
+ * while still preserving directional context for each macro signal.
+ */
+export const ECONOMIC_PULSE_SERIES: EconomicPulseSeries[] = [
+  {
+    label: 'Inflation',
+    values: [100, 101, 100, 99, 98, 97],
+    color: '#ef4444',
+  },
+  {
+    label: 'Labor',
+    values: [100, 100, 101, 101, 102, 102],
+    color: '#22c55e',
+  },
+  {
+    label: 'GDP',
+    values: [100, 99, 100, 101, 102, 103],
+    color: '#3b82f6',
+  },
+  {
+    label: 'Policy Rate',
+    values: [100, 100, 100, 100, 100, 100],
+    color: '#a855f7',
   },
 ];
 

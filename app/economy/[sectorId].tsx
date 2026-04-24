@@ -11,6 +11,20 @@ export default function EconomicSectorDetailScreen() {
   const { sectorId } = useLocalSearchParams<{ sectorId?: string }>();
   const colorScheme = useColorScheme() ?? 'light';
   const theme = Colors[colorScheme];
+  const sharedHeaderOptions = {
+    gestureEnabled: true,
+    fullScreenGestureEnabled: true,
+    headerBackButtonDisplayMode: 'minimal' as const,
+    headerStyle: {
+      backgroundColor: theme.background,
+    },
+    headerTintColor: theme.tint,
+    headerTitleStyle: {
+      color: theme.text,
+      fontWeight: '600' as const,
+    },
+    headerShadowVisible: false,
+  };
 
   const normalizedId = Array.isArray(sectorId) ? sectorId[0] : sectorId;
   const sector = normalizedId ? getEconomicSectorById(normalizedId) : null;
@@ -18,7 +32,12 @@ export default function EconomicSectorDetailScreen() {
   if (!sector) {
     return (
       <ThemedView style={styles.screen}>
-        <Stack.Screen options={{ title: 'Sector details' }} />
+        <Stack.Screen
+          options={{
+            title: 'Sector details',
+            ...sharedHeaderOptions,
+          }}
+        />
         <View style={styles.stateCard}>
           <ThemedText type="subtitle">Sector not found</ThemedText>
           <ThemedText style={[styles.copy, { color: theme.icon }]}>
@@ -31,7 +50,12 @@ export default function EconomicSectorDetailScreen() {
 
   return (
     <ThemedView style={styles.screen}>
-      <Stack.Screen options={{ title: sector.title }} />
+      <Stack.Screen
+        options={{
+          title: sector.title,
+          ...sharedHeaderOptions,
+        }}
+      />
       <ScrollView contentContainerStyle={styles.scrollContent} showsVerticalScrollIndicator={false}>
         <ThemedText type="title" style={styles.title}>
           {sector.title}

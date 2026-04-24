@@ -19,7 +19,7 @@ type MenuItem = {
 const MENU_ITEMS: MenuItem[] = [
   { label: 'Home', icon: 'home', href: '/' },
   { label: 'Explore', icon: 'paper-plane', href: '/explore' },
-  { label: 'Ryan', icon: 'dollar', href: '/ryan' },
+  { label: 'Economy', icon: 'dollar', href: '/(tabs)/economy' },
   { label: 'Politician', icon: 'university', href: '/politician' },
 ];
 

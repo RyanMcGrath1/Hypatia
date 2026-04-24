@@ -2,6 +2,7 @@ import { useMemo, useState } from 'react';
 import { Pressable, ScrollView, StyleSheet, View, useWindowDimensions } from 'react-native';
 import { useRouter } from 'expo-router';
 
+import EconomicPulseChart from '@/components/EconomicPulseChart';
 import { ThemedText } from '@/components/ThemedText';
 import { ThemedView } from '@/components/ThemedView';
 import { Colors } from '@/constants/Colors';
@@ -19,9 +20,9 @@ function getTrendTone(trend: SectorTrend, isDark: boolean) {
 }
 
 export default function EconomyDashboardScreen() {
+  // Router + view state
   const router = useRouter();
   const { width } = useWindowDimensions();
-  const [expandedSectorId, setExpandedSectorId] = useState<string | null>(null);
   const [isLoading] = useState(false);
   const [error] = useState<string | null>(null);
 
@@ -32,32 +33,21 @@ export default function EconomyDashboardScreen() {
     const horizontalPadding = 32;
     const gap = 12;
     const available = width - horizontalPadding;
-    if (available > 600) {
-      return (available - gap) / 2;
-    }
-    if (available > 420) {
-      return (available - gap) / 2;
-    }
-    return available;
+    return (available - gap) / 2;
   }, [width]);
 
   const cardBackground = isDark ? '#111827' : '#ffffff';
   const cardBorder = isDark ? '#374151' : '#e5e7eb';
-  const cardSubtleBackground = isDark ? '#0f172a' : '#f8fafc';
-
-  const toggleExpanded = (sectorId: string) => {
-    setExpandedSectorId((current) => (current === sectorId ? null : sectorId));
-  };
 
   const openSectorDetails = (sectorId: string) => {
     router.push({
-      pathname: '/(tabs)/economy/[sectorId]',
+      pathname: '/economy/[sectorId]',
       params: { sectorId },
     });
   };
 
+  // Per-sector tile renderer (tap card to route)
   const renderSectorCard = (sector: EconomicSector) => {
-    const isExpanded = expandedSectorId === sector.id;
     const trendTone = getTrendTone(sector.trend, isDark);
 
     return (
@@ -71,7 +61,7 @@ export default function EconomyDashboardScreen() {
             borderColor: cardBorder,
           },
         ]}>
-        <Pressable style={styles.cardTop} onPress={() => toggleExpanded(sector.id)}>
+        <Pressable style={styles.cardTop} onPress={() => openSectorDetails(sector.id)}>
           <ThemedText type="defaultSemiBold">{sector.title}</ThemedText>
           <ThemedText style={[styles.updatedText, { color: theme.icon }]}>
             Updated {sector.updatedAt}
@@ -86,24 +76,10 @@ export default function EconomyDashboardScreen() {
             {trendTone.marker} {sector.trendLabel}
           </ThemedText>
           <ThemedText style={[styles.summaryText, { color: theme.icon }]}>{sector.summary}</ThemedText>
+          <ThemedText style={[styles.openDetailsHint, { color: theme.tint }]}>
+            Tap to open full details
+          </ThemedText>
         </Pressable>
-
-        {isExpanded && (
-          <View style={[styles.expandedSection, { backgroundColor: cardSubtleBackground }]}>
-            <ThemedText type="defaultSemiBold">Quick Read</ThemedText>
-            <ThemedText style={styles.expandedCopy}>{sector.interpretation}</ThemedText>
-            {sector.metrics.map((metric) => (
-              <View key={`${sector.id}-${metric.label}`} style={styles.metricRow}>
-                <ThemedText style={[styles.metricLabel, { color: theme.icon }]}>{metric.label}</ThemedText>
-                <ThemedText type="defaultSemiBold">{metric.value}</ThemedText>
-                <ThemedText style={[styles.metricNote, { color: theme.icon }]}>{metric.note}</ThemedText>
-              </View>
-            ))}
-            <Pressable style={styles.detailButton} onPress={() => openSectorDetails(sector.id)}>
-              <ThemedText style={styles.detailButtonText}>Open full sector details</ThemedText>
-            </Pressable>
-          </View>
-        )}
       </View>
     );
   };
@@ -111,14 +87,16 @@ export default function EconomyDashboardScreen() {
   return (
     <ThemedView style={styles.screen}>
       <ScrollView contentContainerStyle={styles.scrollContent} showsVerticalScrollIndicator={false}>
+        {/* Page header + visual anchor */}
         <ThemedText type="title" style={styles.title}>
           US Economic Dashboard
         </ThemedText>
         <ThemedText style={[styles.subtitle, { color: theme.icon }]}>
-          High-level read across major sectors. Tap a tile for a quick drilldown, then open full sector
-          details for deeper context.
+          High-level read across major sectors. Tap a tile to open a dedicated deep-dive view.
         </ThemedText>
+        <EconomicPulseChart />
 
+        {/* Loading + error states */}
         {isLoading && (
           <View style={[styles.stateCard, { backgroundColor: cardBackground, borderColor: cardBorder }]}>
             <ThemedText>Loading economic indicators...</ThemedText>
@@ -131,6 +109,7 @@ export default function EconomyDashboardScreen() {
           </View>
         )}
 
+        {/* Sector overview grid */}
         {!isLoading && error === null && (
           <View style={styles.gridWrap}>{US_ECONOMIC_SECTORS.map((sector) => renderSectorCard(sector))}</View>
         )}
@@ -191,38 +170,9 @@ const styles = StyleSheet.create({
     fontSize: 13,
     lineHeight: 18,
   },
-  expandedSection: {
-    borderTopWidth: StyleSheet.hairlineWidth,
-    borderTopColor: '#94a3b8',
-    paddingHorizontal: 12,
-    paddingTop: 10,
-    paddingBottom: 12,
-    gap: 8,
-  },
-  expandedCopy: {
-    lineHeight: 20,
-  },
-  metricRow: {
-    gap: 1,
-    paddingTop: 6,
-  },
-  metricLabel: {
-    fontSize: 12,
-  },
-  metricNote: {
-    fontSize: 12,
-  },
-  detailButton: {
+  openDetailsHint: {
     marginTop: 8,
-    minHeight: 40,
-    borderRadius: 10,
-    backgroundColor: '#1d4ed8',
-    alignItems: 'center',
-    justifyContent: 'center',
-    paddingHorizontal: 12,
-  },
-  detailButtonText: {
-    color: '#ffffff',
+    fontSize: 12,
     fontWeight: '600',
   },
   stateCard: {
