@@ -41,7 +41,7 @@ export default function TabLayout() {
                 }}
             />
             <Tabs.Screen
-                name="ryan"
+                name="economy"
                 options={{
                     title: '',
                     tabBarIcon: ({color}) => <FontAwesome name="dollar" size={24} color={color}/>,
@@ -52,6 +52,14 @@ export default function TabLayout() {
                 options={{
                     title: '',
                     tabBarIcon: ({color}) => <FontAwesome name="university" size={22} color={color}/>,
+                }}
+            />
+            <Tabs.Screen
+                name="economy/[sectorId]"
+                options={{
+                    href: null,
+                    headerShown: true,
+                    title: 'Sector details',
                 }}
             />
         </Tabs>
