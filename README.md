@@ -1,18 +1,40 @@
 # Hypatia
 
-Hypatia is an Expo + React Native app with a tab-based interface for experimenting with political profile UX.  
-The current app includes a searchable **Politician Profiles** experience backed by local mock data (name suggestions, profile cards, key positions, headlines, and an approval trend chart), plus starter tabs for additional features.
+Hypatia is an Expo + React Native app with a tab-first mobile UX for exploring civic and economic information.
 
-## What the project does
+The app currently includes:
+- an **Economy Dashboard** with macro pulse chart, KPI strip, and sector drilldowns,
+- a dedicated **Economy Detail** flow with stack navigation and gesture back,
+- a searchable **Politician Profiles** experience backed by local mock data,
+- supporting `Home` and `Explore` tabs for additional feature development.
 
-- Provides a multi-tab mobile/web app scaffold using `expo-router`.
-- Includes a fully styled `Politician` tab with:
+## Core features
+
+### Economy
+- `app/(tabs)/economy.tsx`: high-level dashboard with:
+  - top economic pulse line chart,
+  - compact KPI cards,
+  - sector tiles that navigate to detail views.
+- `app/economy/[sectorId].tsx`: sector deep-dive screen with:
+  - header configured via stack options,
+  - interpretation + key metrics,
+  - swipe-back enabled through stack navigation.
+
+### Politician
+- `app/(tabs)/politician.tsx` provides:
   - type-ahead name search,
   - loading/empty/result states,
   - profile summary and metrics,
   - key positions and recent headlines,
-  - approval trend visualization.
-- Keeps supporting tabs (`Home`, `Explore`, and `Ryan`) for additional feature development.
+  - trend chart visualization.
+
+## UX and design system direction
+
+Recent improvements introduced:
+- shared route constants in `constants/routes.ts`,
+- semantic theme tokens in `constants/ThemeTokens.ts`,
+- reusable primitives in `components/ScreenHeader.tsx`, `components/SectionCard.tsx`, and `components/EmptyState.tsx`,
+- accessibility-friendly tab metadata with icon-first presentation.
 
 ## Tech stack
 
@@ -62,16 +84,17 @@ The current app includes a searchable **Politician Profiles** experience backed 
 - `npm run web` - Run web target.
 - `npm run typecheck` - Run TypeScript checks.
 - `npm run lint` - Run linting.
-- `npm run check` - Run typecheck + lint.
+- `npm run test:navigation-smoke` - Verify economy route/navigation contract.
+- `npm run check` - Run typecheck + lint + navigation smoke checks.
 
 ## Project structure
 
-- `app/` - Route screens (tabs and layouts).
-- `components/` - Shared UI components.
+- `app/` - Route screens, tab layout, and stack detail screens.
+- `components/` - Shared UI components and reusable screen primitives.
 - `hooks/` - Reusable hooks.
-- `constants/` - Shared constants and theme values.
-- `scripts/` - Helper scripts for local tooling.
+- `constants/` - Route constants, design tokens, and theme values.
+- `scripts/` - Local helper scripts and smoke checks.
 
 ## Notes
 
-- This project started from `create-expo-app` and has been customized for Hypatia-specific UI flows.
+- The project started from `create-expo-app` and has been customized for Hypatia-specific UX flows.
