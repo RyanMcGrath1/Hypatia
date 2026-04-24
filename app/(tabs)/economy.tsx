@@ -3,10 +3,14 @@ import { Pressable, ScrollView, StyleSheet, View, useWindowDimensions } from 're
 import { useRouter } from 'expo-router';
 
 import EconomicPulseChart from '@/components/EconomicPulseChart';
+import { ScreenHeader } from '@/components/ScreenHeader';
+import { SectionCard } from '@/components/SectionCard';
 import { ThemedText } from '@/components/ThemedText';
 import { ThemedView } from '@/components/ThemedView';
 import { Colors } from '@/constants/Colors';
-import { US_ECONOMIC_SECTORS, type EconomicSector, type SectorTrend } from '@/constants/usEconomicData';
+import { AppRoutes } from '@/constants/routes';
+import { Radius, Spacing, getSemanticColors } from '@/constants/ThemeTokens';
+import { ECONOMY_KPIS, US_ECONOMIC_SECTORS, type EconomicSector, type SectorTrend } from '@/constants/usEconomicData';
 import { useColorScheme } from '@/hooks/useColorScheme';
 
 function getTrendTone(trend: SectorTrend, isDark: boolean) {
@@ -29,6 +33,7 @@ export default function EconomyDashboardScreen() {
   const colorScheme = useColorScheme() ?? 'light';
   const isDark = colorScheme === 'dark';
   const theme = Colors[colorScheme];
+  const semantic = getSemanticColors(colorScheme);
   const cardWidth = useMemo(() => {
     const horizontalPadding = 32;
     const gap = 12;
@@ -36,12 +41,9 @@ export default function EconomyDashboardScreen() {
     return (available - gap) / 2;
   }, [width]);
 
-  const cardBackground = isDark ? '#111827' : '#ffffff';
-  const cardBorder = isDark ? '#374151' : '#e5e7eb';
-
   const openSectorDetails = (sectorId: string) => {
     router.push({
-      pathname: '/economy/[sectorId]',
+      pathname: AppRoutes.economyDetail,
       params: { sectorId },
     });
   };
@@ -57,25 +59,27 @@ export default function EconomyDashboardScreen() {
           styles.card,
           {
             width: cardWidth,
-            backgroundColor: cardBackground,
-            borderColor: cardBorder,
+            backgroundColor: semantic.cardBackground,
+            borderColor: semantic.cardBorder,
           },
         ]}>
         <Pressable style={styles.cardTop} onPress={() => openSectorDetails(sector.id)}>
           <ThemedText type="defaultSemiBold">{sector.title}</ThemedText>
-          <ThemedText style={[styles.updatedText, { color: theme.icon }]}>
+          <ThemedText style={[styles.updatedText, { color: semantic.mutedText }]}>
             Updated {sector.updatedAt}
           </ThemedText>
           <ThemedText style={[styles.headlineValue, { color: theme.text }]}>
             {sector.headlineValue}
           </ThemedText>
-          <ThemedText style={[styles.headlineLabel, { color: theme.icon }]}>
+          <ThemedText style={[styles.headlineLabel, { color: semantic.mutedText }]}>
             {sector.headlineLabel}
           </ThemedText>
           <ThemedText style={[styles.trendText, { color: trendTone.color }]}>
             {trendTone.marker} {sector.trendLabel}
           </ThemedText>
-          <ThemedText style={[styles.summaryText, { color: theme.icon }]}>{sector.summary}</ThemedText>
+          <ThemedText numberOfLines={2} style={[styles.summaryText, { color: semantic.mutedText }]}>
+            {sector.summary}
+          </ThemedText>
           <ThemedText style={[styles.openDetailsHint, { color: theme.tint }]}>
             Tap to open full details
           </ThemedText>
@@ -87,26 +91,37 @@ export default function EconomyDashboardScreen() {
   return (
     <ThemedView style={styles.screen}>
       <ScrollView contentContainerStyle={styles.scrollContent} showsVerticalScrollIndicator={false}>
-        {/* Page header + visual anchor */}
-        <ThemedText type="title" style={styles.title}>
-          US Economic Dashboard
-        </ThemedText>
-        <ThemedText style={[styles.subtitle, { color: theme.icon }]}>
-          High-level read across major sectors. Tap a tile to open a dedicated deep-dive view.
-        </ThemedText>
+        <ScreenHeader
+          title="US Economic Dashboard"
+          subtitle="High-level read across major sectors. Tap a tile to open a dedicated deep-dive view."
+          subtitleColor={semantic.mutedText}
+        />
         <EconomicPulseChart />
+        <View style={styles.kpiRow}>
+          {ECONOMY_KPIS.map((kpi) => (
+            <SectionCard
+              key={kpi.id}
+              backgroundColor={semantic.cardSubtleBackground}
+              borderColor={semantic.cardBorder}
+              style={styles.kpiCard}>
+              <ThemedText style={[styles.kpiLabel, { color: semantic.mutedText }]}>{kpi.label}</ThemedText>
+              <ThemedText type="defaultSemiBold">{kpi.value}</ThemedText>
+              <ThemedText style={[styles.kpiContext, { color: semantic.mutedText }]}>{kpi.context}</ThemedText>
+            </SectionCard>
+          ))}
+        </View>
 
         {/* Loading + error states */}
         {isLoading && (
-          <View style={[styles.stateCard, { backgroundColor: cardBackground, borderColor: cardBorder }]}>
+          <SectionCard backgroundColor={semantic.cardBackground} borderColor={semantic.cardBorder} style={styles.stateCard}>
             <ThemedText>Loading economic indicators...</ThemedText>
-          </View>
+          </SectionCard>
         )}
 
         {error !== null && (
-          <View style={[styles.stateCard, { backgroundColor: cardBackground, borderColor: '#dc2626' }]}>
-            <ThemedText style={{ color: '#dc2626' }}>{error}</ThemedText>
-          </View>
+          <SectionCard backgroundColor={semantic.cardBackground} borderColor={semantic.danger} style={styles.stateCard}>
+            <ThemedText style={{ color: semantic.danger }}>{error}</ThemedText>
+          </SectionCard>
         )}
 
         {/* Sector overview grid */}
@@ -123,29 +138,40 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   scrollContent: {
-    paddingHorizontal: 16,
-    paddingTop: 12,
+    paddingHorizontal: Spacing.lg,
+    paddingTop: Spacing.md,
     paddingBottom: 120,
   },
-  title: {
-    marginBottom: 8,
+  kpiRow: {
+    flexDirection: 'row',
+    gap: Spacing.sm,
+    marginTop: 2,
+    marginBottom: Spacing.md,
   },
-  subtitle: {
-    marginBottom: 16,
-    lineHeight: 21,
+  kpiCard: {
+    flex: 1,
+    paddingHorizontal: Spacing.sm,
+    paddingVertical: Spacing.sm,
+    gap: 2,
+  },
+  kpiLabel: {
+    fontSize: 12,
+  },
+  kpiContext: {
+    fontSize: 12,
   },
   gridWrap: {
     flexDirection: 'row',
     flexWrap: 'wrap',
-    gap: 12,
+    gap: Spacing.md,
   },
   card: {
     borderWidth: 1,
-    borderRadius: 14,
+    borderRadius: Radius.lg,
     overflow: 'hidden',
   },
   cardTop: {
-    padding: 12,
+    padding: Spacing.md,
     gap: 4,
   },
   updatedText: {
@@ -168,7 +194,7 @@ const styles = StyleSheet.create({
   summaryText: {
     marginTop: 2,
     fontSize: 13,
-    lineHeight: 18,
+    lineHeight: 17,
   },
   openDetailsHint: {
     marginTop: 8,
@@ -176,9 +202,6 @@ const styles = StyleSheet.create({
     fontWeight: '600',
   },
   stateCard: {
-    borderWidth: 1,
-    borderRadius: 12,
-    padding: 12,
     marginTop: 8,
   },
 });

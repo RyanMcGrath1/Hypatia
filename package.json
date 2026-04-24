@@ -10,7 +10,8 @@
     "web": "expo start --web",
     "lint": "expo lint",
     "typecheck": "tsc --noEmit",
-    "check": "npm run typecheck && npm run lint"
+    "test:navigation-smoke": "node ./scripts/navigation-smoke-check.mjs",
+    "check": "npm run typecheck && npm run lint && npm run test:navigation-smoke"
   },
   "dependencies": {
     "@expo/vector-icons": "^15.0.3",

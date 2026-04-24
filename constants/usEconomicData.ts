@@ -12,6 +12,13 @@ export type EconomicPulseSeries = {
   color: string;
 };
 
+export type EconomyKpi = {
+  id: string;
+  label: string;
+  value: string;
+  context: string;
+};
+
 export type EconomicSector = {
   id: string;
   title: string;
@@ -158,6 +165,12 @@ export const ECONOMIC_PULSE_SERIES: EconomicPulseSeries[] = [
     values: [100, 100, 100, 100, 100, 100],
     color: '#a855f7',
   },
+];
+
+export const ECONOMY_KPIS: EconomyKpi[] = [
+  { id: 'inflation', label: 'Inflation', value: '3.2%', context: 'CPI YoY' },
+  { id: 'jobs', label: 'Jobs', value: '+175K', context: 'Nonfarm payrolls' },
+  { id: 'rates', label: 'Rates', value: '5.25%-5.50%', context: 'Fed funds target' },
 ];
 
 export function getEconomicSectorById(id: string): EconomicSector | null {

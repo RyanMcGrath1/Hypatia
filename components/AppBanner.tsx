@@ -8,6 +8,8 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { ThemedText } from '@/components/ThemedText';
 import { ThemedView } from '@/components/ThemedView';
 import { Colors } from '@/constants/Colors';
+import { AppRoutes } from '@/constants/routes';
+import { getSemanticColors } from '@/constants/ThemeTokens';
 import { useColorScheme } from '@/hooks/useColorScheme';
 
 type MenuItem = {
@@ -17,10 +19,10 @@ type MenuItem = {
 };
 
 const MENU_ITEMS: MenuItem[] = [
-  { label: 'Home', icon: 'home', href: '/' },
-  { label: 'Explore', icon: 'paper-plane', href: '/explore' },
-  { label: 'Economy', icon: 'dollar', href: '/(tabs)/economy' },
-  { label: 'Politician', icon: 'university', href: '/politician' },
+  { label: 'Home', icon: 'home', href: AppRoutes.tabsRoot },
+  { label: 'Explore', icon: 'paper-plane', href: AppRoutes.tabsExplore },
+  { label: 'Economy', icon: 'dollar', href: AppRoutes.tabsEconomy },
+  { label: 'Politician', icon: 'university', href: AppRoutes.tabsPolitician },
 ];
 
 export function AppBanner() {
@@ -30,14 +32,15 @@ export function AppBanner() {
   const pathname = usePathname();
   const colorScheme = useColorScheme() ?? 'light';
   const theme = Colors[colorScheme];
+  const semantic = getSemanticColors(colorScheme);
   const panelAnim = useRef(new Animated.Value(0)).current;
   const panelColors = useMemo(
     () => ({
-      panelBg: colorScheme === 'dark' ? '#111827' : '#ffffff',
-      panelBorder: colorScheme === 'dark' ? '#374151' : '#d1d5db',
-      scrim: colorScheme === 'dark' ? 'rgba(0, 0, 0, 0.55)' : 'rgba(0, 0, 0, 0.35)',
+      panelBg: semantic.cardBackground,
+      panelBorder: semantic.cardBorder,
+      scrim: semantic.overlayScrim,
     }),
-    [colorScheme],
+    [semantic.cardBackground, semantic.cardBorder, semantic.overlayScrim],
   );
 
   const openPanel = () => {
@@ -72,8 +75,8 @@ export function AppBanner() {
 
   const isActiveRoute = (href: Href) => {
     const hrefString = String(href);
-    if (hrefString === '/') {
-      return pathname === '/';
+    if (hrefString === AppRoutes.tabsRoot) {
+      return pathname === '/(tabs)' || pathname === '/';
     }
     return pathname.startsWith(hrefString);
   };
