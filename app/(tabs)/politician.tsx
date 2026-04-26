@@ -15,6 +15,7 @@ import {
 } from 'react-native';
 
 import PoliticianLineChart from '@/components/PoliticianLineChart';
+import { StateNoticeCard } from '@/components/StateNoticeCard';
 import { ThemedText } from '@/components/ThemedText';
 import { ThemedView } from '@/components/ThemedView';
 import { Colors } from '@/constants/Colors';
@@ -134,18 +135,53 @@ function findPoliticianProfile(query: string): PoliticianProfile | null {
     return null;
   }
 
-  const exact = MOCK_POLITICIANS.find(
-    (profile) => profile.name.toLowerCase() === normalizedQuery,
-  );
-  if (exact) {
-    return exact;
+  const distance = (left: string, right: string) => {
+    const rows = left.length + 1;
+    const cols = right.length + 1;
+    const table = Array.from({ length: rows }, (_, rowIndex) =>
+      Array.from({ length: cols }, (_, colIndex) => (rowIndex === 0 ? colIndex : colIndex === 0 ? rowIndex : 0)),
+    );
+    for (let row = 1; row < rows; row += 1) {
+      for (let col = 1; col < cols; col += 1) {
+        const cost = left[row - 1] === right[col - 1] ? 0 : 1;
+        table[row][col] = Math.min(
+          table[row - 1][col] + 1,
+          table[row][col - 1] + 1,
+          table[row - 1][col - 1] + cost,
+        );
+      }
+    }
+    return table[rows - 1][cols - 1];
+  };
+
+  const ranked = MOCK_POLITICIANS.map((profile) => {
+    const name = profile.name.toLowerCase();
+    const role = profile.role.toLowerCase();
+    const location = profile.location.toLowerCase();
+    const alias = `${role} ${location}`;
+    let score = -1;
+
+    if (name === normalizedQuery) {
+      score = 100;
+    } else if (name.startsWith(normalizedQuery)) {
+      score = 80;
+    } else if (name.includes(normalizedQuery)) {
+      score = 60;
+    } else if (alias.includes(normalizedQuery)) {
+      score = 50;
+    } else if (distance(name, normalizedQuery) <= 2) {
+      score = 40;
+    }
+
+    return { profile, score };
+  }).filter((entry) => entry.score >= 0);
+
+  if (ranked.length === 0) {
+    return null;
   }
 
-  return (
-    MOCK_POLITICIANS.find((profile) =>
-      profile.name.toLowerCase().includes(normalizedQuery),
-    ) ?? null
-  );
+  ranked.sort((left, right) => right.score - left.score);
+  return ranked[0].profile;
 }
 
 export default function PoliticianScreen() {
@@ -155,6 +191,7 @@ export default function PoliticianScreen() {
   const [hasSearched, setHasSearched] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
   const [selectedProfile, setSelectedProfile] = useState<PoliticianProfile | null>(null);
+  const [recentSearches, setRecentSearches] = useState<string[]>([]);
   const timeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const blurTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
@@ -174,17 +211,15 @@ export default function PoliticianScreen() {
     [colorScheme],
   );
 
-  const submitSearch = useCallback(() => {
-    Keyboard.dismiss();
-    setIsInputFocused(false);
-    const query = input.trim();
+  const runSearch = useCallback((rawQuery: string) => {
+    const query = rawQuery.trim();
     if (!query) {
       return;
     }
-
     setSubmittedQuery(query);
     setHasSearched(true);
     setIsLoading(true);
+    setRecentSearches((current) => [query, ...current.filter((item) => item !== query)].slice(0, 5));
 
     if (timeoutRef.current) {
       clearTimeout(timeoutRef.current);
@@ -193,8 +228,14 @@ export default function PoliticianScreen() {
     timeoutRef.current = setTimeout(() => {
       setSelectedProfile(findPoliticianProfile(query));
       setIsLoading(false);
-    }, 550);
-  }, [input]);
+    }, 420);
+  }, []);
+
+  const submitSearch = useCallback(() => {
+    Keyboard.dismiss();
+    setIsInputFocused(false);
+    runSearch(input);
+  }, [input, runSearch]);
 
   const suggestions = useMemo(() => {
     const query = input.trim().toLowerCase();
@@ -203,7 +244,9 @@ export default function PoliticianScreen() {
     }
 
     return MOCK_POLITICIANS
-      .filter((profile) => profile.name.toLowerCase().includes(query))
+      .filter((profile) =>
+        `${profile.name} ${profile.role} ${profile.location}`.toLowerCase().includes(query),
+      )
       .slice(0, 5);
   }, [input]);
 
@@ -215,19 +258,8 @@ export default function PoliticianScreen() {
     setInput(name);
     Keyboard.dismiss();
     setIsInputFocused(false);
-    setSubmittedQuery(name);
-    setHasSearched(true);
-    setIsLoading(true);
-
-    if (timeoutRef.current) {
-      clearTimeout(timeoutRef.current);
-    }
-
-    timeoutRef.current = setTimeout(() => {
-      setSelectedProfile(findPoliticianProfile(name));
-      setIsLoading(false);
-    }, 550);
-  }, []);
+    runSearch(name);
+  }, [runSearch]);
 
   const statusCopy = useMemo(() => {
     if (!hasSearched) {
@@ -288,6 +320,16 @@ export default function PoliticianScreen() {
                   blurOnSubmit
                   onSubmitEditing={submitSearch}
                 />
+                {input.length > 0 && (
+                  <Pressable
+                    accessibilityRole="button"
+                    accessibilityLabel="Clear search input"
+                    hitSlop={8}
+                    style={styles.clearButton}
+                    onPress={() => setInput('')}>
+                    <FontAwesome name="times-circle" size={16} color={iconColor} />
+                  </Pressable>
+                )}
               </View>
 
               {isInputFocused && suggestions.length > 0 && (
@@ -299,7 +341,10 @@ export default function PoliticianScreen() {
                   {suggestions.map((profile) => (
                     <Pressable
                       key={profile.name}
-                      style={styles.suggestionItem}
+                      style={({ pressed }) => [
+                        styles.suggestionItem,
+                        { backgroundColor: pressed ? palette.badgeBackground : 'transparent' },
+                      ]}
                       onPress={() => handleSelectSuggestion(profile.name)}>
                       <ThemedText type="defaultSemiBold">{profile.name}</ThemedText>
                       <ThemedText style={[styles.suggestionMeta, { color: theme.icon }]}>
@@ -307,6 +352,32 @@ export default function PoliticianScreen() {
                       </ThemedText>
                     </Pressable>
                   ))}
+                </View>
+              )}
+
+              {recentSearches.length > 0 && (
+                <View style={styles.recentWrap}>
+                  <ThemedText style={[styles.recentLabel, { color: theme.icon }]}>Recent</ThemedText>
+                  <View style={styles.recentChips}>
+                    {recentSearches.map((term) => (
+                      <Pressable
+                        key={term}
+                        style={({ pressed }) => [
+                          styles.recentChip,
+                          {
+                            borderColor: palette.cardBorder,
+                            backgroundColor: palette.sectionBackground,
+                            opacity: pressed ? 0.8 : 1,
+                          },
+                        ]}
+                        onPress={() => {
+                          setInput(term);
+                          runSearch(term);
+                        }}>
+                        <ThemedText style={styles.recentChipText}>{term}</ThemedText>
+                      </Pressable>
+                    ))}
+                  </View>
                 </View>
               )}
 
@@ -321,16 +392,13 @@ export default function PoliticianScreen() {
 
             {/* Empty and loading states */}
             {!hasSearched && (
-              <View
-                style={[
-                  styles.resultCard,
-                  { backgroundColor: palette.cardBackground, borderColor: palette.cardBorder },
-                ]}>
-                <ThemedText type="defaultSemiBold">Start with a politician name</ThemedText>
-                <ThemedText style={[styles.emptyStateBody, { color: theme.icon }]}>
-                  Try: Alex Harper, Monica Reyes, or Daniel Brooks.
-                </ThemedText>
-              </View>
+              <StateNoticeCard
+                title="Start with a politician name"
+                message="Try: Alex Harper, Monica Reyes, or Daniel Brooks."
+                borderColor={palette.cardBorder}
+                backgroundColor={palette.cardBackground}
+                messageColor={theme.icon}
+              />
             )}
 
             {isLoading && (
@@ -346,15 +414,34 @@ export default function PoliticianScreen() {
             )}
 
             {hasSearched && !isLoading && !selectedProfile && (
-              <View
-                style={[
-                  styles.resultCard,
-                  { backgroundColor: palette.cardBackground, borderColor: palette.cardBorder },
-                ]}>
-                <ThemedText type="defaultSemiBold">No match found</ThemedText>
-                <ThemedText style={[styles.emptyStateBody, { color: theme.icon }]}>
-                  Check spelling or try a partial name from the sample data.
-                </ThemedText>
+              <View>
+                <StateNoticeCard
+                  title="No match found"
+                  message={`No profile found for "${submittedQuery}". Check spelling or try one of these.`}
+                  borderColor={palette.cardBorder}
+                  backgroundColor={palette.cardBackground}
+                  messageColor={theme.icon}
+                />
+                <View style={styles.quickTryWrap}>
+                  {MOCK_POLITICIANS.map((profile) => (
+                    <Pressable
+                      key={`quick-${profile.name}`}
+                      style={({ pressed }) => [
+                        styles.quickTryChip,
+                        {
+                          borderColor: palette.cardBorder,
+                          backgroundColor: palette.sectionBackground,
+                          opacity: pressed ? 0.82 : 1,
+                        },
+                      ]}
+                      onPress={() => {
+                        setInput(profile.name);
+                        runSearch(profile.name);
+                      }}>
+                      <ThemedText style={styles.quickTryText}>{profile.name}</ThemedText>
+                    </Pressable>
+                  ))}
+                </View>
               </View>
             )}
 
@@ -516,6 +603,12 @@ const styles = StyleSheet.create({
     flex: 1,
     fontSize: 16,
   },
+  clearButton: {
+    minWidth: 28,
+    minHeight: 28,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
   searchButton: {
     minHeight: 44,
     borderRadius: 10,
@@ -534,9 +627,11 @@ const styles = StyleSheet.create({
   },
   suggestionItem: {
     paddingHorizontal: 12,
+    minHeight: 44,
+    justifyContent: 'center',
     paddingVertical: 10,
     borderBottomWidth: StyleSheet.hairlineWidth,
-    borderBottomColor: '#9ca3af',
+    borderBottomColor: '#94a3b8',
   },
   suggestionMeta: {
     fontSize: 12,
@@ -545,17 +640,50 @@ const styles = StyleSheet.create({
   helperText: {
     marginBottom: 10,
   },
+  recentWrap: {
+    gap: 6,
+  },
+  recentLabel: {
+    fontSize: 12,
+    fontWeight: '600',
+  },
+  recentChips: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: 8,
+  },
+  recentChip: {
+    minHeight: 34,
+    borderWidth: 1,
+    borderRadius: 999,
+    paddingHorizontal: 10,
+    justifyContent: 'center',
+  },
+  recentChipText: {
+    fontSize: 12,
+  },
   resultCard: {
     borderWidth: 1,
     borderRadius: 14,
     padding: 12,
     marginBottom: 10,
   },
-  emptyState: {
-    gap: 6,
+  quickTryWrap: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: 8,
+    marginTop: 10,
   },
-  emptyStateBody: {
-    lineHeight: 19,
+  quickTryChip: {
+    minHeight: 34,
+    borderWidth: 1,
+    borderRadius: 999,
+    justifyContent: 'center',
+    paddingHorizontal: 10,
+  },
+  quickTryText: {
+    fontSize: 12,
+    fontWeight: '600',
   },
   loadingWrap: {
     minHeight: 100,

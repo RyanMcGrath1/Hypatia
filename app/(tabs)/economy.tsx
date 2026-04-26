@@ -5,13 +5,31 @@ import { useRouter } from 'expo-router';
 import EconomicPulseChart from '@/components/EconomicPulseChart';
 import { ScreenHeader } from '@/components/ScreenHeader';
 import { SectionCard } from '@/components/SectionCard';
+import { StateNoticeCard } from '@/components/StateNoticeCard';
 import { ThemedText } from '@/components/ThemedText';
 import { ThemedView } from '@/components/ThemedView';
 import { Colors } from '@/constants/Colors';
 import { AppRoutes } from '@/constants/routes';
 import { Radius, Spacing, getSemanticColors } from '@/constants/ThemeTokens';
-import { ECONOMY_KPIS, US_ECONOMIC_SECTORS, type EconomicSector, type SectorTrend } from '@/constants/usEconomicData';
+import {
+  ECONOMY_DATA_SOURCE,
+  ECONOMY_KPIS,
+  ECONOMY_LAST_REFRESH,
+  US_ECONOMIC_SECTORS,
+  type EconomicSector,
+  type SectorTrend,
+} from '@/constants/usEconomicData';
 import { useColorScheme } from '@/hooks/useColorScheme';
+
+type TimeWindow = '1M' | '3M' | '6M' | '1Y';
+type SectorSort = 'trend' | 'recency' | 'name';
+
+const TIME_WINDOWS: TimeWindow[] = ['1M', '3M', '6M', '1Y'];
+const SORT_OPTIONS: { id: SectorSort; label: string }[] = [
+  { id: 'trend', label: 'Trend' },
+  { id: 'recency', label: 'Recent' },
+  { id: 'name', label: 'A-Z' },
+];
 
 function getTrendTone(trend: SectorTrend, isDark: boolean) {
   if (trend === 'up') {
@@ -23,12 +41,38 @@ function getTrendTone(trend: SectorTrend, isDark: boolean) {
   return { color: isDark ? '#93c5fd' : '#1d4ed8', marker: '→' };
 }
 
+function getTrendRank(trend: SectorTrend) {
+  if (trend === 'up') {
+    return 0;
+  }
+  if (trend === 'flat') {
+    return 1;
+  }
+  return 2;
+}
+
+function getRecencyRank(updatedAt: string) {
+  const normalized = updatedAt.trim().toLowerCase();
+  if (normalized.includes('apr')) {
+    return 0;
+  }
+  if (normalized.includes('mar')) {
+    return 1;
+  }
+  if (normalized.includes('q1')) {
+    return 2;
+  }
+  return 3;
+}
+
 export default function EconomyDashboardScreen() {
   // Router + view state
   const router = useRouter();
   const { width } = useWindowDimensions();
   const [isLoading] = useState(false);
   const [error] = useState<string | null>(null);
+  const [timeWindow, setTimeWindow] = useState<TimeWindow>('6M');
+  const [sortBy, setSortBy] = useState<SectorSort>('trend');
 
   const colorScheme = useColorScheme() ?? 'light';
   const isDark = colorScheme === 'dark';
@@ -40,6 +84,17 @@ export default function EconomyDashboardScreen() {
     const available = width - horizontalPadding;
     return (available - gap) / 2;
   }, [width]);
+
+  const sortedSectors = useMemo(() => {
+    const copy = [...US_ECONOMIC_SECTORS];
+    if (sortBy === 'name') {
+      return copy.sort((left, right) => left.title.localeCompare(right.title));
+    }
+    if (sortBy === 'recency') {
+      return copy.sort((left, right) => getRecencyRank(left.updatedAt) - getRecencyRank(right.updatedAt));
+    }
+    return copy.sort((left, right) => getTrendRank(left.trend) - getTrendRank(right.trend));
+  }, [sortBy]);
 
   const openSectorDetails = (sectorId: string) => {
     router.push({
@@ -63,7 +118,12 @@ export default function EconomyDashboardScreen() {
             borderColor: semantic.cardBorder,
           },
         ]}>
-        <Pressable style={styles.cardTop} onPress={() => openSectorDetails(sector.id)}>
+        <Pressable
+          accessibilityRole="button"
+          accessibilityLabel={`Open ${sector.title} details`}
+          hitSlop={8}
+          style={({ pressed }) => [styles.cardTop, { opacity: pressed ? 0.88 : 1 }]}
+          onPress={() => openSectorDetails(sector.id)}>
           <ThemedText type="defaultSemiBold">{sector.title}</ThemedText>
           <ThemedText style={[styles.updatedText, { color: semantic.mutedText }]}>
             Updated {sector.updatedAt}
@@ -97,6 +157,66 @@ export default function EconomyDashboardScreen() {
           subtitleColor={semantic.mutedText}
         />
         <EconomicPulseChart />
+        <SectionCard backgroundColor={semantic.cardSubtleBackground} borderColor={semantic.cardBorder} style={styles.metaCard}>
+          <ThemedText style={[styles.metaText, { color: semantic.mutedText }]}>
+            Window: {timeWindow} | Source: {ECONOMY_DATA_SOURCE}
+          </ThemedText>
+          <ThemedText style={[styles.metaText, { color: semantic.mutedText }]}>
+            Last refresh: {ECONOMY_LAST_REFRESH}
+          </ThemedText>
+        </SectionCard>
+        <View style={styles.controlsWrap}>
+          <View style={styles.controlsRow}>
+            {TIME_WINDOWS.map((option) => {
+              const isSelected = option === timeWindow;
+              return (
+                <Pressable
+                  key={option}
+                  accessibilityRole="button"
+                  accessibilityLabel={`Set time window ${option}`}
+                  hitSlop={8}
+                  style={({ pressed }) => [
+                    styles.controlChip,
+                    {
+                      borderColor: isSelected ? theme.tint : semantic.cardBorder,
+                      backgroundColor: isSelected ? semantic.cardSubtleBackground : semantic.cardBackground,
+                      opacity: pressed ? 0.84 : 1,
+                    },
+                  ]}
+                  onPress={() => setTimeWindow(option)}>
+                  <ThemedText style={{ color: isSelected ? theme.tint : semantic.mutedText, fontSize: 12 }}>
+                    {option}
+                  </ThemedText>
+                </Pressable>
+              );
+            })}
+          </View>
+          <View style={styles.controlsRow}>
+            {SORT_OPTIONS.map((option) => {
+              const isSelected = option.id === sortBy;
+              return (
+                <Pressable
+                  key={option.id}
+                  accessibilityRole="button"
+                  accessibilityLabel={`Sort sectors by ${option.label}`}
+                  hitSlop={8}
+                  style={({ pressed }) => [
+                    styles.controlChip,
+                    {
+                      borderColor: isSelected ? theme.tint : semantic.cardBorder,
+                      backgroundColor: isSelected ? semantic.cardSubtleBackground : semantic.cardBackground,
+                      opacity: pressed ? 0.84 : 1,
+                    },
+                  ]}
+                  onPress={() => setSortBy(option.id)}>
+                  <ThemedText style={{ color: isSelected ? theme.tint : semantic.mutedText, fontSize: 12 }}>
+                    Sort: {option.label}
+                  </ThemedText>
+                </Pressable>
+              );
+            })}
+          </View>
+        </View>
         <View style={styles.kpiRow}>
           {ECONOMY_KPIS.map((kpi) => (
             <SectionCard
@@ -113,20 +233,28 @@ export default function EconomyDashboardScreen() {
 
         {/* Loading + error states */}
         {isLoading && (
-          <SectionCard backgroundColor={semantic.cardBackground} borderColor={semantic.cardBorder} style={styles.stateCard}>
-            <ThemedText>Loading economic indicators...</ThemedText>
-          </SectionCard>
+          <StateNoticeCard
+            title="Loading"
+            message="Loading economic indicators..."
+            borderColor={semantic.cardBorder}
+            backgroundColor={semantic.cardBackground}
+            messageColor={semantic.mutedText}
+          />
         )}
 
         {error !== null && (
-          <SectionCard backgroundColor={semantic.cardBackground} borderColor={semantic.danger} style={styles.stateCard}>
-            <ThemedText style={{ color: semantic.danger }}>{error}</ThemedText>
-          </SectionCard>
+          <StateNoticeCard
+            title="Something went wrong"
+            message={error}
+            borderColor={semantic.danger}
+            backgroundColor={semantic.cardBackground}
+            messageColor={semantic.danger}
+          />
         )}
 
         {/* Sector overview grid */}
         {!isLoading && error === null && (
-          <View style={styles.gridWrap}>{US_ECONOMIC_SECTORS.map((sector) => renderSectorCard(sector))}</View>
+          <View style={styles.gridWrap}>{sortedSectors.map((sector) => renderSectorCard(sector))}</View>
         )}
       </ScrollView>
     </ThemedView>
@@ -147,6 +275,30 @@ const styles = StyleSheet.create({
     gap: Spacing.sm,
     marginTop: 2,
     marginBottom: Spacing.md,
+  },
+  metaCard: {
+    marginBottom: Spacing.sm,
+    gap: 3,
+  },
+  metaText: {
+    fontSize: 12,
+  },
+  controlsWrap: {
+    gap: Spacing.xs,
+    marginBottom: Spacing.sm,
+  },
+  controlsRow: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: Spacing.sm,
+  },
+  controlChip: {
+    minHeight: 36,
+    borderWidth: 1,
+    borderRadius: Radius.md,
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingHorizontal: Spacing.sm,
   },
   kpiCard: {
     flex: 1,
@@ -200,8 +352,5 @@ const styles = StyleSheet.create({
     marginTop: 8,
     fontSize: 12,
     fontWeight: '600',
-  },
-  stateCard: {
-    marginTop: 8,
   },
 });

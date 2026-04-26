@@ -30,7 +30,6 @@ export default function TabLayout() {
                 name="index"
                 options={{
                     title: 'Home',
-                    tabBarShowLabel: false,
                     tabBarAccessibilityLabel: 'Home tab',
                     tabBarIcon: ({color}) => <IconSymbol size={28} name="house.fill" color={color}/>,
                 }}
@@ -39,7 +38,6 @@ export default function TabLayout() {
                 name="explore"
                 options={{
                     title: 'Explore',
-                    tabBarShowLabel: false,
                     tabBarAccessibilityLabel: 'Explore tab',
                     tabBarIcon: ({color}) => <IconSymbol size={28} name="paperplane.fill" color={color}/>,
                 }}
@@ -48,7 +46,6 @@ export default function TabLayout() {
                 name="economy"
                 options={{
                     title: 'Economy',
-                    tabBarShowLabel: false,
                     tabBarAccessibilityLabel: 'Economy tab',
                     tabBarIcon: ({color}) => <FontAwesome name="dollar" size={24} color={color}/>,
                 }}
@@ -57,7 +54,6 @@ export default function TabLayout() {
                 name="politician"
                 options={{
                     title: 'Politician',
-                    tabBarShowLabel: false,
                     tabBarAccessibilityLabel: 'Politician tab',
                     tabBarIcon: ({color}) => <FontAwesome name="university" size={22} color={color}/>,
                 }}

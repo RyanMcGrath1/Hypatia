@@ -173,6 +173,9 @@ export const ECONOMY_KPIS: EconomyKpi[] = [
   { id: 'rates', label: 'Rates', value: '5.25%-5.50%', context: 'Fed funds target' },
 ];
 
+export const ECONOMY_DATA_SOURCE = 'Local macro sample dataset (mock)';
+export const ECONOMY_LAST_REFRESH = 'Apr 2026';
+
 export function getEconomicSectorById(id: string): EconomicSector | null {
   return US_ECONOMIC_SECTORS.find((sector) => sector.id === id) ?? null;
 }

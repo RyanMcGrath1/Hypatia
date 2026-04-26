@@ -1,16 +1,38 @@
-import { Dimensions, StyleSheet, View } from 'react-native';
+import { Dimensions, Pressable, StyleSheet, View } from 'react-native';
 import { LineChart } from 'react-native-chart-kit';
+import { useMemo, useState } from 'react';
 
 import { ThemedText } from '@/components/ThemedText';
 import { Colors } from '@/constants/Colors';
+import { Radius, Spacing, getSemanticColors } from '@/constants/ThemeTokens';
 import { ECONOMIC_PULSE_MONTH_LABELS, ECONOMIC_PULSE_SERIES } from '@/constants/usEconomicData';
 import { useColorScheme } from '@/hooks/useColorScheme';
 
 export default function EconomicPulseChart() {
   const colorScheme = useColorScheme() ?? 'light';
   const theme = Colors[colorScheme];
+  const semantic = getSemanticColors(colorScheme);
   const chartWidth = Math.min(Dimensions.get('window').width - 72, 560);
   const isDark = colorScheme === 'dark';
+  const [visibleSeriesLabels, setVisibleSeriesLabels] = useState<string[]>(
+    ECONOMIC_PULSE_SERIES.map((series) => series.label),
+  );
+
+  const activeSeries = useMemo(
+    () =>
+      ECONOMIC_PULSE_SERIES.filter((series) =>
+        visibleSeriesLabels.includes(series.label),
+      ),
+    [visibleSeriesLabels],
+  );
+
+  const chartSeries = activeSeries.length > 0 ? activeSeries : ECONOMIC_PULSE_SERIES;
+
+  const toggleSeriesVisibility = (label: string) => {
+    setVisibleSeriesLabels((current) =>
+      current.includes(label) ? current.filter((item) => item !== label) : [...current, label],
+    );
+  };
 
   const chartConfig = {
     backgroundGradientFrom: isDark ? '#111827' : '#ffffff',
@@ -44,7 +66,7 @@ export default function EconomicPulseChart() {
       <LineChart
         data={{
           labels: ECONOMIC_PULSE_MONTH_LABELS,
-          datasets: ECONOMIC_PULSE_SERIES.map((series) => ({
+          datasets: chartSeries.map((series) => ({
             data: series.values,
             color: (opacity = 1) => {
               const hex = series.color;
@@ -55,7 +77,7 @@ export default function EconomicPulseChart() {
             },
             strokeWidth: 2,
           })),
-          legend: ECONOMIC_PULSE_SERIES.map((series) => series.label),
+          legend: chartSeries.map((series) => series.label),
         }}
         width={chartWidth}
         height={220}
@@ -68,6 +90,32 @@ export default function EconomicPulseChart() {
         yLabelsOffset={8}
         style={styles.chart}
       />
+      <View style={styles.legendWrap}>
+        {ECONOMIC_PULSE_SERIES.map((series) => {
+          const isEnabled = visibleSeriesLabels.includes(series.label);
+          return (
+            <Pressable
+              key={series.label}
+              accessibilityRole="button"
+              accessibilityLabel={`Toggle ${series.label} trend line`}
+              hitSlop={8}
+              style={({ pressed }) => [
+                styles.legendChip,
+                {
+                  borderColor: isEnabled ? series.color : semantic.cardBorder,
+                  backgroundColor: isEnabled ? (isDark ? '#111827' : '#f8fafc') : 'transparent',
+                  opacity: pressed ? 0.82 : 1,
+                },
+              ]}
+              onPress={() => toggleSeriesVisibility(series.label)}>
+              <View style={[styles.legendDot, { backgroundColor: series.color }]} />
+              <ThemedText style={{ color: isEnabled ? theme.text : semantic.mutedText, fontSize: 12 }}>
+                {series.label}
+              </ThemedText>
+            </Pressable>
+          );
+        })}
+      </View>
     </View>
   );
 }
@@ -92,5 +140,27 @@ const styles = StyleSheet.create({
   },
   chart: {
     borderRadius: 12,
+  },
+  legendWrap: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: Spacing.sm,
+    justifyContent: 'center',
+    paddingHorizontal: Spacing.sm,
+    paddingBottom: 8,
+  },
+  legendChip: {
+    minHeight: 36,
+    borderRadius: Radius.md,
+    borderWidth: 1,
+    paddingHorizontal: Spacing.sm,
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+  },
+  legendDot: {
+    width: 8,
+    height: 8,
+    borderRadius: 999,
   },
 });
