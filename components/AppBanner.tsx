@@ -88,7 +88,6 @@ export function AppBanner() {
           styles.bar,
           {
             backgroundColor: theme.background,
-            borderBottomColor: colorScheme === 'dark' ? '#374151' : '#d1d5db',
           },
         ]}>
         <Pressable style={styles.menuButton} onPress={openPanel}>
@@ -176,7 +175,6 @@ export function AppBanner() {
 const styles = StyleSheet.create({
   bar: {
     height: 44,
-    borderBottomWidth: StyleSheet.hairlineWidth,
     justifyContent: 'center',
     alignItems: 'center',
     paddingBottom: 2,
