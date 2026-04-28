@@ -13,7 +13,7 @@ import {
   fetchCivicDivisionsByAddress,
   getFlaskApiBaseUrl,
   getFlaskHelloNetworkErrorMessage,
-} from '@/hooks/useFlaskHelloSearch';
+} from '@/hooks/api/flaskMainApi';
 import { useColorScheme } from '@/hooks/useColorScheme';
 
 type ParsedDivision = {
