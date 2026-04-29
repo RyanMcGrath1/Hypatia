@@ -115,12 +115,12 @@ export type FetchNewsTopHeadlinesOptions = {
   bustCache?: boolean;
 };
 
-/** `GET {newsBase}/api/news/top-headlines?lang=en&max=5` */
+/** `GET {newsBase}/api/news/top-headlines?lang=en&max=2` */
 export async function fetchNewsTopHeadlines(
   signal?: AbortSignal,
   options?: FetchNewsTopHeadlinesOptions,
 ): Promise<TopHeadlineItem[]> {
-  const params: Record<string, string> = { lang: 'en', max: '5' };
+  const params: Record<string, string> = { lang: 'en', max: '2' };
   if (options?.bustCache) {
     params._ = String(Date.now());
   }
