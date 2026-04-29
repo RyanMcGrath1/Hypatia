@@ -4,4 +4,5 @@ export const AppRoutes = {
   tabsEconomy: '/(tabs)/economy',
   tabsPolitician: '/(tabs)/politician',
   economyDetail: '/economy/[sectorId]',
+  profile: '/profile',
 } as const;

@@ -73,6 +73,12 @@ export function AppBanner() {
     }
   };
 
+  const openProfile = () => {
+    if (pathname !== AppRoutes.profile) {
+      router.push(AppRoutes.profile);
+    }
+  };
+
   const isActiveRoute = (href: Href) => {
     const hrefString = String(href);
     if (hrefString === AppRoutes.tabsRoot) {
@@ -100,6 +106,28 @@ export function AppBanner() {
           contentFit="contain"
           accessibilityLabel="App banner"
         />
+
+        <Pressable
+          accessibilityRole="button"
+          accessibilityLabel="Profile"
+          accessibilityHint="Opens your profile"
+          hitSlop={8}
+          style={({ pressed }) => [
+            styles.profileHitArea,
+            { opacity: pressed ? 0.82 : 1 },
+          ]}
+          onPress={openProfile}>
+          <View
+            style={[
+              styles.profileAvatar,
+              {
+                borderColor: semantic.cardBorder,
+                backgroundColor: semantic.cardSubtleBackground,
+              },
+            ]}>
+            <FontAwesome name="user" size={15} color={theme.icon} />
+          </View>
+        </Pressable>
       </View>
 
       {isPanelMounted && (
@@ -189,6 +217,25 @@ const styles = StyleSheet.create({
     borderRadius: 15,
     alignItems: 'center',
     justifyContent: 'center',
+  },
+  profileHitArea: {
+    position: 'absolute',
+    right: 10,
+    top: 0,
+    bottom: 0,
+    justifyContent: 'center',
+    alignItems: 'center',
+    minWidth: 44,
+    minHeight: 44,
+  },
+  profileAvatar: {
+    width: 32,
+    height: 32,
+    borderRadius: 16,
+    borderWidth: 1,
+    alignItems: 'center',
+    justifyContent: 'center',
+    overflow: 'hidden',
   },
   image: {
     width: 38,
