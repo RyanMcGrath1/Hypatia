@@ -10,6 +10,7 @@ import {
 } from "react-native";
 
 import { Image } from "expo-image";
+import Ionicons from "@expo/vector-icons/Ionicons";
 
 import { EmptyState } from "@/components/EmptyState";
 import { ScreenHeader } from "@/components/ScreenHeader";
@@ -17,11 +18,15 @@ import { SectionCard } from "@/components/SectionCard";
 import { StateNoticeCard } from "@/components/StateNoticeCard";
 import { ThemedText } from "@/components/ThemedText";
 import { ThemedView } from "@/components/ThemedView";
+import { Brand } from "@/constants/Colors";
+import { NEWS_TOPIC_ICON_NAMES } from "@/constants/newsTopicIcons";
 import { Radius, Spacing, getSemanticColors } from "@/constants/ThemeTokens";
+import { Fonts } from "@/constants/Typography";
 import {
+  NEWS_TOPIC_OPTIONS,
   fetchNewsTopHeadlines,
-  getNewsApiBaseUrl,
   getNewsApiNetworkErrorMessage,
+  type NewsTopicId,
   type TopHeadlineItem,
 } from "@/hooks/api/newsApi";
 import { useColorScheme } from "@/hooks/useColorScheme";
@@ -33,7 +38,7 @@ import { useColorScheme } from "@/hooks/useColorScheme";
  * 1. ThemedView — full-screen shell matching app background
  * 2. ScrollView — vertical feed + pull-to-refresh (RefreshControl)
  * 3. ScreenHeader — title + subtitle
- * 4. Intro SectionCard — explains endpoint + resolved base URL (dev helper)
+ * 4. Topic carousel — horizontal chips; selection sets `category` on headline fetch
  * 5. Loading card — first fetch only (not pull-to-refresh)
  * 6. Error card — retry; after a failed refresh, list may still show below if data existed
  * 7. Empty state — no items and no error
@@ -41,6 +46,7 @@ import { useColorScheme } from "@/hooks/useColorScheme";
  */
 export default function HomeScreen() {
   const [headlines, setHeadlines] = useState<TopHeadlineItem[]>([]);
+  const [selectedTopicId, setSelectedTopicId] = useState<NewsTopicId>("all");
   const [isLoading, setIsLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -50,7 +56,6 @@ export default function HomeScreen() {
 
   const colorScheme = useColorScheme() ?? "light";
   const semantic = getSemanticColors(colorScheme);
-  const newsBaseUrl = getNewsApiBaseUrl();
 
   /** Fetch headlines; `asRefresh` uses pull-to-refresh spinner and preserves rows on error. */
   const loadHeadlines = useCallback(
@@ -70,8 +75,11 @@ export default function HomeScreen() {
       setError(null);
 
       try {
+        const category =
+          selectedTopicId === "all" ? undefined : selectedTopicId;
         const items = await fetchNewsTopHeadlines(controller.signal, {
           bustCache: asRefresh,
+          category,
         });
         if (generation !== fetchGenerationRef.current) {
           return;
@@ -101,7 +109,7 @@ export default function HomeScreen() {
         }
       }
     },
-    [],
+    [selectedTopicId],
   );
 
   useEffect(() => {
@@ -136,24 +144,64 @@ export default function HomeScreen() {
         {/* ─── Static chrome ─── */}
         <ScreenHeader
           title="Hypatia"
-          subtitle="Top stories — pull down to refresh, or reload when you open this tab."
+          subtitle={`${new Date().toLocaleDateString("en-US", {
+            month: "long",
+            day: "numeric",
+          })}`}
           subtitleColor={semantic.mutedText}
+          subtitleStyle={styles.headerSubtitle}
         />
 
-        {/* Dev-facing blurb: which route + resolved API host */}
-        <SectionCard
-          backgroundColor={semantic.cardSubtleBackground}
-          borderColor={semantic.cardBorder}
-        >
-          <ThemedText type="defaultSemiBold">News feed</ThemedText>
-          <ThemedText style={[styles.copy, { color: semantic.mutedText }]}>
-            Loading headlines from{" "}
-            <ThemedText type="defaultSemiBold">
-              GET /api/news/top-headlines
-            </ThemedText>{" "}
-            at <ThemedText type="defaultSemiBold">{newsBaseUrl}</ThemedText>.
-          </ThemedText>
-        </SectionCard>
+        {/* Topic filters: horizontal chip carousel */}
+        <View style={styles.topicCarouselBleed}>
+          <ScrollView
+            horizontal
+            showsHorizontalScrollIndicator={false}
+            contentContainerStyle={styles.topicCarouselContent}
+          >
+            {NEWS_TOPIC_OPTIONS.map((topic) => {
+              const selected = topic.id === selectedTopicId;
+              return (
+                <Pressable
+                  key={topic.id}
+                  accessibilityRole="button"
+                  accessibilityState={{ selected }}
+                  accessibilityLabel={`${topic.label} headlines`}
+                  onPress={() => setSelectedTopicId(topic.id)}
+                  style={({ pressed }) => [
+                    styles.topicChip,
+                    {
+                      backgroundColor: selected
+                        ? semantic.accent
+                        : semantic.cardSubtleBackground,
+                      borderColor: selected ? semantic.accent : semantic.cardBorder,
+                      opacity: pressed ? 0.88 : 1,
+                    },
+                  ]}
+                >
+                  <View style={styles.topicChipRow}>
+                    <Ionicons
+                      name={NEWS_TOPIC_ICON_NAMES[topic.id]}
+                      size={15}
+                      color={selected ? Brand.paper : semantic.mutedText}
+                      accessible={false}
+                    />
+                    <ThemedText
+                      style={{
+                        fontFamily: selected ? Fonts.bodySemiBold : Fonts.bodyMedium,
+                        fontSize: 14,
+                        lineHeight: 18,
+                        color: selected ? Brand.paper : semantic.mutedText,
+                      }}
+                    >
+                      {topic.label}
+                    </ThemedText>
+                  </View>
+                </Pressable>
+              );
+            })}
+          </ScrollView>
+        </View>
 
         {/* ─── Async states (mutually exclusive paths for “first paint”) ─── */}
         {isLoading ? (
@@ -268,6 +316,33 @@ export default function HomeScreen() {
 const styles = StyleSheet.create({
   screen: {
     flex: 1,
+  },
+  /** Larger than ScreenHeader default (16) for the date line */
+  headerSubtitle: {
+    fontSize: 20,
+    lineHeight: 28,
+  },
+  /** Cancel parent horizontal padding so topic chips can scroll to screen edges */
+  topicCarouselBleed: {
+    marginHorizontal: -Spacing.lg,
+  },
+  topicCarouselContent: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: Spacing.sm,
+    paddingHorizontal: Spacing.lg,
+    paddingBottom: 2,
+  },
+  topicChip: {
+    paddingHorizontal: 15,
+    paddingVertical: 9,
+    borderRadius: 9999,
+    borderWidth: 1,
+  },
+  topicChipRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 6,
   },
   /** Scroll padding + gap between SectionCards / blocks; bottom inset clears the tab bar */
   scrollContent: {

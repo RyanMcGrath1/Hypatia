@@ -1,3 +1,5 @@
+import { Brand } from '@/constants/Colors';
+
 export type SectorTrend = 'up' | 'down' | 'flat';
 
 export type SectorMetric = {
@@ -148,22 +150,22 @@ export const ECONOMIC_PULSE_SERIES: EconomicPulseSeries[] = [
   {
     label: 'Inflation',
     values: [100, 101, 100, 99, 98, 97],
-    color: '#ef4444',
+    color: Brand.coral,
   },
   {
     label: 'Labor',
     values: [100, 100, 101, 101, 102, 102],
-    color: '#22c55e',
+    color: Brand.steel,
   },
   {
     label: 'GDP',
     values: [100, 99, 100, 101, 102, 103],
-    color: '#3b82f6',
+    color: Brand.slate,
   },
   {
     label: 'Policy Rate',
     values: [100, 100, 100, 100, 100, 100],
-    color: '#a855f7',
+    color: Brand.ink,
   },
 ];
 

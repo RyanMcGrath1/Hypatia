@@ -6,6 +6,7 @@ import { SectionCard } from '@/components/SectionCard';
 import { StateNoticeCard } from '@/components/StateNoticeCard';
 import { ThemedText } from '@/components/ThemedText';
 import { ThemedView } from '@/components/ThemedView';
+import { Brand } from '@/constants/Colors';
 import { Radius, Spacing, getSemanticColors } from '@/constants/ThemeTokens';
 import {
   DEFAULT_CIVIC_SAMPLE_ADDRESS,
@@ -140,7 +141,7 @@ export default function ExploreScreen() {
             value={address}
             onChangeText={setAddress}
             placeholder={`Try ${DEFAULT_CIVIC_SAMPLE_ADDRESS} or ${DEFAULT_CIVIC_DIVISIONS_SAMPLE_ADDRESS}`}
-            placeholderTextColor="#9ca3af"
+            placeholderTextColor={Brand.steel}
             style={[
               styles.addressInput,
               { borderColor: semantic.cardBorder, color: semantic.mutedText, backgroundColor: semantic.cardBackground },
@@ -177,7 +178,7 @@ export default function ExploreScreen() {
           disabled={isLoading}>
           {isLoading ? (
             <View style={styles.buttonLoading}>
-              <ActivityIndicator color="#ffffff" />
+              <ActivityIndicator color={Brand.paper} />
               <ThemedText style={styles.buttonLabel}>Loading…</ThemedText>
             </View>
           ) : (
@@ -277,7 +278,7 @@ const styles = StyleSheet.create({
     paddingHorizontal: Spacing.md,
   },
   buttonLabel: {
-    color: '#ffffff',
+    color: Brand.paper,
     fontSize: 15,
     fontWeight: '600',
   },

@@ -1,21 +1,43 @@
-import { Colors } from '@/constants/Colors';
+import { Platform, type ViewStyle } from 'react-native';
+
+import { Brand, Colors } from '@/constants/Colors';
 
 export type AppColorScheme = 'light' | 'dark';
+
+/** Pillar wayfinding — derived only from the brand hex set. */
+export function getPillarColors(colorScheme: AppColorScheme) {
+  return {
+    economy: Brand.slate,
+    politician: Brand.steel,
+    news: Brand.coral,
+  };
+}
 
 export function getSemanticColors(colorScheme: AppColorScheme) {
   const theme = Colors[colorScheme];
   const isDark = colorScheme === 'dark';
 
+  const cardShadow: ViewStyle = isDark
+    ? {}
+    : {
+        shadowColor: Brand.ink,
+        shadowOffset: { width: 0, height: 4 },
+        shadowOpacity: Platform.OS === 'android' ? 0.06 : 0.08,
+        shadowRadius: 14,
+        elevation: 2,
+      };
+
   return {
     screenBackground: theme.background,
-    cardBackground: isDark ? '#111827' : '#ffffff',
-    cardSubtleBackground: isDark ? '#0f172a' : '#f8fafc',
-    cardBorder: isDark ? '#374151' : '#e5e7eb',
-    mutedText: theme.icon,
+    cardBackground: isDark ? Brand.slate : Brand.paper,
+    cardSubtleBackground: isDark ? Brand.ink : Brand.paper,
+    cardBorder: isDark ? Brand.steel : Brand.slate,
+    mutedText: isDark ? 'rgba(255,255,250,0.62)' : Brand.steel,
     accent: theme.tint,
-    danger: '#dc2626',
-    hairline: isDark ? '#1f2937' : '#e2e8f0',
-    overlayScrim: isDark ? 'rgba(0, 0, 0, 0.55)' : 'rgba(0, 0, 0, 0.35)',
+    danger: Brand.coral,
+    hairline: isDark ? Brand.steel : Brand.slate,
+    overlayScrim: isDark ? 'rgba(0, 1, 3, 0.62)' : 'rgba(0, 1, 3, 0.35)',
+    cardShadow,
   };
 }
 
@@ -25,10 +47,11 @@ export const Spacing = {
   md: 12,
   lg: 16,
   xl: 20,
+  xxl: 28,
 } as const;
 
 export const Radius = {
   sm: 10,
-  md: 12,
-  lg: 14,
+  md: 14,
+  lg: 16,
 } as const;

@@ -113,14 +113,36 @@ export function parseTopHeadlinesResponse(payload: unknown): TopHeadlineItem[] {
 export type FetchNewsTopHeadlinesOptions = {
   /** Skip caches (extra query param so CDNs/proxies treat each pull-to-refresh as a new URL). */
   bustCache?: boolean;
+  /**
+   * Optional category/topic for the backend (e.g. NewsAPI-style slugs).
+   * Omit or use `"all"` on the client to fetch without a category filter.
+   */
+  category?: string;
 };
 
-/** `GET {newsBase}/api/news/top-headlines?lang=en&max=2` */
+/** UI labels + query slug sent as `category` when not `"all"`. */
+export const NEWS_TOPIC_OPTIONS = [
+  { id: 'all', label: 'All' },
+  { id: 'general', label: 'General' },
+  { id: 'business', label: 'Business' },
+  { id: 'technology', label: 'Technology' },
+  { id: 'science', label: 'Science' },
+  { id: 'health', label: 'Health' },
+  { id: 'sports', label: 'Sports' },
+  { id: 'entertainment', label: 'Entertainment' },
+] as const;
+
+export type NewsTopicId = (typeof NEWS_TOPIC_OPTIONS)[number]['id'];
+
+/** `GET {newsBase}/api/news/top-headlines?lang=en&max=2[&category=...]` */
 export async function fetchNewsTopHeadlines(
   signal?: AbortSignal,
   options?: FetchNewsTopHeadlinesOptions,
 ): Promise<TopHeadlineItem[]> {
   const params: Record<string, string> = { lang: 'en', max: '2' };
+  if (options?.category) {
+    params.category = options.category;
+  }
   if (options?.bustCache) {
     params._ = String(Date.now());
   }

@@ -8,7 +8,7 @@ import { SectionCard } from '@/components/SectionCard';
 import { StateNoticeCard } from '@/components/StateNoticeCard';
 import { ThemedText } from '@/components/ThemedText';
 import { ThemedView } from '@/components/ThemedView';
-import { Colors } from '@/constants/Colors';
+import { Brand, Colors } from '@/constants/Colors';
 import { AppRoutes } from '@/constants/routes';
 import { Radius, Spacing, getSemanticColors } from '@/constants/ThemeTokens';
 import {
@@ -33,12 +33,15 @@ const SORT_OPTIONS: { id: SectorSort; label: string }[] = [
 
 function getTrendTone(trend: SectorTrend, isDark: boolean) {
   if (trend === 'up') {
-    return { color: isDark ? '#86efac' : '#166534', marker: '↑' };
+    return {
+      color: isDark ? 'rgba(255,255,250,0.9)' : Brand.ink,
+      marker: '↑',
+    };
   }
   if (trend === 'down') {
-    return { color: isDark ? '#fca5a5' : '#991b1b', marker: '↓' };
+    return { color: Brand.coral, marker: '↓' };
   }
-  return { color: isDark ? '#93c5fd' : '#1d4ed8', marker: '→' };
+  return { color: Brand.steel, marker: '→' };
 }
 
 function getTrendRank(trend: SectorTrend) {

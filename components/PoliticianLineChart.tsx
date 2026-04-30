@@ -1,36 +1,36 @@
 import { Dimensions, StyleSheet, View } from 'react-native';
 import { LineChart } from 'react-native-chart-kit';
 
-import { Colors } from '@/constants/Colors';
+import { Brand } from '@/constants/Colors';
+import { getSemanticColors } from '@/constants/ThemeTokens';
 import { useColorScheme } from '@/hooks/useColorScheme';
 
 export default function PoliticianLineChart() {
   const colorScheme = useColorScheme() ?? 'light';
-  const theme = Colors[colorScheme];
+  const semantic = getSemanticColors(colorScheme);
   const chartWidth = Math.min(Dimensions.get('window').width - 72, 560);
   const isDark = colorScheme === 'dark';
 
   const chartConfig = {
-    backgroundGradientFrom: isDark ? '#111827' : '#ffffff',
-    backgroundGradientTo: isDark ? '#111827' : '#ffffff',
+    backgroundGradientFrom: isDark ? Brand.slate : Brand.paper,
+    backgroundGradientTo: isDark ? Brand.slate : Brand.paper,
     decimalPlaces: 0,
-    color: (opacity = 1) =>
-      isDark ? `rgba(96, 165, 250, ${opacity})` : `rgba(37, 99, 235, ${opacity})`,
+    color: (opacity = 1) => `rgba(255, 49, 46, ${opacity})`,
     labelColor: (opacity = 1) =>
-      isDark ? `rgba(156, 163, 175, ${opacity})` : `rgba(75, 85, 99, ${opacity})`,
+      isDark ? `rgba(255, 255, 250, ${0.35 + 0.45 * opacity})` : `rgba(81, 80, 82, ${opacity})`,
     propsForDots: {
       r: '4',
       strokeWidth: '2',
-      stroke: isDark ? '#1f2937' : '#ffffff',
+      stroke: isDark ? Brand.ink : Brand.paper,
     },
     propsForBackgroundLines: {
-      stroke: isDark ? '#1f2937' : '#e5e7eb',
+      stroke: isDark ? Brand.steel : Brand.slate,
       strokeDasharray: '',
     },
   };
 
   return (
-    <View style={[styles.box, { borderColor: isDark ? '#374151' : '#e5e7eb' }]}>
+    <View style={[styles.box, { borderColor: semantic.cardBorder }]}>
       <LineChart
         data={{
           labels: ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun'],

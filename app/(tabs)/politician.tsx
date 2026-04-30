@@ -18,7 +18,8 @@ import PoliticianLineChart from '@/components/PoliticianLineChart';
 import { StateNoticeCard } from '@/components/StateNoticeCard';
 import { ThemedText } from '@/components/ThemedText';
 import { ThemedView } from '@/components/ThemedView';
-import { Colors } from '@/constants/Colors';
+import { Brand, Colors } from '@/constants/Colors';
+import { getSemanticColors } from '@/constants/ThemeTokens';
 import { useColorScheme } from '@/hooks/useColorScheme';
 import { useThemeColor } from '@/hooks/useThemeColor';
 
@@ -45,7 +46,7 @@ type PoliticianProfile = {
 const MOCK_POLITICIANS: PoliticianProfile[] = [
   {
     name: 'Alex Harper',
-    photoUrl: 'https://ui-avatars.com/api/?name=Alex+Harper&background=1d4ed8&color=fff',
+    photoUrl: 'https://ui-avatars.com/api/?name=Alex+Harper&background=333138&color=FFFFFA',
     party: 'Independent',
     role: 'U.S. Senator',
     location: 'Colorado',
@@ -73,7 +74,7 @@ const MOCK_POLITICIANS: PoliticianProfile[] = [
   },
   {
     name: 'Monica Reyes',
-    photoUrl: 'https://ui-avatars.com/api/?name=Monica+Reyes&background=059669&color=fff',
+    photoUrl: 'https://ui-avatars.com/api/?name=Monica+Reyes&background=515052&color=FFFFFA',
     party: 'Democratic',
     role: 'Governor',
     location: 'New Mexico',
@@ -101,7 +102,7 @@ const MOCK_POLITICIANS: PoliticianProfile[] = [
   },
   {
     name: 'Daniel Brooks',
-    photoUrl: 'https://ui-avatars.com/api/?name=Daniel+Brooks&background=b91c1c&color=fff',
+    photoUrl: 'https://ui-avatars.com/api/?name=Daniel+Brooks&background=FF312E&color=FFFFFA',
     party: 'Republican',
     role: 'House Representative',
     location: 'Florida 7th District',
@@ -200,16 +201,16 @@ export default function PoliticianScreen() {
   const textColor = useThemeColor({}, 'text');
   const iconColor = useThemeColor({}, 'icon');
 
-  const palette = useMemo(
-    () => ({
-      cardBackground: colorScheme === 'dark' ? '#111827' : '#ffffff',
-      cardBorder: colorScheme === 'dark' ? '#374151' : '#e5e7eb',
-      sectionBackground: colorScheme === 'dark' ? '#0f172a' : '#f8fafc',
-      buttonBackground: colorScheme === 'dark' ? '#2563eb' : '#1d4ed8',
-      badgeBackground: colorScheme === 'dark' ? '#1f2937' : '#f1f5f9',
-    }),
-    [colorScheme],
-  );
+  const palette = useMemo(() => {
+    const semantic = getSemanticColors(colorScheme);
+    return {
+      cardBackground: semantic.cardBackground,
+      cardBorder: semantic.cardBorder,
+      sectionBackground: semantic.cardSubtleBackground,
+      buttonBackground: semantic.accent,
+      badgeBackground: colorScheme === 'dark' ? Brand.slate : semantic.cardSubtleBackground,
+    };
+  }, [colorScheme]);
 
   const runSearch = useCallback((rawQuery: string) => {
     const query = rawQuery.trim();
@@ -314,7 +315,7 @@ export default function PoliticianScreen() {
                     }, 120);
                   }}
                   placeholder="Type a politician name"
-                  placeholderTextColor="#9ca3af"
+                  placeholderTextColor={Brand.steel}
                   style={[styles.searchInput, { color: textColor }]}
                   returnKeyType="search"
                   blurOnSubmit
@@ -616,7 +617,7 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
   },
   searchButtonText: {
-    color: '#ffffff',
+    color: Brand.paper,
     fontSize: 15,
     fontWeight: '600',
   },
@@ -631,7 +632,7 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     paddingVertical: 10,
     borderBottomWidth: StyleSheet.hairlineWidth,
-    borderBottomColor: '#94a3b8',
+    borderBottomColor: Brand.steel,
   },
   suggestionMeta: {
     fontSize: 12,
@@ -710,7 +711,7 @@ const styles = StyleSheet.create({
     height: 48,
     borderRadius: 24,
     borderWidth: 1,
-    borderColor: '#d1d5db',
+    borderColor: Brand.slate,
   },
   roleLine: {
     fontSize: 14,
@@ -757,7 +758,7 @@ const styles = StyleSheet.create({
   },
   newsRow: {
     borderTopWidth: StyleSheet.hairlineWidth,
-    borderTopColor: '#9ca3af',
+    borderTopColor: Brand.steel,
     paddingTop: 10,
     gap: 3,
   },

@@ -3,7 +3,7 @@ import { LineChart } from 'react-native-chart-kit';
 import { useMemo, useState } from 'react';
 
 import { ThemedText } from '@/components/ThemedText';
-import { Colors } from '@/constants/Colors';
+import { Brand, Colors } from '@/constants/Colors';
 import { Radius, Spacing, getSemanticColors } from '@/constants/ThemeTokens';
 import { ECONOMIC_PULSE_MONTH_LABELS, ECONOMIC_PULSE_SERIES } from '@/constants/usEconomicData';
 import { useColorScheme } from '@/hooks/useColorScheme';
@@ -35,20 +35,19 @@ export default function EconomicPulseChart() {
   };
 
   const chartConfig = {
-    backgroundGradientFrom: isDark ? '#111827' : '#ffffff',
-    backgroundGradientTo: isDark ? '#111827' : '#ffffff',
+    backgroundGradientFrom: isDark ? Brand.slate : Brand.paper,
+    backgroundGradientTo: isDark ? Brand.slate : Brand.paper,
     decimalPlaces: 0,
-    color: (opacity = 1) =>
-      isDark ? `rgba(96, 165, 250, ${opacity})` : `rgba(37, 99, 235, ${opacity})`,
+    color: (opacity = 1) => `rgba(255, 49, 46, ${opacity})`,
     labelColor: (opacity = 1) =>
-      isDark ? `rgba(156, 163, 175, ${opacity})` : `rgba(75, 85, 99, ${opacity})`,
+      isDark ? `rgba(255, 255, 250, ${0.35 + 0.45 * opacity})` : `rgba(81, 80, 82, ${opacity})`,
     propsForDots: {
       r: '3',
       strokeWidth: '1.5',
-      stroke: isDark ? '#1f2937' : '#ffffff',
+      stroke: isDark ? Brand.ink : Brand.paper,
     },
     propsForBackgroundLines: {
-      stroke: isDark ? '#1f2937' : '#e5e7eb',
+      stroke: isDark ? Brand.steel : Brand.slate,
       strokeDasharray: '',
     },
     propsForLabels: {
@@ -57,7 +56,7 @@ export default function EconomicPulseChart() {
   };
 
   return (
-    <View style={[styles.wrap, { borderColor: isDark ? '#374151' : '#e5e7eb' }]}>
+    <View style={[styles.wrap, { borderColor: semantic.cardBorder }]}>
       <ThemedText type="defaultSemiBold">US Economic Pulse</ThemedText>
       <ThemedText style={[styles.caption, { color: theme.icon }]}>
         Indexed trend view (Nov=100) to compare macro direction.
@@ -103,7 +102,11 @@ export default function EconomicPulseChart() {
                 styles.legendChip,
                 {
                   borderColor: isEnabled ? series.color : semantic.cardBorder,
-                  backgroundColor: isEnabled ? (isDark ? '#111827' : '#f8fafc') : 'transparent',
+                  backgroundColor: isEnabled
+                    ? isDark
+                      ? Brand.ink
+                      : semantic.cardSubtleBackground
+                    : 'transparent',
                   opacity: pressed ? 0.82 : 1,
                 },
               ]}

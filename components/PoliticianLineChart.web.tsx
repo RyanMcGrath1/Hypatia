@@ -10,6 +10,7 @@ import {
 } from 'recharts';
 
 import { Colors } from '@/constants/Colors';
+import { getSemanticColors } from '@/constants/ThemeTokens';
 import { useColorScheme } from '@/hooks/useColorScheme';
 
 const SAMPLE = [
@@ -25,7 +26,8 @@ export default function PoliticianLineChart() {
   const colorScheme = useColorScheme() ?? 'light';
   const accent = Colors[colorScheme].tint;
   const muted = Colors[colorScheme].icon;
-  const grid = colorScheme === 'dark' ? '#374151' : '#e5e7eb';
+  const semantic = getSemanticColors(colorScheme);
+  const grid = semantic.cardBorder;
   const label = muted;
 
   return (
@@ -37,14 +39,21 @@ export default function PoliticianLineChart() {
           <YAxis tick={{ fill: label, fontSize: 12 }} tickLine={false} axisLine={{ stroke: grid }} width={36} />
           <Tooltip
             contentStyle={{
-              backgroundColor: colorScheme === 'dark' ? '#1f2937' : '#ffffff',
+              backgroundColor: semantic.cardBackground,
               border: `1px solid ${grid}`,
               borderRadius: 8,
             }}
             labelStyle={{ color: label }}
             itemStyle={{ color: accent }}
           />
-          <Line type="monotone" dataKey="score" stroke={accent} strokeWidth={2} dot={{ r: 4, fill: accent }} activeDot={{ r: 6 }} />
+          <Line
+            type="monotone"
+            dataKey="score"
+            stroke={accent}
+            strokeWidth={2}
+            dot={{ r: 4, fill: accent }}
+            activeDot={{ r: 6 }}
+          />
         </LineChart>
       </ResponsiveContainer>
     </View>

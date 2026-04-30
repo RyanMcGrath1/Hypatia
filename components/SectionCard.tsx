@@ -1,6 +1,9 @@
 import { type ReactNode } from 'react';
 import { StyleSheet, View, type ViewStyle } from 'react-native';
 
+import { Radius, getSemanticColors } from '@/constants/ThemeTokens';
+import { useColorScheme } from '@/hooks/useColorScheme';
+
 type SectionCardProps = {
   children: ReactNode;
   backgroundColor: string;
@@ -9,14 +12,27 @@ type SectionCardProps = {
 };
 
 export function SectionCard({ children, backgroundColor, borderColor, style }: SectionCardProps) {
-  return <View style={[styles.card, { backgroundColor, borderColor }, style]}>{children}</View>;
+  const colorScheme = useColorScheme() ?? 'light';
+  const semantic = getSemanticColors(colorScheme);
+
+  return (
+    <View
+      style={[
+        styles.card,
+        { backgroundColor, borderColor },
+        semantic.cardShadow,
+        style,
+      ]}>
+      {children}
+    </View>
+  );
 }
 
 const styles = StyleSheet.create({
   card: {
     borderWidth: 1,
-    borderRadius: 14,
-    padding: 12,
-    gap: 8,
+    borderRadius: Radius.lg,
+    padding: 14,
+    gap: 10,
   },
 });

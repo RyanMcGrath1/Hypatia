@@ -172,7 +172,11 @@ export function AppBanner() {
                       styles.panelItemButton,
                       {
                         borderColor: isActive ? theme.tint : 'transparent',
-                        backgroundColor: isActive ? (colorScheme === 'dark' ? '#1f2937' : '#eff6ff') : 'transparent',
+                        backgroundColor: isActive
+                          ? colorScheme === 'dark'
+                            ? 'rgba(255, 49, 46, 0.14)'
+                            : 'rgba(255, 49, 46, 0.08)'
+                          : 'transparent',
                       },
                     ]}
                     onPress={() => navigateFromMenu(item.href)}>
