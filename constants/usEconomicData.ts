@@ -32,6 +32,11 @@ export type EconomicSector = {
   interpretation: string;
   metrics: SectorMetric[];
   updatedAt: string;
+  /**
+   * Indexed history for the tile sparkline (same six-month window as {@link ECONOMIC_PULSE_MONTH_LABELS}).
+   * Mock values are unit-agnostic and chosen to match each sector’s directional story.
+   */
+  history: number[];
 };
 
 export const US_ECONOMIC_SECTORS: EconomicSector[] = [
@@ -51,6 +56,7 @@ export const US_ECONOMIC_SECTORS: EconomicSector[] = [
       { label: 'Energy CPI', value: '-0.9%', note: 'Lower than last month' },
     ],
     updatedAt: 'Apr 2026',
+    history: [100, 101, 100, 99, 98, 97],
   },
   {
     id: 'labor',
@@ -68,6 +74,7 @@ export const US_ECONOMIC_SECTORS: EconomicSector[] = [
       { label: 'Avg Hourly Earnings', value: '+4.1%', note: 'Year-over-year' },
     ],
     updatedAt: 'Apr 2026',
+    history: [100, 100, 101, 101, 102, 102],
   },
   {
     id: 'gdp',
@@ -85,6 +92,7 @@ export const US_ECONOMIC_SECTORS: EconomicSector[] = [
       { label: 'Net Exports', value: '-0.2pp', note: 'Drag on growth' },
     ],
     updatedAt: 'Q1 2026',
+    history: [100, 99, 100, 101, 102, 103],
   },
   {
     id: 'rates',
@@ -102,6 +110,7 @@ export const US_ECONOMIC_SECTORS: EconomicSector[] = [
       { label: '2Y Treasury', value: '4.7%', note: 'Policy-sensitive yield' },
     ],
     updatedAt: 'Apr 2026',
+    history: [100, 100, 100, 100, 100, 100],
   },
   {
     id: 'housing',
@@ -119,6 +128,7 @@ export const US_ECONOMIC_SECTORS: EconomicSector[] = [
       { label: 'Months Supply', value: '3.3', note: 'Still below balanced market' },
     ],
     updatedAt: 'Mar 2026',
+    history: [102, 101.2, 100.5, 99.5, 98.5, 97.5],
   },
   {
     id: 'consumer',
@@ -136,6 +146,7 @@ export const US_ECONOMIC_SECTORS: EconomicSector[] = [
       { label: 'Consumer Sentiment', value: '74.8', note: 'Improved from prior month' },
     ],
     updatedAt: 'Apr 2026',
+    history: [99, 99.3, 99.8, 100.2, 101, 101.8],
   },
 ];
 

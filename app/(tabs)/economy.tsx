@@ -1,8 +1,10 @@
 import { useMemo, useState } from 'react';
 import { Pressable, ScrollView, StyleSheet, View, useWindowDimensions } from 'react-native';
+import Feather from '@expo/vector-icons/Feather';
 import { useRouter } from 'expo-router';
 
 import EconomicPulseChart from '@/components/EconomicPulseChart';
+import SectorSparkline from '@/components/SectorSparkline';
 import { ScreenHeader } from '@/components/ScreenHeader';
 import { SectionCard } from '@/components/SectionCard';
 import { StateNoticeCard } from '@/components/StateNoticeCard';
@@ -31,19 +33,6 @@ const SORT_OPTIONS: { id: SectorSort; label: string }[] = [
   { id: 'name', label: 'A-Z' },
 ];
 
-function getTrendTone(trend: SectorTrend, isDark: boolean) {
-  if (trend === 'up') {
-    return {
-      color: isDark ? 'rgba(255,255,250,0.9)' : Brand.ink,
-      marker: '↑',
-    };
-  }
-  if (trend === 'down') {
-    return { color: Brand.coral, marker: '↓' };
-  }
-  return { color: Brand.steel, marker: '→' };
-}
-
 function getTrendRank(trend: SectorTrend) {
   if (trend === 'up') {
     return 0;
@@ -52,6 +41,64 @@ function getTrendRank(trend: SectorTrend) {
     return 1;
   }
   return 2;
+}
+
+/**
+ * Percent change from the second-to-last → last history point (same basis as the arrow).
+ * Uses relative change: ((last − prev) / prev) × 100.
+ */
+function formatLastStepPercentChange(values: number[]): string {
+  if (values.length < 2) {
+    return '—';
+  }
+  const prev = values[values.length - 2]!;
+  const last = values[values.length - 1]!;
+  if (prev === 0) {
+    return last === 0 ? '0%' : '—';
+  }
+  const pct = ((last - prev) / prev) * 100;
+  const rounded = Math.round(pct * 10) / 10;
+  if (rounded === 0) {
+    return '0%';
+  }
+  const sign = rounded > 0 ? '+' : '';
+  return `${sign}${rounded}%`;
+}
+
+/** Change from second-to-last → last point in the tile history series (mock months). */
+function getLastHistoryStepDirection(values: number[]): 'up' | 'down' | 'flat' {
+  if (values.length < 2) {
+    return 'flat';
+  }
+  const prev = values[values.length - 2]!;
+  const last = values[values.length - 1]!;
+  if (last > prev) {
+    return 'up';
+  }
+  if (last < prev) {
+    return 'down';
+  }
+  return 'flat';
+}
+
+/** Feather icons + colors for last history step (matches compact tile reference pattern). */
+function getFeatherTrendVisual(direction: 'up' | 'down' | 'flat', isDark: boolean) {
+  if (direction === 'up') {
+    return {
+      name: 'arrow-up-right' as const,
+      color: isDark ? '#4ADE80' : '#16A34A',
+    };
+  }
+  if (direction === 'down') {
+    return {
+      name: 'arrow-down-right' as const,
+      color: Brand.coral,
+    };
+  }
+  return {
+    name: 'arrow-right' as const,
+    color: Brand.steel,
+  };
 }
 
 function getRecencyRank(updatedAt: string) {
@@ -81,11 +128,16 @@ export default function EconomyDashboardScreen() {
   const isDark = colorScheme === 'dark';
   const theme = Colors[colorScheme];
   const semantic = getSemanticColors(colorScheme);
+  /** Single column on very narrow viewports; two-up ~47% style columns otherwise (reference layout). */
+  const narrowBreakpoint = 400;
+  const gridGap = 16;
   const cardWidth = useMemo(() => {
-    const horizontalPadding = 32;
-    const gap = 12;
+    const horizontalPadding = Spacing.lg * 2;
     const available = width - horizontalPadding;
-    return (available - gap) / 2;
+    if (width < narrowBreakpoint) {
+      return available;
+    }
+    return (available - gridGap) / 2;
   }, [width]);
 
   const sortedSectors = useMemo(() => {
@@ -106,9 +158,11 @@ export default function EconomyDashboardScreen() {
     });
   };
 
-  // Per-sector tile renderer (tap card to route)
+  // Per-sector tile renderer — compact “indicator card” layout (title + sparkline, value + trend, period)
   const renderSectorCard = (sector: EconomicSector) => {
-    const trendTone = getTrendTone(sector.trend, isDark);
+    const stepDir = getLastHistoryStepDirection(sector.history);
+    const feather = getFeatherTrendVisual(stepDir, isDark);
+    const stepPercentLabel = formatLastStepPercentChange(sector.history);
 
     return (
       <View
@@ -123,28 +177,52 @@ export default function EconomyDashboardScreen() {
         ]}>
         <Pressable
           accessibilityRole="button"
-          accessibilityLabel={`Open ${sector.title} details`}
+          accessibilityLabel={`${sector.title}, ${sector.headlineValue}, ${stepPercentLabel} vs prior reading. Open details.`}
           hitSlop={8}
-          style={({ pressed }) => [styles.cardTop, { opacity: pressed ? 0.88 : 1 }]}
+          style={({ pressed }) => [styles.cardInner, { opacity: pressed ? 0.92 : 1 }]}
           onPress={() => openSectorDetails(sector.id)}>
-          <ThemedText type="defaultSemiBold">{sector.title}</ThemedText>
-          <ThemedText style={[styles.updatedText, { color: semantic.mutedText }]}>
-            Updated {sector.updatedAt}
-          </ThemedText>
-          <ThemedText style={[styles.headlineValue, { color: theme.text }]}>
-            {sector.headlineValue}
-          </ThemedText>
-          <ThemedText style={[styles.headlineLabel, { color: semantic.mutedText }]}>
+          <View style={styles.cardHeader}>
+            <ThemedText
+              numberOfLines={2}
+              style={[styles.indicatorName, { color: semantic.mutedText }]}>
+              {sector.title}
+            </ThemedText>
+            <SectorSparkline
+              values={sector.history}
+              strokeColor={theme.tint}
+              width={60}
+              height={24}
+            />
+          </View>
+
+          <View style={styles.cardBody}>
+            <View style={styles.valueColumn}>
+              <ThemedText
+                numberOfLines={1}
+                ellipsizeMode="tail"
+                style={[styles.indicatorValue, { color: theme.text }]}>
+                {sector.headlineValue}
+              </ThemedText>
+            </View>
+            <View style={styles.trendContainer}>
+              <Feather name={feather.name} size={16} color={feather.color} accessible={false} />
+              <ThemedText
+                numberOfLines={1}
+                ellipsizeMode="tail"
+                style={[styles.changeText, { color: feather.color }]}>
+                {stepPercentLabel}
+              </ThemedText>
+            </View>
+          </View>
+
+          <ThemedText
+            numberOfLines={1}
+            ellipsizeMode="tail"
+            style={[styles.metricCaption, { color: semantic.mutedText }]}>
             {sector.headlineLabel}
           </ThemedText>
-          <ThemedText style={[styles.trendText, { color: trendTone.color }]}>
-            {trendTone.marker} {sector.trendLabel}
-          </ThemedText>
-          <ThemedText numberOfLines={2} style={[styles.summaryText, { color: semantic.mutedText }]}>
-            {sector.summary}
-          </ThemedText>
-          <ThemedText style={[styles.openDetailsHint, { color: theme.tint }]}>
-            Tap to open full details
+          <ThemedText style={[styles.periodText, { color: semantic.mutedText }]}>
+            Updated {sector.updatedAt}
           </ThemedText>
         </Pressable>
       </View>
@@ -318,42 +396,67 @@ const styles = StyleSheet.create({
   gridWrap: {
     flexDirection: 'row',
     flexWrap: 'wrap',
-    gap: Spacing.md,
+    gap: 16,
   },
   card: {
     borderWidth: 1,
-    borderRadius: Radius.lg,
+    borderRadius: 12,
     overflow: 'hidden',
   },
-  cardTop: {
-    padding: Spacing.md,
-    gap: 4,
+  cardInner: {
+    padding: 16,
   },
-  updatedText: {
+  cardHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'flex-start',
+    marginBottom: 12,
+  },
+  indicatorName: {
     fontSize: 12,
+    fontWeight: '600',
+    flex: 1,
+    paddingRight: 8,
+    lineHeight: 16,
   },
-  headlineValue: {
-    marginTop: 4,
+  cardBody: {
+    flexDirection: 'row',
+    alignItems: 'baseline',
+    justifyContent: 'space-between',
+    marginBottom: 4,
+    gap: 8,
+  },
+  valueColumn: {
+    flex: 1,
+    minWidth: 0,
+  },
+  indicatorValue: {
     fontSize: 24,
+    fontWeight: '800',
     lineHeight: 28,
-    fontWeight: '700',
+    letterSpacing: -0.3,
   },
-  headlineLabel: {
-    fontSize: 13,
+  trendContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    flexShrink: 0,
+    maxWidth: '46%',
+    gap: 2,
   },
-  trendText: {
-    marginTop: 4,
-    fontSize: 13,
-    fontWeight: '600',
-  },
-  summaryText: {
-    marginTop: 2,
-    fontSize: 13,
-    lineHeight: 17,
-  },
-  openDetailsHint: {
-    marginTop: 8,
+  changeText: {
     fontSize: 12,
-    fontWeight: '600',
+    fontWeight: '700',
+    flexShrink: 1,
+  },
+  metricCaption: {
+    fontSize: 11,
+    fontWeight: '500',
+    lineHeight: 14,
+    marginBottom: 2,
+  },
+  periodText: {
+    fontSize: 10,
+    fontWeight: '500',
+    lineHeight: 13,
   },
 });

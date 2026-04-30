@@ -1,7 +1,6 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import {
   ActivityIndicator,
-  Linking,
   Pressable,
   RefreshControl,
   ScrollView,
@@ -10,6 +9,7 @@ import {
 } from "react-native";
 
 import { Image } from "expo-image";
+import { router } from "expo-router";
 import Ionicons from "@expo/vector-icons/Ionicons";
 
 import { EmptyState } from "@/components/EmptyState";
@@ -20,6 +20,7 @@ import { ThemedText } from "@/components/ThemedText";
 import { ThemedView } from "@/components/ThemedView";
 import { Brand } from "@/constants/Colors";
 import { NEWS_TOPIC_ICON_NAMES } from "@/constants/newsTopicIcons";
+import { AppRoutes } from "@/constants/routes";
 import { Radius, Spacing, getSemanticColors } from "@/constants/ThemeTokens";
 import { Fonts } from "@/constants/Typography";
 import {
@@ -119,8 +120,11 @@ export default function HomeScreen() {
     };
   }, [loadHeadlines]);
 
-  const openUrl = (url: string) => {
-    void Linking.openURL(url);
+  const openArticle = (url: string, title: string) => {
+    router.push({
+      pathname: AppRoutes.article,
+      params: { url, title },
+    });
   };
 
   return (
@@ -257,13 +261,15 @@ export default function HomeScreen() {
                   key={key}
                   accessibilityRole={item.url ? "button" : "none"}
                   accessibilityHint={
-                    item.url ? "Opens article in browser" : undefined
+                    item.url ? "Opens full article" : undefined
                   }
                   disabled={!item.url}
                   style={({ pressed }) => ({
                     opacity: item.url ? (pressed ? 0.88 : 1) : 1,
                   })}
-                  onPress={() => item.url && openUrl(item.url)}
+                  onPress={() =>
+                    item.url && openArticle(item.url, item.title)
+                  }
                 >
                   {/* Card shell: padding + border from SectionCard */}
                   <SectionCard
