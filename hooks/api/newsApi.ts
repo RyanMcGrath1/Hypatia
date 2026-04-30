@@ -3,20 +3,52 @@
  */
 import { Platform } from 'react-native';
 
+import { WEB_NEWS_DEV_PROXY_PREFIX } from '@/constants/newsDevProxy';
 import { fetchApiGet } from '@/hooks/api/httpGet';
 import { getDevApiBaseUrlForPort } from '@/hooks/api/devServerBaseUrl';
 
+/** True when env points at this machine’s loopback — browser CORS blocks cross-port unless we use the Metro proxy. */
+function isLoopbackOrLocalhostNewsUrl(url: string): boolean {
+  try {
+    const normalized = url.includes('://') ? url : `http://${url}`;
+    const u = new URL(normalized);
+    const h = u.hostname.toLowerCase();
+    return h === 'localhost' || h === '127.0.0.1' || h === '[::1]';
+  } catch {
+    return false;
+  }
+}
+
 export function getNewsApiBaseUrl(): string {
   const fromEnv = process.env.EXPO_PUBLIC_NEWS_API_BASE_URL?.trim();
+
+  /**
+   * Web **dev**: prefer same-origin Metro proxy (`metro.config.js`) so fetches are not cross-origin to :5001.
+   * If `.env` sets `EXPO_PUBLIC_NEWS_API_BASE_URL` to `http://127.0.0.1:5001`, using it directly causes **CORS**
+   * from the Expo tab — so we still use the proxy for loopback URLs unless you point at a remote API (LAN/public).
+   */
+  const useWebDevProxy =
+    Platform.OS === 'web' &&
+    typeof window !== 'undefined' &&
+    __DEV__ &&
+    (!fromEnv || isLoopbackOrLocalhostNewsUrl(fromEnv));
+
+  if (useWebDevProxy) {
+    return `${window.location.origin}${WEB_NEWS_DEV_PROXY_PREFIX}`.replace(/\/$/, '');
+  }
+
   if (fromEnv) {
     return fromEnv.replace(/\/$/, '');
   }
+
   return getDevApiBaseUrlForPort(5001);
 }
 
 export function getNewsApiNetworkErrorMessage(): string {
   if (Platform.OS === 'web') {
-    return 'Unable to reach the news API (enable CORS on the server for Expo web — see scripts/flask_cors_local.py)';
+    return __DEV__
+      ? `Unable to reach the news API at ${getNewsApiBaseUrl()}.\n\nDev Web uses a Metro proxy (see metro.config.js) so localhost APIs avoid CORS — restart Expo after adding it, and ensure the service listens on 127.0.0.1:5001.\n\nIf you call the API URL directly instead, enable CORS on the server (scripts/flask_cors_local.py).`
+      : 'Unable to reach the news API (enable CORS on the server for Expo web — see scripts/flask_cors_local.py)';
   }
   return `Unable to reach the news API at ${getNewsApiBaseUrl()}. On a real device, the app uses your dev machine's LAN IP (same as Metro). Run the server bound to all interfaces, or set EXPO_PUBLIC_NEWS_API_BASE_URL.`;
 }

@@ -1,19 +1,25 @@
 import * as WebBrowser from 'expo-web-browser';
+import Feather from '@expo/vector-icons/Feather';
 import { Stack, useLocalSearchParams } from 'expo-router';
-import { useMemo, useState } from 'react';
+import { useCallback, useEffect, useMemo, useState } from 'react';
 import {
   ActivityIndicator,
+  Keyboard,
+  Platform,
   Pressable,
   StyleSheet,
+  TextInput,
   View,
   type NativeSyntheticEvent,
 } from 'react-native';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { WebView } from 'react-native-webview';
 
 import { ThemedText } from '@/components/ThemedText';
 import { ThemedView } from '@/components/ThemedView';
 import { Colors } from '@/constants/Colors';
-import { Spacing, getSemanticColors } from '@/constants/ThemeTokens';
+import { Radius, Spacing, getSemanticColors } from '@/constants/ThemeTokens';
+import { Fonts } from '@/constants/Typography';
 import { useColorScheme } from '@/hooks/useColorScheme';
 
 function firstParam(value: string | string[] | undefined): string | undefined {
@@ -83,6 +89,35 @@ export default function ArticleWebViewScreen() {
 
   const [loading, setLoading] = useState(true);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
+  const [chatDraft, setChatDraft] = useState('');
+
+  const insets = useSafeAreaInsets();
+  /** Lifts composer above the software keyboard (KeyboardAvoidingView is unreliable with WebView on Android). */
+  const [keyboardBottomInset, setKeyboardBottomInset] = useState(0);
+
+  useEffect(() => {
+    if (Platform.OS === 'web') {
+      return;
+    }
+    const showEvent =
+      Platform.OS === 'ios' ? 'keyboardWillShow' : 'keyboardDidShow';
+    const hideEvent =
+      Platform.OS === 'ios' ? 'keyboardWillHide' : 'keyboardDidHide';
+
+    const onShow = (e: { endCoordinates: { height: number } }) => {
+      setKeyboardBottomInset(e.endCoordinates.height);
+    };
+    const onHide = () => {
+      setKeyboardBottomInset(0);
+    };
+
+    const showSub = Keyboard.addListener(showEvent, onShow);
+    const hideSub = Keyboard.addListener(hideEvent, onHide);
+    return () => {
+      showSub.remove();
+      hideSub.remove();
+    };
+  }, []);
 
   const sharedHeaderOptions = {
     gestureEnabled: true,
@@ -122,6 +157,78 @@ export default function ArticleWebViewScreen() {
     }
   };
 
+  const sendChatMessage = useCallback(() => {
+    const text = chatDraft.trim();
+    if (!text) {
+      return;
+    }
+    Keyboard.dismiss();
+    // Hook for assistant / comments API — keep draft cleared after send for now
+    setChatDraft('');
+  }, [chatDraft]);
+
+  /** Extra space above the home indicator so the composer floats higher than edge-to-edge. */
+  const chatBarBottomLift = Spacing.xl + Spacing.sm;
+
+  const renderChatBar = () => (
+    <View
+      style={[
+        styles.chatBarOuter,
+        {
+          paddingBottom:
+            Math.max(insets.bottom, Spacing.sm) +
+            chatBarBottomLift +
+            keyboardBottomInset,
+        },
+      ]}
+      accessibilityRole="toolbar"
+    >
+      <View
+        style={[
+          styles.chatBar,
+          {
+            borderColor: semantic.cardBorder,
+            backgroundColor: semantic.cardBackground,
+          },
+          semantic.cardShadow,
+        ]}
+      >
+        <TextInput
+          value={chatDraft}
+          onChangeText={setChatDraft}
+          placeholder="Message…"
+          placeholderTextColor={semantic.mutedText}
+          style={[
+            styles.chatInput,
+            {
+              color: theme.text,
+              backgroundColor: 'transparent',
+            },
+          ]}
+          multiline
+          maxLength={2000}
+          returnKeyType="send"
+          blurOnSubmit={false}
+          onSubmitEditing={sendChatMessage}
+          editable
+        />
+        <Pressable
+          accessibilityRole="button"
+          accessibilityLabel="Send message"
+          hitSlop={10}
+          onPress={sendChatMessage}
+          disabled={!chatDraft.trim()}
+          style={({ pressed }) => ({
+            opacity: chatDraft.trim() ? (pressed ? 0.75 : 1) : 0.35,
+            padding: Spacing.sm,
+          })}
+        >
+          <Feather name="send" size={22} color={theme.tint} />
+        </Pressable>
+      </View>
+    </View>
+  );
+
   if (!articleUrl) {
     return (
       <ThemedView style={styles.screen}>
@@ -131,11 +238,14 @@ export default function ArticleWebViewScreen() {
             ...sharedHeaderOptions,
           }}
         />
-        <View style={styles.centered}>
-          <ThemedText type="defaultSemiBold">Invalid link</ThemedText>
-          <ThemedText style={[styles.hint, { color: semantic.mutedText }]}>
-            This story does not have a supported web address.
-          </ThemedText>
+        <View style={styles.keyboardAvoid}>
+          <View style={styles.fillCenter}>
+            <ThemedText type="defaultSemiBold">Invalid link</ThemedText>
+            <ThemedText style={[styles.hint, { color: semantic.mutedText }]}>
+              This story does not have a supported web address.
+            </ThemedText>
+          </View>
+          {renderChatBar()}
         </View>
       </ThemedView>
     );
@@ -161,43 +271,48 @@ export default function ArticleWebViewScreen() {
         }}
       />
 
-      {loading ? (
-        <View style={styles.loadingOverlay} pointerEvents="none">
-          <ActivityIndicator size="large" color={semantic.accent} />
-        </View>
-      ) : null}
+      <View style={styles.keyboardAvoid}>
+        <View style={styles.webviewWrap}>
+          {loading ? (
+            <View style={styles.loadingOverlay} pointerEvents="none">
+              <ActivityIndicator size="large" color={semantic.accent} />
+            </View>
+          ) : null}
 
-      {errorMessage ? (
-        <View style={styles.centered}>
-          <ThemedText type="defaultSemiBold">Could not load article</ThemedText>
-          <ThemedText style={[styles.hint, { color: semantic.mutedText }]}>{errorMessage}</ThemedText>
-          <Pressable
-            accessibilityRole="button"
-            accessibilityLabel="Open in system browser"
-            onPress={openInSystemBrowser}
-            style={({ pressed }) => [styles.outlineButton, { borderColor: theme.tint, opacity: pressed ? 0.85 : 1 }]}
-          >
-            <ThemedText style={{ color: theme.tint, fontWeight: '600' }}>Open in browser</ThemedText>
-          </Pressable>
+          {errorMessage ? (
+            <View style={styles.centered}>
+              <ThemedText type="defaultSemiBold">Could not load article</ThemedText>
+              <ThemedText style={[styles.hint, { color: semantic.mutedText }]}>{errorMessage}</ThemedText>
+              <Pressable
+                accessibilityRole="button"
+                accessibilityLabel="Open in system browser"
+                onPress={openInSystemBrowser}
+                style={({ pressed }) => [styles.outlineButton, { borderColor: theme.tint, opacity: pressed ? 0.85 : 1 }]}
+              >
+                <ThemedText style={{ color: theme.tint, fontWeight: '600' }}>Open in browser</ThemedText>
+              </Pressable>
+            </View>
+          ) : (
+            <WebView
+              source={{ uri: articleUrl }}
+              style={styles.webview}
+              onLoadStart={() => {
+                setLoading(true);
+              }}
+              onLoadEnd={onLoadEnd}
+              onError={onError}
+              onHttpError={onHttpError}
+              startInLoadingState
+              javaScriptEnabled
+              domStorageEnabled
+              setSupportMultipleWindows={false}
+              allowsInlineMediaPlayback
+              originWhitelist={['https://*', 'http://*']}
+            />
+          )}
         </View>
-      ) : (
-        <WebView
-          source={{ uri: articleUrl }}
-          style={styles.webview}
-          onLoadStart={() => {
-            setLoading(true);
-          }}
-          onLoadEnd={onLoadEnd}
-          onError={onError}
-          onHttpError={onHttpError}
-          startInLoadingState
-          javaScriptEnabled
-          domStorageEnabled
-          setSupportMultipleWindows={false}
-          allowsInlineMediaPlayback
-          originWhitelist={['https://*', 'http://*']}
-        />
-      )}
+        {renderChatBar()}
+      </View>
     </ThemedView>
   );
 }
@@ -206,15 +321,56 @@ const styles = StyleSheet.create({
   screen: {
     flex: 1,
   },
+  keyboardAvoid: {
+    flex: 1,
+    minHeight: 0,
+  },
+  webviewWrap: {
+    flex: 1,
+    minHeight: 0,
+    position: 'relative',
+  },
   webview: {
     flex: 1,
     backgroundColor: 'transparent',
+  },
+  chatBarOuter: {
+    paddingHorizontal: Spacing.md,
+  },
+  chatBar: {
+    flexDirection: 'row',
+    alignItems: 'flex-end',
+    gap: Spacing.sm,
+    paddingHorizontal: Spacing.md,
+    paddingVertical: Spacing.sm,
+    borderRadius: 9999,
+    borderWidth: StyleSheet.hairlineWidth,
+    overflow: 'hidden',
+  },
+  chatInput: {
+    flex: 1,
+    minHeight: 40,
+    maxHeight: 120,
+    borderWidth: 0,
+    borderRadius: Radius.md,
+    paddingHorizontal: Spacing.xs,
+    paddingVertical: Platform.OS === 'ios' ? 10 : 8,
+    fontFamily: Fonts.body,
+    fontSize: 16,
+    lineHeight: 22,
   },
   loadingOverlay: {
     ...StyleSheet.absoluteFillObject,
     justifyContent: 'center',
     alignItems: 'center',
     zIndex: 1,
+  },
+  fillCenter: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+    paddingHorizontal: Spacing.lg,
+    gap: Spacing.sm,
   },
   centered: {
     flex: 1,
