@@ -10,6 +10,10 @@ type ScreenHeaderProps = {
   subtitleColor?: string;
   /** Merged after base subtitle styles (e.g. larger `fontSize`). */
   subtitleStyle?: StyleProp<TextStyle>;
+  /** Smaller line under the subtitle (e.g. “As of …”, provenance). */
+  meta?: string;
+  metaColor?: string;
+  metaStyle?: StyleProp<TextStyle>;
 };
 
 export function ScreenHeader({
@@ -17,6 +21,9 @@ export function ScreenHeader({
   subtitle,
   subtitleColor,
   subtitleStyle,
+  meta,
+  metaColor,
+  metaStyle,
 }: ScreenHeaderProps) {
   return (
     <View style={styles.wrap}>
@@ -34,6 +41,17 @@ export function ScreenHeader({
           {subtitle}
         </ThemedText>
       ) : null}
+      {meta ? (
+        <ThemedText
+          style={[
+            styles.meta,
+            metaColor ? { color: metaColor } : undefined,
+            metaStyle,
+          ]}
+        >
+          {meta}
+        </ThemedText>
+      ) : null}
     </View>
   );
 }
@@ -49,5 +67,12 @@ const styles = StyleSheet.create({
     fontFamily: Fonts.body,
     fontSize: 16,
     lineHeight: 24,
+  },
+  meta: {
+    fontFamily: Fonts.bodyMedium,
+    fontSize: 12,
+    lineHeight: 18,
+    marginTop: Spacing.xs,
+    letterSpacing: 0.15,
   },
 });

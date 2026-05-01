@@ -1,18 +1,22 @@
-import { useMemo, useState } from 'react';
-import { Pressable, ScrollView, StyleSheet, View, useWindowDimensions } from 'react-native';
-import Feather from '@expo/vector-icons/Feather';
-import { useRouter } from 'expo-router';
+import Feather from "@expo/vector-icons/Feather";
+import { useRouter } from "expo-router";
+import { useMemo, useState } from "react";
+import {
+  Pressable,
+  ScrollView,
+  StyleSheet,
+  View,
+  useWindowDimensions,
+} from "react-native";
 
-import EconomicPulseChart from '@/components/charts/EconomicPulseChart';
-import SectorSparkline from '@/components/charts/SectorSparkline';
-import { ScreenHeader } from '@/components/layout/ScreenHeader';
-import { SectionCard } from '@/components/surfaces/SectionCard';
-import { StateNoticeCard } from '@/components/surfaces/StateNoticeCard';
-import { ThemedText } from '@/components/theme/ThemedText';
-import { ThemedView } from '@/components/theme/ThemedView';
-import { Brand, Colors } from '@/constants/theme/Colors';
-import { AppRoutes } from '@/constants/app/routes';
-import { Radius, Spacing, getSemanticColors } from '@/constants/theme/ThemeTokens';
+import EconomicPulseChart from "@/components/charts/EconomicPulseChart";
+import SectorSparkline from "@/components/charts/SectorSparkline";
+import { ScreenHeader } from "@/components/layout/ScreenHeader";
+import { SectionCard } from "@/components/surfaces/SectionCard";
+import { StateNoticeCard } from "@/components/surfaces/StateNoticeCard";
+import { ThemedText } from "@/components/theme/ThemedText";
+import { ThemedView } from "@/components/theme/ThemedView";
+import { AppRoutes } from "@/constants/app/routes";
 import {
   ECONOMY_DATA_SOURCE,
   ECONOMY_KPIS,
@@ -20,24 +24,30 @@ import {
   US_ECONOMIC_SECTORS,
   type EconomicSector,
   type SectorTrend,
-} from '@/constants/data/usEconomicData';
-import { useColorScheme } from '@/hooks/useColorScheme';
+} from "@/constants/data/usEconomicData";
+import { Brand, Colors } from "@/constants/theme/Colors";
+import {
+  Radius,
+  Spacing,
+  getSemanticColors,
+} from "@/constants/theme/ThemeTokens";
+import { useColorScheme } from "@/hooks/useColorScheme";
 
-type TimeWindow = '1M' | '3M' | '6M' | '1Y';
-type SectorSort = 'trend' | 'recency' | 'name';
+type TimeWindow = "1M" | "3M" | "6M" | "1Y";
+type SectorSort = "trend" | "recency" | "name";
 
-const TIME_WINDOWS: TimeWindow[] = ['1M', '3M', '6M', '1Y'];
+const TIME_WINDOWS: TimeWindow[] = ["1M", "3M", "6M", "1Y"];
 const SORT_OPTIONS: { id: SectorSort; label: string }[] = [
-  { id: 'trend', label: 'Trend' },
-  { id: 'recency', label: 'Recent' },
-  { id: 'name', label: 'A-Z' },
+  { id: "trend", label: "Trend" },
+  { id: "recency", label: "Recent" },
+  { id: "name", label: "A-Z" },
 ];
 
 function getTrendRank(trend: SectorTrend) {
-  if (trend === 'up') {
+  if (trend === "up") {
     return 0;
   }
-  if (trend === 'flat') {
+  if (trend === "flat") {
     return 1;
   }
   return 2;
@@ -49,67 +59,70 @@ function getTrendRank(trend: SectorTrend) {
  */
 function formatLastStepPercentChange(values: number[]): string {
   if (values.length < 2) {
-    return '—';
+    return "—";
   }
   const prev = values[values.length - 2]!;
   const last = values[values.length - 1]!;
   if (prev === 0) {
-    return last === 0 ? '0%' : '—';
+    return last === 0 ? "0%" : "—";
   }
   const pct = ((last - prev) / prev) * 100;
   const rounded = Math.round(pct * 10) / 10;
   if (rounded === 0) {
-    return '0%';
+    return "0%";
   }
-  const sign = rounded > 0 ? '+' : '';
+  const sign = rounded > 0 ? "+" : "";
   return `${sign}${rounded}%`;
 }
 
 /** Change from second-to-last → last point in the tile history series (mock months). */
-function getLastHistoryStepDirection(values: number[]): 'up' | 'down' | 'flat' {
+function getLastHistoryStepDirection(values: number[]): "up" | "down" | "flat" {
   if (values.length < 2) {
-    return 'flat';
+    return "flat";
   }
   const prev = values[values.length - 2]!;
   const last = values[values.length - 1]!;
   if (last > prev) {
-    return 'up';
+    return "up";
   }
   if (last < prev) {
-    return 'down';
+    return "down";
   }
-  return 'flat';
+  return "flat";
 }
 
 /** Feather icons + colors for last history step (matches compact tile reference pattern). */
-function getFeatherTrendVisual(direction: 'up' | 'down' | 'flat', isDark: boolean) {
-  if (direction === 'up') {
+function getFeatherTrendVisual(
+  direction: "up" | "down" | "flat",
+  isDark: boolean,
+) {
+  if (direction === "up") {
     return {
-      name: 'arrow-up-right' as const,
-      color: isDark ? '#4ADE80' : '#16A34A',
+      name: "arrow-up-right" as const,
+      color: isDark ? "#4ADE80" : "#16A34A",
     };
   }
-  if (direction === 'down') {
+  if (direction === "down") {
     return {
-      name: 'arrow-down-right' as const,
+      name: "arrow-down-right" as const,
       color: Brand.coral,
     };
   }
   return {
-    name: 'arrow-right' as const,
+    name: "arrow-right" as const,
     color: Brand.steel,
   };
 }
 
 function getRecencyRank(updatedAt: string) {
   const normalized = updatedAt.trim().toLowerCase();
-  if (normalized.includes('apr')) {
+  if (normalized.includes("apr")) {
     return 0;
   }
-  if (normalized.includes('mar')) {
+  if (normalized.includes("mar")) {
     return 1;
   }
-  if (normalized.includes('q1')) {
+  if (normalized.includes("q1")) {
     return 2;
   }
   return 3;
@@ -121,11 +134,11 @@ export default function EconomyDashboardScreen() {
   const { width } = useWindowDimensions();
   const [isLoading] = useState(false);
   const [error] = useState<string | null>(null);
-  const [timeWindow, setTimeWindow] = useState<TimeWindow>('6M');
-  const [sortBy, setSortBy] = useState<SectorSort>('trend');
+  const [timeWindow, setTimeWindow] = useState<TimeWindow>("6M");
+  const [sortBy, setSortBy] = useState<SectorSort>("trend");
 
-  const colorScheme = useColorScheme() ?? 'light';
-  const isDark = colorScheme === 'dark';
+  const colorScheme = useColorScheme() ?? "light";
+  const isDark = colorScheme === "dark";
   const theme = Colors[colorScheme];
   const semantic = getSemanticColors(colorScheme);
   /** Single column on very narrow viewports; two-up ~47% style columns otherwise (reference layout). */
@@ -142,14 +155,29 @@ export default function EconomyDashboardScreen() {
 
   const sortedSectors = useMemo(() => {
     const copy = [...US_ECONOMIC_SECTORS];
-    if (sortBy === 'name') {
+    if (sortBy === "name") {
       return copy.sort((left, right) => left.title.localeCompare(right.title));
     }
-    if (sortBy === 'recency') {
-      return copy.sort((left, right) => getRecencyRank(left.updatedAt) - getRecencyRank(right.updatedAt));
+    if (sortBy === "recency") {
+      return copy.sort(
+        (left, right) =>
+          getRecencyRank(left.updatedAt) - getRecencyRank(right.updatedAt),
+      );
     }
-    return copy.sort((left, right) => getTrendRank(left.trend) - getTrendRank(right.trend));
+    return copy.sort(
+      (left, right) => getTrendRank(left.trend) - getTrendRank(right.trend),
+    );
   }, [sortBy]);
+
+  const overviewAsOf = useMemo(
+    () =>
+      new Date().toLocaleDateString("en-US", {
+        month: "long",
+        day: "numeric",
+        year: "numeric",
+      }),
+    [],
+  );
 
   const openSectorDetails = (sectorId: string) => {
     router.push({
@@ -174,17 +202,23 @@ export default function EconomyDashboardScreen() {
             backgroundColor: semantic.cardBackground,
             borderColor: semantic.cardBorder,
           },
-        ]}>
+        ]}
+      >
         <Pressable
           accessibilityRole="button"
           accessibilityLabel={`${sector.title}, ${sector.headlineValue}, ${stepPercentLabel} vs prior reading. Open details.`}
           hitSlop={8}
-          style={({ pressed }) => [styles.cardInner, { opacity: pressed ? 0.92 : 1 }]}
-          onPress={() => openSectorDetails(sector.id)}>
+          style={({ pressed }) => [
+            styles.cardInner,
+            { opacity: pressed ? 0.92 : 1 },
+          ]}
+          onPress={() => openSectorDetails(sector.id)}
+        >
           <View style={styles.cardHeader}>
             <ThemedText
               numberOfLines={2}
-              style={[styles.indicatorName, { color: semantic.mutedText }]}>
+              style={[styles.indicatorName, { color: semantic.mutedText }]}
+            >
               {sector.title}
             </ThemedText>
             <SectorSparkline
@@ -200,16 +234,23 @@ export default function EconomyDashboardScreen() {
               <ThemedText
                 numberOfLines={1}
                 ellipsizeMode="tail"
-                style={[styles.indicatorValue, { color: theme.text }]}>
+                style={[styles.indicatorValue, { color: theme.text }]}
+              >
                 {sector.headlineValue}
               </ThemedText>
             </View>
             <View style={styles.trendContainer}>
-              <Feather name={feather.name} size={16} color={feather.color} accessible={false} />
+              <Feather
+                name={feather.name}
+                size={16}
+                color={feather.color}
+                accessible={false}
+              />
               <ThemedText
                 numberOfLines={1}
                 ellipsizeMode="tail"
-                style={[styles.changeText, { color: feather.color }]}>
+                style={[styles.changeText, { color: feather.color }]}
+              >
                 {stepPercentLabel}
               </ThemedText>
             </View>
@@ -218,10 +259,13 @@ export default function EconomyDashboardScreen() {
           <ThemedText
             numberOfLines={1}
             ellipsizeMode="tail"
-            style={[styles.metricCaption, { color: semantic.mutedText }]}>
+            style={[styles.metricCaption, { color: semantic.mutedText }]}
+          >
             {sector.headlineLabel}
           </ThemedText>
-          <ThemedText style={[styles.periodText, { color: semantic.mutedText }]}>
+          <ThemedText
+            style={[styles.periodText, { color: semantic.mutedText }]}
+          >
             Updated {sector.updatedAt}
           </ThemedText>
         </Pressable>
@@ -231,14 +275,22 @@ export default function EconomyDashboardScreen() {
 
   return (
     <ThemedView style={styles.screen}>
-      <ScrollView contentContainerStyle={styles.scrollContent} showsVerticalScrollIndicator={false}>
+      <ScrollView
+        contentContainerStyle={styles.scrollContent}
+        showsVerticalScrollIndicator={false}
+      >
         <ScreenHeader
           title="US Economic Dashboard"
-          subtitle="High-level read across major sectors. Tap a tile to open a dedicated deep-dive view."
+          meta={`As of ${overviewAsOf}`}
           subtitleColor={semantic.mutedText}
+          metaColor={semantic.mutedText}
         />
         <EconomicPulseChart />
-        <SectionCard backgroundColor={semantic.cardSubtleBackground} borderColor={semantic.cardBorder} style={styles.metaCard}>
+        <SectionCard
+          backgroundColor={semantic.cardSubtleBackground}
+          borderColor={semantic.cardBorder}
+          style={styles.metaCard}
+        >
           <ThemedText style={[styles.metaText, { color: semantic.mutedText }]}>
             Window: {timeWindow} | Source: {ECONOMY_DATA_SOURCE}
           </ThemedText>
@@ -259,13 +311,23 @@ export default function EconomyDashboardScreen() {
                   style={({ pressed }) => [
                     styles.controlChip,
                     {
-                      borderColor: isSelected ? theme.tint : semantic.cardBorder,
-                      backgroundColor: isSelected ? semantic.cardSubtleBackground : semantic.cardBackground,
+                      borderColor: isSelected
+                        ? theme.tint
+                        : semantic.cardBorder,
+                      backgroundColor: isSelected
+                        ? semantic.cardSubtleBackground
+                        : semantic.cardBackground,
                       opacity: pressed ? 0.84 : 1,
                     },
                   ]}
-                  onPress={() => setTimeWindow(option)}>
-                  <ThemedText style={{ color: isSelected ? theme.tint : semantic.mutedText, fontSize: 12 }}>
+                  onPress={() => setTimeWindow(option)}
+                >
+                  <ThemedText
+                    style={{
+                      color: isSelected ? theme.tint : semantic.mutedText,
+                      fontSize: 12,
+                    }}
+                  >
                     {option}
                   </ThemedText>
                 </Pressable>
@@ -284,13 +346,23 @@ export default function EconomyDashboardScreen() {
                   style={({ pressed }) => [
                     styles.controlChip,
                     {
-                      borderColor: isSelected ? theme.tint : semantic.cardBorder,
-                      backgroundColor: isSelected ? semantic.cardSubtleBackground : semantic.cardBackground,
+                      borderColor: isSelected
+                        ? theme.tint
+                        : semantic.cardBorder,
+                      backgroundColor: isSelected
+                        ? semantic.cardSubtleBackground
+                        : semantic.cardBackground,
                       opacity: pressed ? 0.84 : 1,
                     },
                   ]}
-                  onPress={() => setSortBy(option.id)}>
-                  <ThemedText style={{ color: isSelected ? theme.tint : semantic.mutedText, fontSize: 12 }}>
+                  onPress={() => setSortBy(option.id)}
+                >
+                  <ThemedText
+                    style={{
+                      color: isSelected ? theme.tint : semantic.mutedText,
+                      fontSize: 12,
+                    }}
+                  >
                     Sort: {option.label}
                   </ThemedText>
                 </Pressable>
@@ -304,10 +376,19 @@ export default function EconomyDashboardScreen() {
               key={kpi.id}
               backgroundColor={semantic.cardSubtleBackground}
               borderColor={semantic.cardBorder}
-              style={styles.kpiCard}>
-              <ThemedText style={[styles.kpiLabel, { color: semantic.mutedText }]}>{kpi.label}</ThemedText>
+              style={styles.kpiCard}
+            >
+              <ThemedText
+                style={[styles.kpiLabel, { color: semantic.mutedText }]}
+              >
+                {kpi.label}
+              </ThemedText>
               <ThemedText type="defaultSemiBold">{kpi.value}</ThemedText>
-              <ThemedText style={[styles.kpiContext, { color: semantic.mutedText }]}>{kpi.context}</ThemedText>
+              <ThemedText
+                style={[styles.kpiContext, { color: semantic.mutedText }]}
+              >
+                {kpi.context}
+              </ThemedText>
             </SectionCard>
           ))}
         </View>
@@ -335,7 +416,9 @@ export default function EconomyDashboardScreen() {
 
         {/* Sector overview grid */}
         {!isLoading && error === null && (
-          <View style={styles.gridWrap}>{sortedSectors.map((sector) => renderSectorCard(sector))}</View>
+          <View style={styles.gridWrap}>
+            {sortedSectors.map((sector) => renderSectorCard(sector))}
+          </View>
         )}
       </ScrollView>
     </ThemedView>
@@ -352,7 +435,7 @@ const styles = StyleSheet.create({
     paddingBottom: 120,
   },
   kpiRow: {
-    flexDirection: 'row',
+    flexDirection: "row",
     gap: Spacing.sm,
     marginTop: 2,
     marginBottom: Spacing.md,
@@ -369,16 +452,16 @@ const styles = StyleSheet.create({
     marginBottom: Spacing.sm,
   },
   controlsRow: {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
+    flexDirection: "row",
+    flexWrap: "wrap",
     gap: Spacing.sm,
   },
   controlChip: {
     minHeight: 36,
     borderWidth: 1,
     borderRadius: Radius.md,
-    alignItems: 'center',
-    justifyContent: 'center',
+    alignItems: "center",
+    justifyContent: "center",
     paddingHorizontal: Spacing.sm,
   },
   kpiCard: {
@@ -394,35 +477,35 @@ const styles = StyleSheet.create({
     fontSize: 12,
   },
   gridWrap: {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
+    flexDirection: "row",
+    flexWrap: "wrap",
     gap: 16,
   },
   card: {
     borderWidth: 1,
     borderRadius: 12,
-    overflow: 'hidden',
+    overflow: "hidden",
   },
   cardInner: {
     padding: 16,
   },
   cardHeader: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'flex-start',
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "flex-start",
     marginBottom: 12,
   },
   indicatorName: {
     fontSize: 12,
-    fontWeight: '600',
+    fontWeight: "600",
     flex: 1,
     paddingRight: 8,
     lineHeight: 16,
   },
   cardBody: {
-    flexDirection: 'row',
-    alignItems: 'baseline',
-    justifyContent: 'space-between',
+    flexDirection: "row",
+    alignItems: "baseline",
+    justifyContent: "space-between",
     marginBottom: 4,
     gap: 8,
   },
@@ -432,31 +515,31 @@ const styles = StyleSheet.create({
   },
   indicatorValue: {
     fontSize: 24,
-    fontWeight: '800',
+    fontWeight: "800",
     lineHeight: 28,
     letterSpacing: -0.3,
   },
   trendContainer: {
-    flexDirection: 'row',
-    alignItems: 'center',
+    flexDirection: "row",
+    alignItems: "center",
     flexShrink: 0,
-    maxWidth: '46%',
+    maxWidth: "46%",
     gap: 2,
   },
   changeText: {
     fontSize: 12,
-    fontWeight: '700',
+    fontWeight: "700",
     flexShrink: 1,
   },
   metricCaption: {
     fontSize: 11,
-    fontWeight: '500',
+    fontWeight: "500",
     lineHeight: 14,
     marginBottom: 2,
   },
   periodText: {
     fontSize: 10,
-    fontWeight: '500',
+    fontWeight: "500",
     lineHeight: 13,
   },
 });

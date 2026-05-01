@@ -9,24 +9,31 @@ import {
   View,
 } from "react-native";
 
+import Ionicons from "@expo/vector-icons/Ionicons";
 import { Image } from "expo-image";
 import { router } from "expo-router";
-import Ionicons from "@expo/vector-icons/Ionicons";
 
-import { EmptyState } from "@/components/surfaces/EmptyState";
 import { ScreenHeader } from "@/components/layout/ScreenHeader";
+import { EmptyState } from "@/components/surfaces/EmptyState";
 import { SectionCard } from "@/components/surfaces/SectionCard";
 import { StateNoticeCard } from "@/components/surfaces/StateNoticeCard";
 import { ThemedText } from "@/components/theme/ThemedText";
 import { ThemedView } from "@/components/theme/ThemedView";
-import { Brand } from "@/constants/theme/Colors";
 import { NEWS_TOPIC_ICON_NAMES } from "@/constants/app/newsTopicIcons";
 import { AppRoutes } from "@/constants/app/routes";
-import { Radius, Spacing, getSemanticColors } from "@/constants/theme/ThemeTokens";
+import { Brand } from "@/constants/theme/Colors";
+import {
+  Radius,
+  Spacing,
+  getSemanticColors,
+} from "@/constants/theme/ThemeTokens";
 import { Fonts } from "@/constants/theme/Typography";
 import { NEWS_TOPIC_OPTIONS, type TopHeadlineItem } from "@/hooks/api/newsApi";
+import {
+  headlineKey,
+  useTopHeadlinesFeed,
+} from "@/hooks/feed/useTopHeadlinesFeed";
 import { useColorScheme } from "@/hooks/useColorScheme";
-import { headlineKey, useTopHeadlinesFeed } from "@/hooks/feed/useTopHeadlinesFeed";
 
 const FEED_LANG = "en";
 
@@ -75,28 +82,45 @@ export default function HomeScreen() {
         <SectionCard
           backgroundColor={semantic.cardBackground}
           borderColor={semantic.cardBorder}
-          style={index === 0 ? { ...styles.headlineCard, ...styles.headlineCardFirst } : styles.headlineCard}
+          style={
+            index === 0
+              ? { ...styles.headlineCard, ...styles.headlineCardFirst }
+              : styles.headlineCard
+          }
         >
+          <ThemedText type="subtitle">{item.title}</ThemedText>
+          {item.meta ? (
+            <ThemedText style={[styles.meta, { color: semantic.mutedText }]}>
+              {item.meta}
+            </ThemedText>
+          ) : null}
           {item.imageUrl ? (
             <Image
               accessible={false}
               source={{ uri: item.imageUrl }}
-              style={[styles.headlineImage, { backgroundColor: semantic.cardSubtleBackground }]}
+              style={[
+                styles.headlineImage,
+                { backgroundColor: semantic.cardSubtleBackground },
+              ]}
               contentFit="cover"
               transition={200}
             />
           ) : null}
-          <ThemedText type="subtitle">{item.title}</ThemedText>
-          {item.meta ? (
-            <ThemedText style={[styles.meta, { color: semantic.mutedText }]}>{item.meta}</ThemedText>
-          ) : null}
           {item.description ? (
-            <ThemedText style={[styles.copy, { color: semantic.mutedText }]}>{item.description}</ThemedText>
+            <ThemedText style={[styles.copy, { color: semantic.mutedText }]}>
+              {item.description}
+            </ThemedText>
           ) : null}
         </SectionCard>
       </Pressable>
     ),
-    [openArticle, semantic.cardBackground, semantic.cardBorder, semantic.cardSubtleBackground, semantic.mutedText],
+    [
+      openArticle,
+      semantic.cardBackground,
+      semantic.cardBorder,
+      semantic.cardSubtleBackground,
+      semantic.mutedText,
+    ],
   );
 
   const listHeader = useMemo(
@@ -113,7 +137,11 @@ export default function HomeScreen() {
         />
 
         <View style={styles.topicCarouselBleed}>
-          <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.topicCarouselContent}>
+          <ScrollView
+            horizontal
+            showsHorizontalScrollIndicator={false}
+            contentContainerStyle={styles.topicCarouselContent}
+          >
             {NEWS_TOPIC_OPTIONS.map((topic) => {
               const selected = topic.id === selectedTopicId;
               return (
@@ -126,8 +154,12 @@ export default function HomeScreen() {
                   style={({ pressed }) => [
                     styles.topicChip,
                     {
-                      backgroundColor: selected ? semantic.accent : semantic.cardSubtleBackground,
-                      borderColor: selected ? semantic.accent : semantic.cardBorder,
+                      backgroundColor: selected
+                        ? semantic.accent
+                        : semantic.cardSubtleBackground,
+                      borderColor: selected
+                        ? semantic.accent
+                        : semantic.cardBorder,
                       opacity: pressed ? 0.88 : 1,
                     },
                   ]}
@@ -141,7 +173,9 @@ export default function HomeScreen() {
                     />
                     <ThemedText
                       style={{
-                        fontFamily: selected ? Fonts.bodySemiBold : Fonts.bodyMedium,
+                        fontFamily: selected
+                          ? Fonts.bodySemiBold
+                          : Fonts.bodyMedium,
                         fontSize: 14,
                         lineHeight: 18,
                         color: selected ? Brand.paper : semantic.mutedText,
@@ -157,10 +191,15 @@ export default function HomeScreen() {
         </View>
 
         {isLoading && headlines.length === 0 ? (
-          <SectionCard backgroundColor={semantic.cardBackground} borderColor={semantic.cardBorder}>
+          <SectionCard
+            backgroundColor={semantic.cardBackground}
+            borderColor={semantic.cardBorder}
+          >
             <View style={styles.loadingRow}>
               <ActivityIndicator color={semantic.accent} />
-              <ThemedText style={{ color: semantic.mutedText }}>Loading headlines…</ThemedText>
+              <ThemedText style={{ color: semantic.mutedText }}>
+                Loading headlines…
+              </ThemedText>
             </View>
           </SectionCard>
         ) : null}
@@ -210,27 +249,42 @@ export default function HomeScreen() {
       return (
         <View style={styles.footerLoading}>
           <ActivityIndicator color={semantic.accent} />
-          <ThemedText style={[styles.footerHint, { color: semantic.mutedText }]}>Loading more…</ThemedText>
+          <ThemedText
+            style={[styles.footerHint, { color: semantic.mutedText }]}
+          >
+            Loading more…
+          </ThemedText>
         </View>
       );
     }
     if (paginationError) {
       return (
         <View style={styles.footerError}>
-          <ThemedText style={[styles.footerHint, { color: semantic.danger }]}>{paginationError}</ThemedText>
+          <ThemedText style={[styles.footerHint, { color: semantic.danger }]}>
+            {paginationError}
+          </ThemedText>
           <Pressable
             accessibilityRole="button"
             accessibilityLabel="Retry loading more headlines"
             hitSlop={8}
             onPress={() => void loadMoreHeadlines()}
           >
-            <ThemedText style={{ color: semantic.accent, fontWeight: "600" }}>Try again</ThemedText>
+            <ThemedText style={{ color: semantic.accent, fontWeight: "600" }}>
+              Try again
+            </ThemedText>
           </Pressable>
         </View>
       );
     }
     return null;
-  }, [loadingMore, paginationError, loadMoreHeadlines, semantic.accent, semantic.danger, semantic.mutedText]);
+  }, [
+    loadingMore,
+    paginationError,
+    loadMoreHeadlines,
+    semantic.accent,
+    semantic.danger,
+    semantic.mutedText,
+  ]);
 
   return (
     <ThemedView style={styles.screen}>

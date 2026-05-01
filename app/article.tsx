@@ -1,7 +1,7 @@
-import * as WebBrowser from 'expo-web-browser';
-import Feather from '@expo/vector-icons/Feather';
-import { Stack, useLocalSearchParams } from 'expo-router';
-import { useCallback, useEffect, useMemo, useState } from 'react';
+import Ionicons from "@expo/vector-icons/Ionicons";
+import { Stack, useLocalSearchParams } from "expo-router";
+import * as WebBrowser from "expo-web-browser";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import {
   ActivityIndicator,
   Keyboard,
@@ -11,16 +11,20 @@ import {
   TextInput,
   View,
   type NativeSyntheticEvent,
-} from 'react-native';
-import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import { WebView } from 'react-native-webview';
+} from "react-native";
+import { useSafeAreaInsets } from "react-native-safe-area-context";
+import { WebView } from "react-native-webview";
 
-import { ThemedText } from '@/components/theme/ThemedText';
-import { ThemedView } from '@/components/theme/ThemedView';
-import { Colors } from '@/constants/theme/Colors';
-import { Radius, Spacing, getSemanticColors } from '@/constants/theme/ThemeTokens';
-import { Fonts } from '@/constants/theme/Typography';
-import { useColorScheme } from '@/hooks/useColorScheme';
+import { ThemedText } from "@/components/theme/ThemedText";
+import { ThemedView } from "@/components/theme/ThemedView";
+import { Colors } from "@/constants/theme/Colors";
+import {
+  Radius,
+  Spacing,
+  getSemanticColors,
+} from "@/constants/theme/ThemeTokens";
+import { Fonts } from "@/constants/theme/Typography";
+import { useColorScheme } from "@/hooks/useColorScheme";
 
 function firstParam(value: string | string[] | undefined): string | undefined {
   if (value === undefined) {
@@ -33,7 +37,7 @@ function firstParam(value: string | string[] | undefined): string | undefined {
  * Accepts raw or single-encoded URL from expo-router search params.
  */
 function normalizeArticleUrl(raw: string | undefined): string | null {
-  if (!raw || typeof raw !== 'string') {
+  if (!raw || typeof raw !== "string") {
     return null;
   }
   const candidates = [raw];
@@ -45,7 +49,7 @@ function normalizeArticleUrl(raw: string | undefined): string | null {
   for (const attempt of candidates) {
     try {
       const u = new URL(attempt.trim());
-      if (u.protocol !== 'http:' && u.protocol !== 'https:') {
+      if (u.protocol !== "http:" && u.protocol !== "https:") {
         continue;
       }
       return u.href;
@@ -57,7 +61,7 @@ function normalizeArticleUrl(raw: string | undefined): string | null {
 }
 
 function decodeTitle(raw: string | undefined): string | null {
-  if (!raw || typeof raw !== 'string') {
+  if (!raw || typeof raw !== "string") {
     return null;
   }
   try {
@@ -68,8 +72,11 @@ function decodeTitle(raw: string | undefined): string | null {
 }
 
 export default function ArticleWebViewScreen() {
-  const params = useLocalSearchParams<{ url?: string | string[]; title?: string | string[] }>();
-  const colorScheme = useColorScheme() ?? 'light';
+  const params = useLocalSearchParams<{
+    url?: string | string[];
+    title?: string | string[];
+  }>();
+  const colorScheme = useColorScheme() ?? "light";
   const theme = Colors[colorScheme];
   const semantic = getSemanticColors(colorScheme);
 
@@ -81,7 +88,7 @@ export default function ArticleWebViewScreen() {
 
   const headerTitle = useMemo(() => {
     if (!decodedTitle?.trim()) {
-      return 'Article';
+      return "Article";
     }
     const t = decodedTitle.trim();
     return t.length > 42 ? `${t.slice(0, 42)}…` : t;
@@ -89,20 +96,20 @@ export default function ArticleWebViewScreen() {
 
   const [loading, setLoading] = useState(true);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
-  const [chatDraft, setChatDraft] = useState('');
+  const [chatDraft, setChatDraft] = useState("");
 
   const insets = useSafeAreaInsets();
   /** Lifts composer above the software keyboard (KeyboardAvoidingView is unreliable with WebView on Android). */
   const [keyboardBottomInset, setKeyboardBottomInset] = useState(0);
 
   useEffect(() => {
-    if (Platform.OS === 'web') {
+    if (Platform.OS === "web") {
       return;
     }
     const showEvent =
-      Platform.OS === 'ios' ? 'keyboardWillShow' : 'keyboardDidShow';
+      Platform.OS === "ios" ? "keyboardWillShow" : "keyboardDidShow";
     const hideEvent =
-      Platform.OS === 'ios' ? 'keyboardWillHide' : 'keyboardDidHide';
+      Platform.OS === "ios" ? "keyboardWillHide" : "keyboardDidHide";
 
     const onShow = (e: { endCoordinates: { height: number } }) => {
       setKeyboardBottomInset(e.endCoordinates.height);
@@ -122,14 +129,14 @@ export default function ArticleWebViewScreen() {
   const sharedHeaderOptions = {
     gestureEnabled: true,
     fullScreenGestureEnabled: true,
-    headerBackButtonDisplayMode: 'minimal' as const,
+    headerBackButtonDisplayMode: "minimal" as const,
     headerStyle: {
       backgroundColor: semantic.screenBackground,
     },
     headerTintColor: theme.tint,
     headerTitleStyle: {
       color: theme.text,
-      fontWeight: '600' as const,
+      fontWeight: "600" as const,
     },
     headerShadowVisible: false,
   };
@@ -141,7 +148,7 @@ export default function ArticleWebViewScreen() {
   const onError = (e: NativeSyntheticEvent<{ description?: string }>) => {
     setLoading(false);
     const desc = e.nativeEvent.description;
-    setErrorMessage(desc?.trim() ? desc : 'Unable to load this page.');
+    setErrorMessage(desc?.trim() ? desc : "Unable to load this page.");
   };
 
   const onHttpError = (e: NativeSyntheticEvent<{ statusCode: number }>) => {
@@ -164,7 +171,7 @@ export default function ArticleWebViewScreen() {
     }
     Keyboard.dismiss();
     // Hook for assistant / comments API — keep draft cleared after send for now
-    setChatDraft('');
+    setChatDraft("");
   }, [chatDraft]);
 
   /** Extra space above the home indicator so the composer floats higher than edge-to-edge. */
@@ -196,13 +203,13 @@ export default function ArticleWebViewScreen() {
         <TextInput
           value={chatDraft}
           onChangeText={setChatDraft}
-          placeholder="Message…"
+          placeholder="Ask Hypatia"
           placeholderTextColor={semantic.mutedText}
           style={[
             styles.chatInput,
             {
               color: theme.text,
-              backgroundColor: 'transparent',
+              backgroundColor: "transparent",
             },
           ]}
           multiline
@@ -223,7 +230,7 @@ export default function ArticleWebViewScreen() {
             padding: Spacing.sm,
           })}
         >
-          <Feather name="send" size={22} color={theme.tint} />
+          <Ionicons name="sparkles" size={22} color={theme.tint} />
         </Pressable>
       </View>
     </View>
@@ -234,7 +241,7 @@ export default function ArticleWebViewScreen() {
       <ThemedView style={styles.screen}>
         <Stack.Screen
           options={{
-            title: 'Article',
+            title: "Article",
             ...sharedHeaderOptions,
           }}
         />
@@ -263,9 +270,14 @@ export default function ArticleWebViewScreen() {
               accessibilityLabel="Open in system browser"
               onPress={openInSystemBrowser}
               hitSlop={12}
-              style={({ pressed }) => ({ opacity: pressed ? 0.65 : 1, paddingHorizontal: Spacing.sm })}
+              style={({ pressed }) => ({
+                opacity: pressed ? 0.65 : 1,
+                paddingHorizontal: Spacing.sm,
+              })}
             >
-              <ThemedText style={{ color: theme.tint, fontWeight: '600' }}>Browser</ThemedText>
+              <ThemedText style={{ color: theme.tint, fontWeight: "600" }}>
+                Browser
+              </ThemedText>
             </Pressable>
           ),
         }}
@@ -281,15 +293,24 @@ export default function ArticleWebViewScreen() {
 
           {errorMessage ? (
             <View style={styles.centered}>
-              <ThemedText type="defaultSemiBold">Could not load article</ThemedText>
-              <ThemedText style={[styles.hint, { color: semantic.mutedText }]}>{errorMessage}</ThemedText>
+              <ThemedText type="defaultSemiBold">
+                Could not load article
+              </ThemedText>
+              <ThemedText style={[styles.hint, { color: semantic.mutedText }]}>
+                {errorMessage}
+              </ThemedText>
               <Pressable
                 accessibilityRole="button"
                 accessibilityLabel="Open in system browser"
                 onPress={openInSystemBrowser}
-                style={({ pressed }) => [styles.outlineButton, { borderColor: theme.tint, opacity: pressed ? 0.85 : 1 }]}
+                style={({ pressed }) => [
+                  styles.outlineButton,
+                  { borderColor: theme.tint, opacity: pressed ? 0.85 : 1 },
+                ]}
               >
-                <ThemedText style={{ color: theme.tint, fontWeight: '600' }}>Open in browser</ThemedText>
+                <ThemedText style={{ color: theme.tint, fontWeight: "600" }}>
+                  Open in browser
+                </ThemedText>
               </Pressable>
             </View>
           ) : (
@@ -307,7 +328,7 @@ export default function ArticleWebViewScreen() {
               domStorageEnabled
               setSupportMultipleWindows={false}
               allowsInlineMediaPlayback
-              originWhitelist={['https://*', 'http://*']}
+              originWhitelist={["https://*", "http://*"]}
             />
           )}
         </View>
@@ -328,59 +349,60 @@ const styles = StyleSheet.create({
   webviewWrap: {
     flex: 1,
     minHeight: 0,
-    position: 'relative',
+    position: "relative",
   },
   webview: {
     flex: 1,
-    backgroundColor: 'transparent',
+    backgroundColor: "transparent",
   },
   chatBarOuter: {
     paddingHorizontal: Spacing.md,
   },
   chatBar: {
-    flexDirection: 'row',
-    alignItems: 'flex-end',
+    flexDirection: "row",
+    alignItems: "flex-end",
     gap: Spacing.sm,
     paddingHorizontal: Spacing.md,
     paddingVertical: Spacing.sm,
     borderRadius: 9999,
     borderWidth: StyleSheet.hairlineWidth,
-    overflow: 'hidden',
+    overflow: "hidden",
   },
   chatInput: {
     flex: 1,
+    minWidth: 0,
     minHeight: 40,
     maxHeight: 120,
     borderWidth: 0,
     borderRadius: Radius.md,
     paddingHorizontal: Spacing.xs,
-    paddingVertical: Platform.OS === 'ios' ? 10 : 8,
+    paddingVertical: Platform.OS === "ios" ? 10 : 8,
     fontFamily: Fonts.body,
     fontSize: 16,
     lineHeight: 22,
   },
   loadingOverlay: {
     ...StyleSheet.absoluteFillObject,
-    justifyContent: 'center',
-    alignItems: 'center',
+    justifyContent: "center",
+    alignItems: "center",
     zIndex: 1,
   },
   fillCenter: {
     flex: 1,
-    justifyContent: 'center',
-    alignItems: 'center',
+    justifyContent: "center",
+    alignItems: "center",
     paddingHorizontal: Spacing.lg,
     gap: Spacing.sm,
   },
   centered: {
     flex: 1,
-    justifyContent: 'center',
-    alignItems: 'center',
+    justifyContent: "center",
+    alignItems: "center",
     paddingHorizontal: Spacing.lg,
     gap: Spacing.sm,
   },
   hint: {
-    textAlign: 'center',
+    textAlign: "center",
     lineHeight: 20,
   },
   outlineButton: {
