@@ -63,6 +63,16 @@ export type TopHeadlineItem = {
   meta: string | null;
 };
 
+/** Default page size for `/api/news/top-headlines` (server clamps 1–50). */
+export const NEWS_FEED_PAGE_SIZE = 10;
+
+export type TopHeadlinesPageResult = {
+  items: TopHeadlineItem[];
+  hasMore: boolean;
+  /** Next 1-based page for `page=` query; null when no further pages. */
+  nextPage: number | null;
+};
+
 function pickString(obj: Record<string, unknown>, keys: string[]): string | null {
   for (const k of keys) {
     const v = obj[k];
@@ -79,7 +89,8 @@ function extractHeadlineArray(payload: unknown): unknown[] {
   }
   if (payload && typeof payload === 'object') {
     const o = payload as Record<string, unknown>;
-    const candidates = ['items', 'headlines', 'articles', 'data', 'results', 'news'];
+    /** Prefer `items` then `articles` for paginated Flask responses. */
+    const candidates = ['items', 'articles', 'headlines', 'data', 'results', 'news'];
     for (const key of candidates) {
       const v = o[key];
       if (Array.isArray(v)) {
@@ -142,6 +153,26 @@ export function parseTopHeadlinesResponse(payload: unknown): TopHeadlineItem[] {
   return out;
 }
 
+/**
+ * Parses paginated envelope + headline rows (`items` or `articles`).
+ * Legacy array-only responses yield `hasMore: false`, `nextPage: null`.
+ */
+export function parseTopHeadlinesPage(payload: unknown): TopHeadlinesPageResult {
+  const items = parseTopHeadlinesResponse(payload);
+  if (!payload || typeof payload !== 'object' || Array.isArray(payload)) {
+    return { items, hasMore: false, nextPage: null };
+  }
+  const o = payload as Record<string, unknown>;
+  const hasMore = typeof o.hasMore === 'boolean' ? o.hasMore : false;
+  let nextPage: number | null = null;
+  if (typeof o.nextPage === 'number' && Number.isFinite(o.nextPage)) {
+    nextPage = o.nextPage;
+  } else if (o.nextPage === null) {
+    nextPage = null;
+  }
+  return { items, hasMore, nextPage };
+}
+
 export type FetchNewsTopHeadlinesOptions = {
   /** Skip caches (extra query param so CDNs/proxies treat each pull-to-refresh as a new URL). */
   bustCache?: boolean;
@@ -150,6 +181,12 @@ export type FetchNewsTopHeadlinesOptions = {
    * Omit or use `"all"` on the client to fetch without a category filter.
    */
   category?: string;
+  /** 1-based page index (default 1). */
+  page?: number;
+  /** Page size; server default 20, clamped 1–50. */
+  max?: number;
+  /** e.g. `en` */
+  lang?: string;
 };
 
 /** UI labels + query slug sent as `category` when not `"all"`. */
@@ -166,12 +203,21 @@ export const NEWS_TOPIC_OPTIONS = [
 
 export type NewsTopicId = (typeof NEWS_TOPIC_OPTIONS)[number]['id'];
 
-/** `GET {newsBase}/api/news/top-headlines?lang=en&max=2[&category=...]` */
+/**
+ * `GET {newsBase}/api/news/top-headlines?lang=en&max=&page=&category=...`
+ * Returns parsed rows + `hasMore` / `nextPage` for infinite scroll.
+ */
 export async function fetchNewsTopHeadlines(
   signal?: AbortSignal,
   options?: FetchNewsTopHeadlinesOptions,
-): Promise<TopHeadlineItem[]> {
-  const params: Record<string, string> = { lang: 'en', max: '2' };
+): Promise<TopHeadlinesPageResult> {
+  const maxRequested = options?.max ?? NEWS_FEED_PAGE_SIZE;
+  const clampedMax = Math.min(50, Math.max(1, maxRequested));
+  const params: Record<string, string> = {
+    lang: options?.lang ?? 'en',
+    max: String(clampedMax),
+    page: String(options?.page ?? 1),
+  };
   if (options?.category) {
     params.category = options.category;
   }
@@ -179,5 +225,5 @@ export async function fetchNewsTopHeadlines(
     params._ = String(Date.now());
   }
   const raw = await fetchApiGet(getNewsApiBaseUrl(), '/api/news/top-headlines', params, signal);
-  return parseTopHeadlinesResponse(raw);
+  return parseTopHeadlinesPage(raw);
 }

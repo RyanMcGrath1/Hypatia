@@ -1,6 +1,7 @@
-import { useCallback, useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import {
   ActivityIndicator,
+  FlatList,
   Pressable,
   RefreshControl,
   ScrollView,
@@ -24,6 +25,7 @@ import { AppRoutes } from "@/constants/routes";
 import { Radius, Spacing, getSemanticColors } from "@/constants/ThemeTokens";
 import { Fonts } from "@/constants/Typography";
 import {
+  NEWS_FEED_PAGE_SIZE,
   NEWS_TOPIC_OPTIONS,
   fetchNewsTopHeadlines,
   getNewsApiNetworkErrorMessage,
@@ -32,120 +34,245 @@ import {
 } from "@/hooks/api/newsApi";
 import { useColorScheme } from "@/hooks/useColorScheme";
 
+const FEED_LANG = "en";
+
+function headlineKey(item: TopHeadlineItem, index: number): string {
+  return item.url ?? `idx-${index}-${item.title}`;
+}
+
+function dedupeAppend(prev: TopHeadlineItem[], more: TopHeadlineItem[]): TopHeadlineItem[] {
+  const seen = new Set<string>();
+  for (const p of prev) {
+    seen.add(headlineKey(p, 0));
+  }
+  const out = [...prev];
+  let i = 0;
+  for (const m of more) {
+    const k = headlineKey(m, i);
+    i += 1;
+    if (!seen.has(k)) {
+      seen.add(k);
+      out.push(m);
+    }
+  }
+  return out;
+}
+
 /**
- * Home tab: news headlines from the local news API.
+ * Home tab: paginated news headlines from the Flask news API (port 5001).
  *
- * Page anatomy (top → bottom):
- * 1. ThemedView — full-screen shell matching app background
- * 2. ScrollView — vertical feed + pull-to-refresh (RefreshControl)
- * 3. ScreenHeader — title + subtitle
- * 4. Topic carousel — horizontal chips; selection sets `category` on headline fetch
- * 5. Loading card — first fetch only (not pull-to-refresh)
- * 6. Error card — retry; after a failed refresh, list may still show below if data existed
- * 7. Empty state — no items and no error
- * 8. Headline cards — Pressable row per story (optional image, title, meta, description)
+ * FlatList + infinite scroll: page 1 on mount/topic/refresh; append pages via onEndReached until !hasMore.
  */
 export default function HomeScreen() {
   const [headlines, setHeadlines] = useState<TopHeadlineItem[]>([]);
   const [selectedTopicId, setSelectedTopicId] = useState<NewsTopicId>("all");
+  const [hasMore, setHasMore] = useState(false);
+  const [nextPage, setNextPage] = useState<number | null>(null);
+
   const [isLoading, setIsLoading] = useState(true);
+  const [loadingMore, setLoadingMore] = useState(false);
   const [refreshing, setRefreshing] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [paginationError, setPaginationError] = useState<string | null>(null);
+
   const abortRef = useRef<AbortController | null>(null);
-  /** Incremented per fetch so slower/aborted requests cannot overwrite newer results. */
-  const fetchGenerationRef = useRef(0);
+  const loadMoreAbortRef = useRef<AbortController | null>(null);
+  /** Topic/session generation: ignore stale first-page responses after topic switch. */
+  const feedGenerationRef = useRef(0);
+  const loadingMoreInFlightRef = useRef(false);
+  const lastEndReachedRef = useRef(0);
+
+  const selectedTopicIdRef = useRef(selectedTopicId);
+  selectedTopicIdRef.current = selectedTopicId;
 
   const colorScheme = useColorScheme() ?? "light";
   const semantic = getSemanticColors(colorScheme);
 
-  /** Fetch headlines; `asRefresh` uses pull-to-refresh spinner and preserves rows on error. */
-  const loadHeadlines = useCallback(
-    async (options?: { asRefresh?: boolean }) => {
-      const asRefresh = options?.asRefresh ?? false;
-      const generation = ++fetchGenerationRef.current;
+  const categoryParam = useMemo(
+    () => (selectedTopicId === "all" ? undefined : selectedTopicId),
+    [selectedTopicId],
+  );
+
+  const fetchFeedOptions = useCallback(
+    (page: number, bustCache: boolean) => ({
+      lang: FEED_LANG,
+      max: NEWS_FEED_PAGE_SIZE,
+      page,
+      category: categoryParam,
+      bustCache,
+    }),
+    [categoryParam],
+  );
+
+  const loadFirstPage = useCallback(
+    async (opts: { bustCache: boolean; generation: number }) => {
       abortRef.current?.abort();
       const controller = new AbortController();
       abortRef.current = controller;
 
-      if (asRefresh) {
-        setRefreshing(true);
-        setIsLoading(false);
-      } else {
+      if (!opts.bustCache) {
         setIsLoading(true);
       }
       setError(null);
+      setPaginationError(null);
 
       try {
-        const category =
-          selectedTopicId === "all" ? undefined : selectedTopicId;
-        const items = await fetchNewsTopHeadlines(controller.signal, {
-          bustCache: asRefresh,
-          category,
-        });
-        if (generation !== fetchGenerationRef.current) {
+        const result = await fetchNewsTopHeadlines(controller.signal, fetchFeedOptions(1, opts.bustCache));
+        if (opts.generation !== feedGenerationRef.current) {
           return;
         }
-        setHeadlines(items);
+        setHeadlines(result.items);
+        setHasMore(result.hasMore);
+        setNextPage(result.nextPage);
       } catch (err) {
         if (err instanceof Error && err.name === "AbortError") {
           return;
         }
-        if (generation !== fetchGenerationRef.current) {
+        if (opts.generation !== feedGenerationRef.current) {
           return;
         }
-        if (!asRefresh) {
-          setHeadlines([]);
-        }
+        setHeadlines([]);
+        setHasMore(false);
+        setNextPage(null);
         const hint = getNewsApiNetworkErrorMessage();
         const detail = err instanceof Error && err.message ? err.message : null;
         setError(detail ? `${hint}\n\n${detail}` : hint);
       } finally {
-        if (generation !== fetchGenerationRef.current) {
+        if (opts.generation !== feedGenerationRef.current) {
           return;
         }
-        if (asRefresh) {
-          setRefreshing(false);
-        } else {
-          setIsLoading(false);
-        }
+        setIsLoading(false);
+        setRefreshing(false);
       }
     },
-    [selectedTopicId],
+    [fetchFeedOptions],
   );
 
   useEffect(() => {
-    void loadHeadlines();
+    loadMoreAbortRef.current?.abort();
+    loadMoreAbortRef.current = null;
+    loadingMoreInFlightRef.current = false;
+
+    const generation = ++feedGenerationRef.current;
+    setHeadlines([]);
+    setHasMore(false);
+    setNextPage(null);
+    setError(null);
+    setPaginationError(null);
+    void loadFirstPage({ bustCache: false, generation });
     return () => {
       abortRef.current?.abort();
     };
-  }, [loadHeadlines]);
+  }, [selectedTopicId, loadFirstPage]);
 
-  const openArticle = (url: string, title: string) => {
+  const onRefresh = useCallback(() => {
+    setRefreshing(true);
+    loadMoreAbortRef.current?.abort();
+    loadMoreAbortRef.current = null;
+    loadingMoreInFlightRef.current = false;
+    const generation = feedGenerationRef.current;
+    void loadFirstPage({ bustCache: true, generation });
+  }, [loadFirstPage]);
+
+  const loadMoreHeadlines = useCallback(async () => {
+    if (
+      !hasMore ||
+      nextPage === null ||
+      loadingMoreInFlightRef.current ||
+      isLoading ||
+      refreshing
+    ) {
+      return;
+    }
+
+    const topicAtStart = selectedTopicIdRef.current;
+    loadingMoreInFlightRef.current = true;
+    setLoadingMore(true);
+    setPaginationError(null);
+
+    loadMoreAbortRef.current?.abort();
+    const controller = new AbortController();
+    loadMoreAbortRef.current = controller;
+
+    try {
+      const result = await fetchNewsTopHeadlines(controller.signal, fetchFeedOptions(nextPage, false));
+      if (selectedTopicIdRef.current !== topicAtStart) {
+        return;
+      }
+      setHeadlines((prev) => dedupeAppend(prev, result.items));
+      setHasMore(result.hasMore);
+      setNextPage(result.nextPage);
+    } catch (err) {
+      if (err instanceof Error && err.name === "AbortError") {
+        return;
+      }
+      if (selectedTopicIdRef.current !== topicAtStart) {
+        return;
+      }
+      setPaginationError("Could not load more stories.");
+    } finally {
+      loadingMoreInFlightRef.current = false;
+      setLoadingMore(false);
+    }
+  }, [fetchFeedOptions, hasMore, isLoading, nextPage, refreshing]);
+
+  const onEndReached = useCallback(() => {
+    const now = Date.now();
+    if (now - lastEndReachedRef.current < 750) {
+      return;
+    }
+    lastEndReachedRef.current = now;
+    void loadMoreHeadlines();
+  }, [loadMoreHeadlines]);
+
+  const openArticle = useCallback((url: string, title: string) => {
     router.push({
       pathname: AppRoutes.article,
       params: { url, title },
     });
-  };
+  }, []);
 
-  return (
-    /* Root: themed background for this tab */
-    <ThemedView style={styles.screen}>
-      {/* Main scroll surface; RefreshControl = native pull-down reload */}
-      <ScrollView
-        contentContainerStyle={styles.scrollContent}
-        showsVerticalScrollIndicator={false}
-        alwaysBounceVertical
-        refreshControl={
-          <RefreshControl
-            refreshing={refreshing}
-            onRefresh={() => void loadHeadlines({ asRefresh: true })}
-            tintColor={semantic.accent}
-            colors={[semantic.accent]}
-            progressBackgroundColor={semantic.cardBackground}
-          />
-        }
+  const renderHeadlineItem = useCallback(
+    ({ item, index }: { item: TopHeadlineItem; index: number }) => (
+      <Pressable
+        accessibilityRole={item.url ? "button" : "none"}
+        accessibilityHint={item.url ? "Opens full article" : undefined}
+        disabled={!item.url}
+        style={({ pressed }) => ({
+          opacity: item.url ? (pressed ? 0.88 : 1) : 1,
+        })}
+        onPress={() => item.url && openArticle(item.url, item.title)}
       >
-        {/* ─── Static chrome ─── */}
+        <SectionCard
+          backgroundColor={semantic.cardBackground}
+          borderColor={semantic.cardBorder}
+          style={index === 0 ? { ...styles.headlineCard, ...styles.headlineCardFirst } : styles.headlineCard}
+        >
+          {item.imageUrl ? (
+            <Image
+              accessible={false}
+              source={{ uri: item.imageUrl }}
+              style={[styles.headlineImage, { backgroundColor: semantic.cardSubtleBackground }]}
+              contentFit="cover"
+              transition={200}
+            />
+          ) : null}
+          <ThemedText type="subtitle">{item.title}</ThemedText>
+          {item.meta ? (
+            <ThemedText style={[styles.meta, { color: semantic.mutedText }]}>{item.meta}</ThemedText>
+          ) : null}
+          {item.description ? (
+            <ThemedText style={[styles.copy, { color: semantic.mutedText }]}>{item.description}</ThemedText>
+          ) : null}
+        </SectionCard>
+      </Pressable>
+    ),
+    [openArticle, semantic.cardBackground, semantic.cardBorder, semantic.cardSubtleBackground, semantic.mutedText],
+  );
+
+  const listHeader = useMemo(
+    () => (
+      <View style={styles.listHeader}>
         <ScreenHeader
           title="Hypatia"
           subtitle={`${new Date().toLocaleDateString("en-US", {
@@ -156,13 +283,8 @@ export default function HomeScreen() {
           subtitleStyle={styles.headerSubtitle}
         />
 
-        {/* Topic filters: horizontal chip carousel */}
         <View style={styles.topicCarouselBleed}>
-          <ScrollView
-            horizontal
-            showsHorizontalScrollIndicator={false}
-            contentContainerStyle={styles.topicCarouselContent}
-          >
+          <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.topicCarouselContent}>
             {NEWS_TOPIC_OPTIONS.map((topic) => {
               const selected = topic.id === selectedTopicId;
               return (
@@ -175,9 +297,7 @@ export default function HomeScreen() {
                   style={({ pressed }) => [
                     styles.topicChip,
                     {
-                      backgroundColor: selected
-                        ? semantic.accent
-                        : semantic.cardSubtleBackground,
+                      backgroundColor: selected ? semantic.accent : semantic.cardSubtleBackground,
                       borderColor: selected ? semantic.accent : semantic.cardBorder,
                       opacity: pressed ? 0.88 : 1,
                     },
@@ -207,22 +327,15 @@ export default function HomeScreen() {
           </ScrollView>
         </View>
 
-        {/* ─── Async states (mutually exclusive paths for “first paint”) ─── */}
-        {isLoading ? (
-          <SectionCard
-            backgroundColor={semantic.cardBackground}
-            borderColor={semantic.cardBorder}
-          >
+        {isLoading && headlines.length === 0 ? (
+          <SectionCard backgroundColor={semantic.cardBackground} borderColor={semantic.cardBorder}>
             <View style={styles.loadingRow}>
               <ActivityIndicator color={semantic.accent} />
-              <ThemedText style={{ color: semantic.mutedText }}>
-                Loading headlines…
-              </ThemedText>
+              <ThemedText style={{ color: semantic.mutedText }}>Loading headlines…</ThemedText>
             </View>
           </SectionCard>
         ) : null}
 
-        {/* Error + Retry; can appear above an existing list after a failed refresh */}
         {error !== null && !isLoading ? (
           <StateNoticeCard
             title="Unable to load headlines"
@@ -233,12 +346,12 @@ export default function HomeScreen() {
             actionLabel="Retry"
             actionColor={semantic.accent}
             onActionPress={() => {
-              void loadHeadlines();
+              const generation = feedGenerationRef.current;
+              void loadFirstPage({ bustCache: false, generation });
             }}
           />
         ) : null}
 
-        {/* Empty API response (no rows, no error) */}
         {!isLoading && error === null && headlines.length === 0 ? (
           <EmptyState
             title="No headlines"
@@ -248,73 +361,75 @@ export default function HomeScreen() {
             bodyColor={semantic.mutedText}
           />
         ) : null}
+      </View>
+    ),
+    [
+      error,
+      headlines.length,
+      isLoading,
+      loadFirstPage,
+      semantic.accent,
+      semantic.cardBackground,
+      semantic.cardBorder,
+      semantic.cardSubtleBackground,
+      semantic.danger,
+      semantic.mutedText,
+      selectedTopicId,
+    ],
+  );
 
-        {/* ─── Feed: stacked story cards (shown whenever there is at least one row) ─── */}
-        {!isLoading && headlines.length > 0 ? (
-          /* ─── Headlines stack: one column of cards ─── */
-          <View style={styles.cardsWrap}>
-            {headlines.map((item, index) => {
-              const key = `${item.title}-${index}`;
-              return (
-                /* One headline row: Pressable wraps the whole card; opens item.url when present */
-                <Pressable
-                  key={key}
-                  accessibilityRole={item.url ? "button" : "none"}
-                  accessibilityHint={
-                    item.url ? "Opens full article" : undefined
-                  }
-                  disabled={!item.url}
-                  style={({ pressed }) => ({
-                    opacity: item.url ? (pressed ? 0.88 : 1) : 1,
-                  })}
-                  onPress={() =>
-                    item.url && openArticle(item.url, item.title)
-                  }
-                >
-                  {/* Card shell: padding + border from SectionCard */}
-                  <SectionCard
-                    backgroundColor={semantic.cardBackground}
-                    borderColor={semantic.cardBorder}
-                    style={styles.headlineCard}
-                  >
-                    {/* (1) Optional hero image — full width, fixed aspect */}
-                    {item.imageUrl ? (
-                      <Image
-                        accessible={false}
-                        source={{ uri: item.imageUrl }}
-                        style={[
-                          styles.headlineImage,
-                          { backgroundColor: semantic.cardSubtleBackground },
-                        ]}
-                        contentFit="cover"
-                        transition={200}
-                      />
-                    ) : null}
-                    {/* (2) Primary headline */}
-                    <ThemedText type="subtitle">{item.title}</ThemedText>
-                    {/* (3) Secondary line: source / date when present */}
-                    {item.meta ? (
-                      <ThemedText
-                        style={[styles.meta, { color: semantic.mutedText }]}
-                      >
-                        {item.meta}
-                      </ThemedText>
-                    ) : null}
-                    {/* (4) Body copy / excerpt — tap targets the whole card (Pressable wrapper) */}
-                    {item.description ? (
-                      <ThemedText
-                        style={[styles.copy, { color: semantic.mutedText }]}
-                      >
-                        {item.description}
-                      </ThemedText>
-                    ) : null}
-                  </SectionCard>
-                </Pressable>
-              );
-            })}
-          </View>
-        ) : null}
-      </ScrollView>
+  const listFooter = useMemo(() => {
+    if (loadingMore) {
+      return (
+        <View style={styles.footerLoading}>
+          <ActivityIndicator color={semantic.accent} />
+          <ThemedText style={[styles.footerHint, { color: semantic.mutedText }]}>Loading more…</ThemedText>
+        </View>
+      );
+    }
+    if (paginationError) {
+      return (
+        <View style={styles.footerError}>
+          <ThemedText style={[styles.footerHint, { color: semantic.danger }]}>{paginationError}</ThemedText>
+          <Pressable
+            accessibilityRole="button"
+            accessibilityLabel="Retry loading more headlines"
+            hitSlop={8}
+            onPress={() => void loadMoreHeadlines()}
+          >
+            <ThemedText style={{ color: semantic.accent, fontWeight: "600" }}>Try again</ThemedText>
+          </Pressable>
+        </View>
+      );
+    }
+    return null;
+  }, [loadingMore, paginationError, loadMoreHeadlines, semantic.accent, semantic.danger, semantic.mutedText]);
+
+  return (
+    <ThemedView style={styles.screen}>
+      <FlatList
+        data={headlines}
+        keyExtractor={(item, index) => headlineKey(item, index)}
+        renderItem={renderHeadlineItem}
+        ListHeaderComponent={listHeader}
+        ListFooterComponent={listFooter}
+        contentContainerStyle={styles.listContent}
+        style={styles.list}
+        showsVerticalScrollIndicator={false}
+        keyboardShouldPersistTaps="handled"
+        refreshControl={
+          <RefreshControl
+            refreshing={refreshing}
+            onRefresh={onRefresh}
+            tintColor={semantic.accent}
+            colors={[semantic.accent]}
+            progressBackgroundColor={semantic.cardBackground}
+          />
+        }
+        onEndReached={onEndReached}
+        onEndReachedThreshold={0.35}
+        ItemSeparatorComponent={() => <View style={{ height: Spacing.md }} />}
+      />
     </ThemedView>
   );
 }
@@ -323,12 +438,23 @@ const styles = StyleSheet.create({
   screen: {
     flex: 1,
   },
-  /** Larger than ScreenHeader default (16) for the date line */
+  list: {
+    flex: 1,
+  },
+  listContent: {
+    paddingHorizontal: Spacing.lg,
+    paddingTop: Spacing.md,
+    paddingBottom: 112,
+    flexGrow: 1,
+  },
+  listHeader: {
+    gap: Spacing.md,
+    marginBottom: Spacing.md,
+  },
   headerSubtitle: {
     fontSize: 20,
     lineHeight: 28,
   },
-  /** Cancel parent horizontal padding so topic chips can scroll to screen edges */
   topicCarouselBleed: {
     marginHorizontal: -Spacing.lg,
   },
@@ -350,19 +476,12 @@ const styles = StyleSheet.create({
     alignItems: "center",
     gap: 6,
   },
-  /** Scroll padding + gap between SectionCards / blocks; bottom inset clears the tab bar */
-  scrollContent: {
-    paddingHorizontal: Spacing.lg,
-    paddingTop: Spacing.md,
-    paddingBottom: 112,
-    gap: Spacing.md,
-  },
-  cardsWrap: {
-    gap: Spacing.md,
-  },
   headlineCard: {
     gap: Spacing.sm,
     overflow: "hidden",
+  },
+  headlineCardFirst: {
+    marginTop: 0,
   },
   headlineImage: {
     width: "100%",
@@ -381,5 +500,21 @@ const styles = StyleSheet.create({
     alignItems: "center",
     gap: Spacing.sm,
     minHeight: 44,
+  },
+  footerLoading: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "center",
+    gap: Spacing.sm,
+    paddingVertical: Spacing.lg,
+  },
+  footerError: {
+    alignItems: "center",
+    gap: Spacing.sm,
+    paddingVertical: Spacing.md,
+  },
+  footerHint: {
+    fontSize: 13,
+    textAlign: "center",
   },
 });
