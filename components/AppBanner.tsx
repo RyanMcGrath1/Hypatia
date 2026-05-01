@@ -1,8 +1,9 @@
 import FontAwesome from '@expo/vector-icons/FontAwesome';
+import { BlurView } from 'expo-blur';
 import { Image } from 'expo-image';
 import { Href, usePathname, useRouter } from 'expo-router';
-import { useMemo, useRef, useState } from 'react';
-import { Animated, Easing, Pressable, StyleSheet, View } from 'react-native';
+import { useEffect, useMemo, useRef, useState } from 'react';
+import { Animated, Easing, Platform, Pressable, StyleSheet, useWindowDimensions, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { ThemedText } from '@/components/ThemedText';
@@ -25,8 +26,15 @@ const MENU_ITEMS: MenuItem[] = [
   { label: 'Politician', icon: 'university', href: AppRoutes.tabsPolitician },
 ];
 
+function approximateSidePanelWidth(windowWidth: number) {
+  return Math.min(windowWidth * 0.74, 320);
+}
+
 export function AppBanner() {
   const [isPanelMounted, setIsPanelMounted] = useState(false);
+  const [measuredPanelWidth, setMeasuredPanelWidth] = useState<number | null>(null);
+  const { width: windowWidth } = useWindowDimensions();
+  const panelWidth = measuredPanelWidth ?? approximateSidePanelWidth(windowWidth);
   const insets = useSafeAreaInsets();
   const router = useRouter();
   const pathname = usePathname();
@@ -36,12 +44,18 @@ export function AppBanner() {
   const panelAnim = useRef(new Animated.Value(0)).current;
   const panelColors = useMemo(
     () => ({
-      panelBg: semantic.cardBackground,
+      panelBg: semantic.sidePanelBackground,
+      panelBlurOverlay: semantic.sidePanelBlurOverlay,
       panelBorder: semantic.cardBorder,
       scrim: semantic.overlayScrim,
     }),
-    [semantic.cardBackground, semantic.cardBorder, semantic.overlayScrim],
+    [semantic.sidePanelBackground, semantic.sidePanelBlurOverlay, semantic.cardBorder, semantic.overlayScrim],
   );
+  const usePanelBlur = Platform.OS === 'ios' || Platform.OS === 'android';
+
+  useEffect(() => {
+    setMeasuredPanelWidth(null);
+  }, [windowWidth]);
 
   const openPanel = () => {
     setIsPanelMounted(true);
@@ -135,15 +149,20 @@ export function AppBanner() {
           <Animated.View
             style={[
               styles.scrim,
-              { backgroundColor: panelColors.scrim, opacity: panelAnim },
+              {
+                left: panelWidth,
+                backgroundColor: panelColors.scrim,
+                opacity: panelAnim,
+              },
             ]}>
             <Pressable style={styles.scrimPressable} onPress={closePanel} />
           </Animated.View>
           <Animated.View
+            onLayout={(e) => setMeasuredPanelWidth(e.nativeEvent.layout.width)}
             style={[
               styles.sidePanel,
               {
-                backgroundColor: panelColors.panelBg,
+                backgroundColor: usePanelBlur ? 'transparent' : panelColors.panelBg,
                 borderColor: panelColors.panelBorder,
                 paddingTop: insets.top + 12,
               },
@@ -152,12 +171,31 @@ export function AppBanner() {
                   {
                     translateX: panelAnim.interpolate({
                       inputRange: [0, 1],
-                      outputRange: [-280, 0],
+                      outputRange: [-panelWidth, 0],
                     }),
                   },
                 ],
               },
             ]}>
+            {usePanelBlur ? (
+              <>
+                <BlurView
+                  pointerEvents="none"
+                  tint={colorScheme === 'dark' ? 'dark' : 'light'}
+                  intensity={72}
+                  style={StyleSheet.absoluteFill}
+                />
+                <View
+                  pointerEvents="none"
+                  style={[StyleSheet.absoluteFill, { backgroundColor: panelColors.panelBlurOverlay }]}
+                />
+              </>
+            ) : (
+              <View
+                pointerEvents="none"
+                style={[StyleSheet.absoluteFill, { backgroundColor: panelColors.panelBg }]}
+              />
+            )}
             <ThemedView style={styles.sidePanelContent}>
             <View style={styles.sidePanelHeader}>
               <ThemedText type="subtitle">Menu</ThemedText>
@@ -250,7 +288,10 @@ const styles = StyleSheet.create({
     zIndex: 120,
   },
   scrim: {
-    ...StyleSheet.absoluteFillObject,
+    position: 'absolute',
+    top: 0,
+    right: 0,
+    bottom: 0,
   },
   scrimPressable: {
     ...StyleSheet.absoluteFillObject,
@@ -264,6 +305,7 @@ const styles = StyleSheet.create({
     maxWidth: 320,
     borderRightWidth: 1,
     paddingHorizontal: 16,
+    overflow: 'hidden',
   },
   sidePanelContent: {
     flex: 1,

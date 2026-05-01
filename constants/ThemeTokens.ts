@@ -30,6 +30,10 @@ export function getSemanticColors(colorScheme: AppColorScheme) {
   return {
     screenBackground: theme.background,
     cardBackground: isDark ? Brand.slate : Brand.paper,
+    /** Slide-out sidebar (web / blur fallback) — translucent fill. */
+    sidePanelBackground: isDark ? 'rgba(51, 49, 56, 0.88)' : 'rgba(255, 255, 250, 0.88)',
+    /** Tint layered on top of `BlurView` inside the sidebar (native). */
+    sidePanelBlurOverlay: isDark ? 'rgba(51, 49, 56, 0.52)' : 'rgba(255, 255, 250, 0.52)',
     cardSubtleBackground: isDark ? Brand.ink : Brand.paper,
     cardBorder: isDark ? Brand.steel : Brand.slate,
     mutedText: isDark ? 'rgba(255,255,250,0.62)' : Brand.steel,
