@@ -1,17 +1,25 @@
-import FontAwesome from '@expo/vector-icons/FontAwesome';
-import { BlurView } from 'expo-blur';
-import { Image } from 'expo-image';
-import { Href, usePathname, useRouter } from 'expo-router';
-import { useEffect, useMemo, useRef, useState } from 'react';
-import { Animated, Easing, Platform, Pressable, StyleSheet, useWindowDimensions, View } from 'react-native';
-import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import FontAwesome from "@expo/vector-icons/FontAwesome";
+import { BlurView } from "expo-blur";
+import { Image } from "expo-image";
+import { Href, usePathname, useRouter } from "expo-router";
+import { useEffect, useMemo, useRef, useState } from "react";
+import {
+  Animated,
+  Easing,
+  Platform,
+  Pressable,
+  StyleSheet,
+  useWindowDimensions,
+  View,
+} from "react-native";
+import { useSafeAreaInsets } from "react-native-safe-area-context";
 
-import { ThemedText } from '@/components/theme/ThemedText';
-import { ThemedView } from '@/components/theme/ThemedView';
-import { Colors } from '@/constants/theme/Colors';
-import { AppRoutes } from '@/constants/app/routes';
-import { getSemanticColors } from '@/constants/theme/ThemeTokens';
-import { useColorScheme } from '@/hooks/useColorScheme';
+import { ThemedText } from "@/components/theme/ThemedText";
+import { ThemedView } from "@/components/theme/ThemedView";
+import { AppRoutes } from "@/constants/app/routes";
+import { Colors } from "@/constants/theme/Colors";
+import { getSemanticColors } from "@/constants/theme/ThemeTokens";
+import { useColorScheme } from "@/hooks/useColorScheme";
 
 type MenuItem = {
   label: string;
@@ -20,10 +28,10 @@ type MenuItem = {
 };
 
 const MENU_ITEMS: MenuItem[] = [
-  { label: 'News', icon: 'list-alt', href: AppRoutes.tabsRoot },
-  { label: 'Explore', icon: 'paper-plane', href: AppRoutes.tabsExplore },
-  { label: 'Economy', icon: 'dollar', href: AppRoutes.tabsEconomy },
-  { label: 'Politician', icon: 'university', href: AppRoutes.tabsPolitician },
+  { label: "News", icon: "list-alt", href: AppRoutes.tabsRoot },
+  { label: "Economy", icon: "dollar", href: AppRoutes.tabsEconomy },
+  { label: "Politician", icon: "university", href: AppRoutes.tabsPolitician },
+  { label: "Explore", icon: "search", href: AppRoutes.tabsExplore },
 ];
 
 function approximateSidePanelWidth(windowWidth: number) {
@@ -32,13 +40,16 @@ function approximateSidePanelWidth(windowWidth: number) {
 
 export function AppBanner() {
   const [isPanelMounted, setIsPanelMounted] = useState(false);
-  const [measuredPanelWidth, setMeasuredPanelWidth] = useState<number | null>(null);
+  const [measuredPanelWidth, setMeasuredPanelWidth] = useState<number | null>(
+    null,
+  );
   const { width: windowWidth } = useWindowDimensions();
-  const panelWidth = measuredPanelWidth ?? approximateSidePanelWidth(windowWidth);
+  const panelWidth =
+    measuredPanelWidth ?? approximateSidePanelWidth(windowWidth);
   const insets = useSafeAreaInsets();
   const router = useRouter();
   const pathname = usePathname();
-  const colorScheme = useColorScheme() ?? 'light';
+  const colorScheme = useColorScheme() ?? "light";
   const theme = Colors[colorScheme];
   const semantic = getSemanticColors(colorScheme);
   const panelAnim = useRef(new Animated.Value(0)).current;
@@ -49,9 +60,14 @@ export function AppBanner() {
       panelBorder: semantic.cardBorder,
       scrim: semantic.overlayScrim,
     }),
-    [semantic.sidePanelBackground, semantic.sidePanelBlurOverlay, semantic.cardBorder, semantic.overlayScrim],
+    [
+      semantic.sidePanelBackground,
+      semantic.sidePanelBlurOverlay,
+      semantic.cardBorder,
+      semantic.overlayScrim,
+    ],
   );
-  const usePanelBlur = Platform.OS === 'ios' || Platform.OS === 'android';
+  const usePanelBlur = Platform.OS === "ios" || Platform.OS === "android";
 
   useEffect(() => {
     setMeasuredPanelWidth(null);
@@ -96,7 +112,7 @@ export function AppBanner() {
   const isActiveRoute = (href: Href) => {
     const hrefString = String(href);
     if (hrefString === AppRoutes.tabsRoot) {
-      return pathname === '/(tabs)' || pathname === '/';
+      return pathname === "/(tabs)" || pathname === "/";
     }
     return pathname.startsWith(hrefString);
   };
@@ -109,13 +125,14 @@ export function AppBanner() {
           {
             backgroundColor: theme.background,
           },
-        ]}>
+        ]}
+      >
         <Pressable style={styles.menuButton} onPress={openPanel}>
           <FontAwesome name="bars" size={18} color={theme.text} />
         </Pressable>
 
         <Image
-          source={require('@/assets/images/hypatia-logo.png')}
+          source={require("@/assets/images/hypatia-logo.png")}
           style={styles.image}
           contentFit="contain"
           accessibilityLabel="App banner"
@@ -130,7 +147,8 @@ export function AppBanner() {
             styles.profileHitArea,
             { opacity: pressed ? 0.82 : 1 },
           ]}
-          onPress={openProfile}>
+          onPress={openProfile}
+        >
           <View
             style={[
               styles.profileAvatar,
@@ -138,7 +156,8 @@ export function AppBanner() {
                 borderColor: semantic.cardBorder,
                 backgroundColor: semantic.cardSubtleBackground,
               },
-            ]}>
+            ]}
+          >
             <FontAwesome name="user" size={15} color={theme.icon} />
           </View>
         </Pressable>
@@ -154,7 +173,8 @@ export function AppBanner() {
                 backgroundColor: panelColors.scrim,
                 opacity: panelAnim,
               },
-            ]}>
+            ]}
+          >
             <Pressable style={styles.scrimPressable} onPress={closePanel} />
           </Animated.View>
           <Animated.View
@@ -162,7 +182,9 @@ export function AppBanner() {
             style={[
               styles.sidePanel,
               {
-                backgroundColor: usePanelBlur ? 'transparent' : panelColors.panelBg,
+                backgroundColor: usePanelBlur
+                  ? "transparent"
+                  : panelColors.panelBg,
                 borderColor: panelColors.panelBorder,
                 paddingTop: insets.top + 12,
               },
@@ -176,64 +198,73 @@ export function AppBanner() {
                   },
                 ],
               },
-            ]}>
+            ]}
+          >
             {usePanelBlur ? (
               <>
                 <BlurView
                   pointerEvents="none"
-                  tint={colorScheme === 'dark' ? 'dark' : 'light'}
+                  tint={colorScheme === "dark" ? "dark" : "light"}
                   intensity={72}
                   style={StyleSheet.absoluteFill}
                 />
                 <View
                   pointerEvents="none"
-                  style={[StyleSheet.absoluteFill, { backgroundColor: panelColors.panelBlurOverlay }]}
+                  style={[
+                    StyleSheet.absoluteFill,
+                    { backgroundColor: panelColors.panelBlurOverlay },
+                  ]}
                 />
               </>
             ) : (
               <View
                 pointerEvents="none"
-                style={[StyleSheet.absoluteFill, { backgroundColor: panelColors.panelBg }]}
+                style={[
+                  StyleSheet.absoluteFill,
+                  { backgroundColor: panelColors.panelBg },
+                ]}
               />
             )}
             <ThemedView style={styles.sidePanelContent}>
-            <View style={styles.sidePanelHeader}>
-              <ThemedText type="subtitle">Menu</ThemedText>
-            </View>
-            <View style={styles.panelItemList}>
-              {MENU_ITEMS.map((item) => {
-                const isActive = isActiveRoute(item.href);
-                return (
-                  <Pressable
-                    key={item.label}
-                    style={[
-                      styles.panelItemButton,
-                      {
-                        borderColor: isActive ? theme.tint : 'transparent',
-                        backgroundColor: isActive
-                          ? colorScheme === 'dark'
-                            ? 'rgba(42, 157, 143, 0.22)'
-                            : 'rgba(42, 157, 143, 0.12)'
-                          : 'transparent',
-                      },
-                    ]}
-                    onPress={() => navigateFromMenu(item.href)}>
-                    <FontAwesome
-                      name={item.icon}
-                      size={16}
-                      color={isActive ? theme.tint : theme.text}
-                    />
-                    <ThemedText
+              <View style={styles.sidePanelHeader}>
+                <ThemedText type="subtitle">Welcome, Ryan!</ThemedText>
+              </View>
+              <View style={styles.panelItemList}>
+                {MENU_ITEMS.map((item) => {
+                  const isActive = isActiveRoute(item.href);
+                  return (
+                    <Pressable
+                      key={item.label}
                       style={[
-                        styles.panelItem,
-                        { color: isActive ? theme.tint : theme.text },
-                      ]}>
-                      {item.label}
-                    </ThemedText>
-                  </Pressable>
-                );
-              })}
-            </View>
+                        styles.panelItemButton,
+                        {
+                          borderColor: isActive ? theme.tint : "transparent",
+                          backgroundColor: isActive
+                            ? colorScheme === "dark"
+                              ? "rgba(42, 157, 143, 0.22)"
+                              : "rgba(42, 157, 143, 0.12)"
+                            : "transparent",
+                        },
+                      ]}
+                      onPress={() => navigateFromMenu(item.href)}
+                    >
+                      <FontAwesome
+                        name={item.icon}
+                        size={16}
+                        color={isActive ? theme.tint : theme.text}
+                      />
+                      <ThemedText
+                        style={[
+                          styles.panelItem,
+                          { color: isActive ? theme.tint : theme.text },
+                        ]}
+                      >
+                        {item.label}
+                      </ThemedText>
+                    </Pressable>
+                  );
+                })}
+              </View>
             </ThemedView>
           </Animated.View>
         </View>
@@ -245,28 +276,28 @@ export function AppBanner() {
 const styles = StyleSheet.create({
   bar: {
     height: 44,
-    justifyContent: 'center',
-    alignItems: 'center',
+    justifyContent: "center",
+    alignItems: "center",
     paddingBottom: 2,
-    position: 'relative',
+    position: "relative",
     zIndex: 20,
   },
   menuButton: {
-    position: 'absolute',
+    position: "absolute",
     left: 12,
     width: 30,
     height: 30,
     borderRadius: 15,
-    alignItems: 'center',
-    justifyContent: 'center',
+    alignItems: "center",
+    justifyContent: "center",
   },
   profileHitArea: {
-    position: 'absolute',
+    position: "absolute",
     right: 10,
     top: 0,
     bottom: 0,
-    justifyContent: 'center',
-    alignItems: 'center',
+    justifyContent: "center",
+    alignItems: "center",
     minWidth: 44,
     minHeight: 44,
   },
@@ -275,9 +306,9 @@ const styles = StyleSheet.create({
     height: 32,
     borderRadius: 16,
     borderWidth: 1,
-    alignItems: 'center',
-    justifyContent: 'center',
-    overflow: 'hidden',
+    alignItems: "center",
+    justifyContent: "center",
+    overflow: "hidden",
   },
   image: {
     width: 38,
@@ -288,7 +319,7 @@ const styles = StyleSheet.create({
     zIndex: 120,
   },
   scrim: {
-    position: 'absolute',
+    position: "absolute",
     top: 0,
     right: 0,
     bottom: 0,
@@ -297,24 +328,24 @@ const styles = StyleSheet.create({
     ...StyleSheet.absoluteFillObject,
   },
   sidePanel: {
-    position: 'absolute',
+    position: "absolute",
     left: 0,
     top: 0,
     bottom: 0,
-    width: '74%',
+    width: "74%",
     maxWidth: 320,
     borderRightWidth: 1,
     paddingHorizontal: 16,
-    overflow: 'hidden',
+    overflow: "hidden",
   },
   sidePanelContent: {
     flex: 1,
-    backgroundColor: 'transparent',
+    backgroundColor: "transparent",
   },
   sidePanelHeader: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'flex-start',
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "flex-start",
     marginBottom: 14,
   },
   panelItemList: {
@@ -325,8 +356,8 @@ const styles = StyleSheet.create({
     borderRadius: 10,
     borderWidth: 1,
     paddingHorizontal: 10,
-    flexDirection: 'row',
-    alignItems: 'center',
+    flexDirection: "row",
+    alignItems: "center",
     gap: 10,
   },
   panelItem: {
