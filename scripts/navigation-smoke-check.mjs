@@ -30,7 +30,7 @@ try {
 
   // Route constants should keep tabs + detail route contract centralized.
   assertContains(
-    'constants/routes.ts',
+    'constants/app/routes.ts',
     "economyDetail: '/economy/[sectorId]'",
     'Route constants do not define economy detail path.',
   );

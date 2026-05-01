@@ -2,10 +2,10 @@ import { Dimensions, Pressable, StyleSheet, View } from 'react-native';
 import { LineChart } from 'react-native-chart-kit';
 import { useMemo, useState } from 'react';
 
-import { ThemedText } from '@/components/ThemedText';
-import { Brand, Colors } from '@/constants/Colors';
-import { Radius, Spacing, getSemanticColors } from '@/constants/ThemeTokens';
-import { ECONOMIC_PULSE_MONTH_LABELS, ECONOMIC_PULSE_SERIES } from '@/constants/usEconomicData';
+import { ThemedText } from '@/components/theme/ThemedText';
+import { Brand, Colors } from '@/constants/theme/Colors';
+import { Radius, Spacing, getSemanticColors } from '@/constants/theme/ThemeTokens';
+import { ECONOMIC_PULSE_MONTH_LABELS, ECONOMIC_PULSE_SERIES } from '@/constants/data/usEconomicData';
 import { useColorScheme } from '@/hooks/useColorScheme';
 
 export default function EconomicPulseChart() {

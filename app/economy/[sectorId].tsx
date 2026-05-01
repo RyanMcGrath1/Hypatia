@@ -1,13 +1,13 @@
 import { Stack, useLocalSearchParams } from 'expo-router';
 import { ScrollView, StyleSheet, View } from 'react-native';
 
-import { EmptyState } from '@/components/EmptyState';
-import { SectionCard } from '@/components/SectionCard';
-import { ThemedText } from '@/components/ThemedText';
-import { ThemedView } from '@/components/ThemedView';
-import { Colors } from '@/constants/Colors';
-import { Spacing, getSemanticColors } from '@/constants/ThemeTokens';
-import { getEconomicSectorById } from '@/constants/usEconomicData';
+import { EmptyState } from '@/components/surfaces/EmptyState';
+import { SectionCard } from '@/components/surfaces/SectionCard';
+import { ThemedText } from '@/components/theme/ThemedText';
+import { ThemedView } from '@/components/theme/ThemedView';
+import { Colors } from '@/constants/theme/Colors';
+import { Spacing, getSemanticColors } from '@/constants/theme/ThemeTokens';
+import { getEconomicSectorById } from '@/constants/data/usEconomicData';
 import { useColorScheme } from '@/hooks/useColorScheme';
 
 export default function EconomicSectorDetailScreen() {

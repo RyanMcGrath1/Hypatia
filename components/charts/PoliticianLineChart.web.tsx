@@ -9,8 +9,8 @@ import {
   YAxis,
 } from 'recharts';
 
-import { Colors } from '@/constants/Colors';
-import { getSemanticColors } from '@/constants/ThemeTokens';
+import { Colors } from '@/constants/theme/Colors';
+import { getSemanticColors } from '@/constants/theme/ThemeTokens';
 import { useColorScheme } from '@/hooks/useColorScheme';
 
 const SAMPLE = [

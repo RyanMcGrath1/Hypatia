@@ -3,7 +3,7 @@
  */
 import { Platform } from 'react-native';
 
-import { WEB_NEWS_DEV_PROXY_PREFIX } from '@/constants/newsDevProxy';
+import { WEB_NEWS_DEV_PROXY_PREFIX } from '@/constants/app/newsDevProxy';
 import { fetchApiGet } from '@/hooks/api/httpGet';
 import { getDevApiBaseUrlForPort } from '@/hooks/api/devServerBaseUrl';
 

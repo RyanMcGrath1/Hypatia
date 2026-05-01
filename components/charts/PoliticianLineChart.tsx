@@ -1,8 +1,8 @@
 import { Dimensions, StyleSheet, View } from 'react-native';
 import { LineChart } from 'react-native-chart-kit';
 
-import { Brand } from '@/constants/Colors';
-import { getSemanticColors } from '@/constants/ThemeTokens';
+import { Brand } from '@/constants/theme/Colors';
+import { getSemanticColors } from '@/constants/theme/ThemeTokens';
 import { useColorScheme } from '@/hooks/useColorScheme';
 
 export default function PoliticianLineChart() {

@@ -14,12 +14,12 @@ import {
   View,
 } from 'react-native';
 
-import PoliticianLineChart from '@/components/PoliticianLineChart';
-import { StateNoticeCard } from '@/components/StateNoticeCard';
-import { ThemedText } from '@/components/ThemedText';
-import { ThemedView } from '@/components/ThemedView';
-import { Brand, Colors } from '@/constants/Colors';
-import { getSemanticColors } from '@/constants/ThemeTokens';
+import PoliticianLineChart from '@/components/charts/PoliticianLineChart';
+import { StateNoticeCard } from '@/components/surfaces/StateNoticeCard';
+import { ThemedText } from '@/components/theme/ThemedText';
+import { ThemedView } from '@/components/theme/ThemedView';
+import { Brand, Colors } from '@/constants/theme/Colors';
+import { getSemanticColors } from '@/constants/theme/ThemeTokens';
 import { useColorScheme } from '@/hooks/useColorScheme';
 import { useThemeColor } from '@/hooks/useThemeColor';
 

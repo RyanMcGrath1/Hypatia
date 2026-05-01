@@ -3,16 +3,16 @@ import { Pressable, ScrollView, StyleSheet, View, useWindowDimensions } from 're
 import Feather from '@expo/vector-icons/Feather';
 import { useRouter } from 'expo-router';
 
-import EconomicPulseChart from '@/components/EconomicPulseChart';
-import SectorSparkline from '@/components/SectorSparkline';
-import { ScreenHeader } from '@/components/ScreenHeader';
-import { SectionCard } from '@/components/SectionCard';
-import { StateNoticeCard } from '@/components/StateNoticeCard';
-import { ThemedText } from '@/components/ThemedText';
-import { ThemedView } from '@/components/ThemedView';
-import { Brand, Colors } from '@/constants/Colors';
-import { AppRoutes } from '@/constants/routes';
-import { Radius, Spacing, getSemanticColors } from '@/constants/ThemeTokens';
+import EconomicPulseChart from '@/components/charts/EconomicPulseChart';
+import SectorSparkline from '@/components/charts/SectorSparkline';
+import { ScreenHeader } from '@/components/layout/ScreenHeader';
+import { SectionCard } from '@/components/surfaces/SectionCard';
+import { StateNoticeCard } from '@/components/surfaces/StateNoticeCard';
+import { ThemedText } from '@/components/theme/ThemedText';
+import { ThemedView } from '@/components/theme/ThemedView';
+import { Brand, Colors } from '@/constants/theme/Colors';
+import { AppRoutes } from '@/constants/app/routes';
+import { Radius, Spacing, getSemanticColors } from '@/constants/theme/ThemeTokens';
 import {
   ECONOMY_DATA_SOURCE,
   ECONOMY_KPIS,
@@ -20,7 +20,7 @@ import {
   US_ECONOMIC_SECTORS,
   type EconomicSector,
   type SectorTrend,
-} from '@/constants/usEconomicData';
+} from '@/constants/data/usEconomicData';
 import { useColorScheme } from '@/hooks/useColorScheme';
 
 type TimeWindow = '1M' | '3M' | '6M' | '1Y';

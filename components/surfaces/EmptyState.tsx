@@ -1,5 +1,5 @@
-import { ThemedText } from '@/components/ThemedText';
-import { SectionCard } from '@/components/SectionCard';
+import { ThemedText } from '@/components/theme/ThemedText';
+import { SectionCard } from '@/components/surfaces/SectionCard';
 
 type EmptyStateProps = {
   title: string;

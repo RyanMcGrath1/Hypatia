@@ -1,4 +1,4 @@
-import { Brand } from '@/constants/Colors';
+import { Brand } from '@/constants/theme/Colors';
 
 export type SectorTrend = 'up' | 'down' | 'flat';
 

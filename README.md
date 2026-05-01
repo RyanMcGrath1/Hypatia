@@ -31,8 +31,8 @@ The app currently includes:
 ## UX and design system direction
 
 Recent improvements introduced:
-- shared route constants in `constants/routes.ts`,
-- semantic theme tokens in `constants/ThemeTokens.ts`,
+- shared route constants in `constants/app/routes.ts`,
+- semantic theme tokens in `constants/theme/ThemeTokens.ts`,
 - reusable primitives in `components/ScreenHeader.tsx`, `components/SectionCard.tsx`, and `components/EmptyState.tsx`,
 - accessibility-friendly tab metadata with icon-first presentation.
 
@@ -90,9 +90,9 @@ Recent improvements introduced:
 ## Project structure
 
 - `app/` - Route screens, tab layout, and stack detail screens.
-- `components/` - Shared UI components and reusable screen primitives.
-- `hooks/` - Reusable hooks.
-- `constants/` - Route constants, design tokens, and theme values.
+- `components/` - Shared UI: `theme/`, `surfaces/`, `layout/`, `navigation/`, `charts/`, and `ui/` (tab bar, icons).
+- `hooks/` - Reusable hooks; feature hooks live under `hooks/feed/`.
+- `constants/` - `app/` (routes, config), `theme/` (colors, tokens, typography), `data/` (static datasets).
 - `scripts/` - Local helper scripts and smoke checks.
 
 ## Notes

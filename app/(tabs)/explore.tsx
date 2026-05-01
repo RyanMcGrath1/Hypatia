@@ -1,13 +1,13 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { ActivityIndicator, Pressable, ScrollView, StyleSheet, TextInput, View } from 'react-native';
 
-import { ScreenHeader } from '@/components/ScreenHeader';
-import { SectionCard } from '@/components/SectionCard';
-import { StateNoticeCard } from '@/components/StateNoticeCard';
-import { ThemedText } from '@/components/ThemedText';
-import { ThemedView } from '@/components/ThemedView';
-import { Brand } from '@/constants/Colors';
-import { Radius, Spacing, getSemanticColors } from '@/constants/ThemeTokens';
+import { ScreenHeader } from '@/components/layout/ScreenHeader';
+import { SectionCard } from '@/components/surfaces/SectionCard';
+import { StateNoticeCard } from '@/components/surfaces/StateNoticeCard';
+import { ThemedText } from '@/components/theme/ThemedText';
+import { ThemedView } from '@/components/theme/ThemedView';
+import { Brand } from '@/constants/theme/Colors';
+import { Radius, Spacing, getSemanticColors } from '@/constants/theme/ThemeTokens';
 import {
   DEFAULT_CIVIC_SAMPLE_ADDRESS,
   DEFAULT_CIVIC_DIVISIONS_SAMPLE_ADDRESS,

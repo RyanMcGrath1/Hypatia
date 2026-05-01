@@ -1,7 +1,7 @@
 import { Pressable } from 'react-native';
 
-import { SectionCard } from '@/components/SectionCard';
-import { ThemedText } from '@/components/ThemedText';
+import { SectionCard } from '@/components/surfaces/SectionCard';
+import { ThemedText } from '@/components/theme/ThemedText';
 
 type StateNoticeCardProps = {
   title: string;

@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { useCallback, useMemo } from "react";
 import {
   ActivityIndicator,
   FlatList,
@@ -13,50 +13,22 @@ import { Image } from "expo-image";
 import { router } from "expo-router";
 import Ionicons from "@expo/vector-icons/Ionicons";
 
-import { EmptyState } from "@/components/EmptyState";
-import { ScreenHeader } from "@/components/ScreenHeader";
-import { SectionCard } from "@/components/SectionCard";
-import { StateNoticeCard } from "@/components/StateNoticeCard";
-import { ThemedText } from "@/components/ThemedText";
-import { ThemedView } from "@/components/ThemedView";
-import { Brand } from "@/constants/Colors";
-import { NEWS_TOPIC_ICON_NAMES } from "@/constants/newsTopicIcons";
-import { AppRoutes } from "@/constants/routes";
-import { Radius, Spacing, getSemanticColors } from "@/constants/ThemeTokens";
-import { Fonts } from "@/constants/Typography";
-import {
-  NEWS_FEED_PAGE_SIZE,
-  NEWS_TOPIC_OPTIONS,
-  fetchNewsTopHeadlines,
-  getNewsApiNetworkErrorMessage,
-  type NewsTopicId,
-  type TopHeadlineItem,
-} from "@/hooks/api/newsApi";
+import { EmptyState } from "@/components/surfaces/EmptyState";
+import { ScreenHeader } from "@/components/layout/ScreenHeader";
+import { SectionCard } from "@/components/surfaces/SectionCard";
+import { StateNoticeCard } from "@/components/surfaces/StateNoticeCard";
+import { ThemedText } from "@/components/theme/ThemedText";
+import { ThemedView } from "@/components/theme/ThemedView";
+import { Brand } from "@/constants/theme/Colors";
+import { NEWS_TOPIC_ICON_NAMES } from "@/constants/app/newsTopicIcons";
+import { AppRoutes } from "@/constants/app/routes";
+import { Radius, Spacing, getSemanticColors } from "@/constants/theme/ThemeTokens";
+import { Fonts } from "@/constants/theme/Typography";
+import { NEWS_TOPIC_OPTIONS, type TopHeadlineItem } from "@/hooks/api/newsApi";
 import { useColorScheme } from "@/hooks/useColorScheme";
+import { headlineKey, useTopHeadlinesFeed } from "@/hooks/feed/useTopHeadlinesFeed";
 
 const FEED_LANG = "en";
-
-function headlineKey(item: TopHeadlineItem, index: number): string {
-  return item.url ?? `idx-${index}-${item.title}`;
-}
-
-function dedupeAppend(prev: TopHeadlineItem[], more: TopHeadlineItem[]): TopHeadlineItem[] {
-  const seen = new Set<string>();
-  for (const p of prev) {
-    seen.add(headlineKey(p, 0));
-  }
-  const out = [...prev];
-  let i = 0;
-  for (const m of more) {
-    const k = headlineKey(m, i);
-    i += 1;
-    if (!seen.has(k)) {
-      seen.add(k);
-      out.push(m);
-    }
-  }
-  return out;
-}
 
 /**
  * Home tab: paginated news headlines from the Flask news API (port 5001).
@@ -64,166 +36,23 @@ function dedupeAppend(prev: TopHeadlineItem[], more: TopHeadlineItem[]): TopHead
  * FlatList + infinite scroll: page 1 on mount/topic/refresh; append pages via onEndReached until !hasMore.
  */
 export default function HomeScreen() {
-  const [headlines, setHeadlines] = useState<TopHeadlineItem[]>([]);
-  const [selectedTopicId, setSelectedTopicId] = useState<NewsTopicId>("all");
-  const [hasMore, setHasMore] = useState(false);
-  const [nextPage, setNextPage] = useState<number | null>(null);
-
-  const [isLoading, setIsLoading] = useState(true);
-  const [loadingMore, setLoadingMore] = useState(false);
-  const [refreshing, setRefreshing] = useState(false);
-  const [error, setError] = useState<string | null>(null);
-  const [paginationError, setPaginationError] = useState<string | null>(null);
-
-  const abortRef = useRef<AbortController | null>(null);
-  const loadMoreAbortRef = useRef<AbortController | null>(null);
-  /** Topic/session generation: ignore stale first-page responses after topic switch. */
-  const feedGenerationRef = useRef(0);
-  const loadingMoreInFlightRef = useRef(false);
-  const lastEndReachedRef = useRef(0);
-
-  const selectedTopicIdRef = useRef(selectedTopicId);
-  selectedTopicIdRef.current = selectedTopicId;
+  const {
+    headlines,
+    selectedTopicId,
+    setSelectedTopicId,
+    isLoading,
+    loadingMore,
+    refreshing,
+    error,
+    paginationError,
+    onRefresh,
+    onEndReached,
+    loadMoreHeadlines,
+    retryInitialLoad,
+  } = useTopHeadlinesFeed({ lang: FEED_LANG });
 
   const colorScheme = useColorScheme() ?? "light";
   const semantic = getSemanticColors(colorScheme);
-
-  const categoryParam = useMemo(
-    () => (selectedTopicId === "all" ? undefined : selectedTopicId),
-    [selectedTopicId],
-  );
-
-  const fetchFeedOptions = useCallback(
-    (page: number, bustCache: boolean) => ({
-      lang: FEED_LANG,
-      max: NEWS_FEED_PAGE_SIZE,
-      page,
-      category: categoryParam,
-      bustCache,
-    }),
-    [categoryParam],
-  );
-
-  const loadFirstPage = useCallback(
-    async (opts: { bustCache: boolean; generation: number }) => {
-      abortRef.current?.abort();
-      const controller = new AbortController();
-      abortRef.current = controller;
-
-      if (!opts.bustCache) {
-        setIsLoading(true);
-      }
-      setError(null);
-      setPaginationError(null);
-
-      try {
-        const result = await fetchNewsTopHeadlines(controller.signal, fetchFeedOptions(1, opts.bustCache));
-        if (opts.generation !== feedGenerationRef.current) {
-          return;
-        }
-        setHeadlines(result.items);
-        setHasMore(result.hasMore);
-        setNextPage(result.nextPage);
-      } catch (err) {
-        if (err instanceof Error && err.name === "AbortError") {
-          return;
-        }
-        if (opts.generation !== feedGenerationRef.current) {
-          return;
-        }
-        setHeadlines([]);
-        setHasMore(false);
-        setNextPage(null);
-        const hint = getNewsApiNetworkErrorMessage();
-        const detail = err instanceof Error && err.message ? err.message : null;
-        setError(detail ? `${hint}\n\n${detail}` : hint);
-      } finally {
-        if (opts.generation !== feedGenerationRef.current) {
-          return;
-        }
-        setIsLoading(false);
-        setRefreshing(false);
-      }
-    },
-    [fetchFeedOptions],
-  );
-
-  useEffect(() => {
-    loadMoreAbortRef.current?.abort();
-    loadMoreAbortRef.current = null;
-    loadingMoreInFlightRef.current = false;
-
-    const generation = ++feedGenerationRef.current;
-    setHeadlines([]);
-    setHasMore(false);
-    setNextPage(null);
-    setError(null);
-    setPaginationError(null);
-    void loadFirstPage({ bustCache: false, generation });
-    return () => {
-      abortRef.current?.abort();
-    };
-  }, [selectedTopicId, loadFirstPage]);
-
-  const onRefresh = useCallback(() => {
-    setRefreshing(true);
-    loadMoreAbortRef.current?.abort();
-    loadMoreAbortRef.current = null;
-    loadingMoreInFlightRef.current = false;
-    const generation = feedGenerationRef.current;
-    void loadFirstPage({ bustCache: true, generation });
-  }, [loadFirstPage]);
-
-  const loadMoreHeadlines = useCallback(async () => {
-    if (
-      !hasMore ||
-      nextPage === null ||
-      loadingMoreInFlightRef.current ||
-      isLoading ||
-      refreshing
-    ) {
-      return;
-    }
-
-    const topicAtStart = selectedTopicIdRef.current;
-    loadingMoreInFlightRef.current = true;
-    setLoadingMore(true);
-    setPaginationError(null);
-
-    loadMoreAbortRef.current?.abort();
-    const controller = new AbortController();
-    loadMoreAbortRef.current = controller;
-
-    try {
-      const result = await fetchNewsTopHeadlines(controller.signal, fetchFeedOptions(nextPage, false));
-      if (selectedTopicIdRef.current !== topicAtStart) {
-        return;
-      }
-      setHeadlines((prev) => dedupeAppend(prev, result.items));
-      setHasMore(result.hasMore);
-      setNextPage(result.nextPage);
-    } catch (err) {
-      if (err instanceof Error && err.name === "AbortError") {
-        return;
-      }
-      if (selectedTopicIdRef.current !== topicAtStart) {
-        return;
-      }
-      setPaginationError("Could not load more stories.");
-    } finally {
-      loadingMoreInFlightRef.current = false;
-      setLoadingMore(false);
-    }
-  }, [fetchFeedOptions, hasMore, isLoading, nextPage, refreshing]);
-
-  const onEndReached = useCallback(() => {
-    const now = Date.now();
-    if (now - lastEndReachedRef.current < 750) {
-      return;
-    }
-    lastEndReachedRef.current = now;
-    void loadMoreHeadlines();
-  }, [loadMoreHeadlines]);
 
   const openArticle = useCallback((url: string, title: string) => {
     router.push({
@@ -345,10 +174,7 @@ export default function HomeScreen() {
             messageColor={semantic.danger}
             actionLabel="Retry"
             actionColor={semantic.accent}
-            onActionPress={() => {
-              const generation = feedGenerationRef.current;
-              void loadFirstPage({ bustCache: false, generation });
-            }}
+            onActionPress={retryInitialLoad}
           />
         ) : null}
 
@@ -367,7 +193,7 @@ export default function HomeScreen() {
       error,
       headlines.length,
       isLoading,
-      loadFirstPage,
+      retryInitialLoad,
       semantic.accent,
       semantic.cardBackground,
       semantic.cardBorder,
@@ -375,6 +201,7 @@ export default function HomeScreen() {
       semantic.danger,
       semantic.mutedText,
       selectedTopicId,
+      setSelectedTopicId,
     ],
   );
 

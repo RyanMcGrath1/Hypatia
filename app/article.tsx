@@ -15,11 +15,11 @@ import {
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { WebView } from 'react-native-webview';
 
-import { ThemedText } from '@/components/ThemedText';
-import { ThemedView } from '@/components/ThemedView';
-import { Colors } from '@/constants/Colors';
-import { Radius, Spacing, getSemanticColors } from '@/constants/ThemeTokens';
-import { Fonts } from '@/constants/Typography';
+import { ThemedText } from '@/components/theme/ThemedText';
+import { ThemedView } from '@/components/theme/ThemedView';
+import { Colors } from '@/constants/theme/Colors';
+import { Radius, Spacing, getSemanticColors } from '@/constants/theme/ThemeTokens';
+import { Fonts } from '@/constants/theme/Typography';
 import { useColorScheme } from '@/hooks/useColorScheme';
 
 function firstParam(value: string | string[] | undefined): string | undefined {

@@ -15,8 +15,8 @@ import { View } from 'react-native';
 import 'react-native-reanimated';
 import { SafeAreaProvider, SafeAreaView } from 'react-native-safe-area-context';
 
-import { AppBanner } from '@/components/AppBanner';
-import { Colors } from '@/constants/Colors';
+import { AppBanner } from '@/components/navigation/AppBanner';
+import { Colors } from '@/constants/theme/Colors';
 import { useColorScheme } from '@/hooks/useColorScheme';
 
 void SplashScreen.preventAutoHideAsync();
