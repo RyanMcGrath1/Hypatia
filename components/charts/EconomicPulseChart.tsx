@@ -3,7 +3,7 @@ import { LineChart } from 'react-native-chart-kit';
 import { useMemo, useState } from 'react';
 
 import { ThemedText } from '@/components/theme/ThemedText';
-import { Brand, Colors } from '@/constants/theme/Colors';
+import { Brand, BrandRgb, Colors } from '@/constants/theme/Colors';
 import { Radius, Spacing, getSemanticColors } from '@/constants/theme/ThemeTokens';
 import { ECONOMIC_PULSE_MONTH_LABELS, ECONOMIC_PULSE_SERIES } from '@/constants/data/usEconomicData';
 import { useColorScheme } from '@/hooks/useColorScheme';
@@ -38,9 +38,12 @@ export default function EconomicPulseChart() {
     backgroundGradientFrom: isDark ? Brand.slate : Brand.paper,
     backgroundGradientTo: isDark ? Brand.slate : Brand.paper,
     decimalPlaces: 0,
-    color: (opacity = 1) => `rgba(255, 49, 46, ${opacity})`,
+    color: (opacity = 1) =>
+      `rgba(${BrandRgb.teal[0]}, ${BrandRgb.teal[1]}, ${BrandRgb.teal[2]}, ${opacity})`,
     labelColor: (opacity = 1) =>
-      isDark ? `rgba(255, 255, 250, ${0.35 + 0.45 * opacity})` : `rgba(81, 80, 82, ${opacity})`,
+      isDark
+        ? `rgba(${BrandRgb.offWhite[0]}, ${BrandRgb.offWhite[1]}, ${BrandRgb.offWhite[2]}, ${0.35 + 0.45 * opacity})`
+        : `rgba(${BrandRgb.charcoal[0]}, ${BrandRgb.charcoal[1]}, ${BrandRgb.charcoal[2]}, ${opacity})`,
     propsForDots: {
       r: '3',
       strokeWidth: '1.5',

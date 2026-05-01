@@ -20,7 +20,7 @@ type MenuItem = {
 };
 
 const MENU_ITEMS: MenuItem[] = [
-  { label: 'Home', icon: 'home', href: AppRoutes.tabsRoot },
+  { label: 'News', icon: 'list-alt', href: AppRoutes.tabsRoot },
   { label: 'Explore', icon: 'paper-plane', href: AppRoutes.tabsExplore },
   { label: 'Economy', icon: 'dollar', href: AppRoutes.tabsEconomy },
   { label: 'Politician', icon: 'university', href: AppRoutes.tabsPolitician },
@@ -212,8 +212,8 @@ export function AppBanner() {
                         borderColor: isActive ? theme.tint : 'transparent',
                         backgroundColor: isActive
                           ? colorScheme === 'dark'
-                            ? 'rgba(255, 49, 46, 0.14)'
-                            : 'rgba(255, 49, 46, 0.08)'
+                            ? 'rgba(42, 157, 143, 0.22)'
+                            : 'rgba(42, 157, 143, 0.12)'
                           : 'transparent',
                       },
                     ]}

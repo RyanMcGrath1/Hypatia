@@ -19,7 +19,7 @@
     "android": {
       "adaptiveIcon": {
         "foregroundImage": "./assets/images/hypatia-logo.png",
-        "backgroundColor": "#FFFFFA"
+        "backgroundColor": "#F5F7FA"
       },
       "edgeToEdgeEnabled": true,
       "usesCleartextTraffic": true
@@ -37,7 +37,7 @@
           "image": "./assets/images/hypatia-logo.png",
           "imageWidth": 200,
           "resizeMode": "contain",
-          "backgroundColor": "#FFFFFA"
+          "backgroundColor": "#F5F7FA"
         }
       ]
     ],

@@ -46,7 +46,7 @@ type PoliticianProfile = {
 const MOCK_POLITICIANS: PoliticianProfile[] = [
   {
     name: 'Alex Harper',
-    photoUrl: 'https://ui-avatars.com/api/?name=Alex+Harper&background=333138&color=FFFFFA',
+    photoUrl: 'https://ui-avatars.com/api/?name=Alex+Harper&background=3A5A98&color=F5F7FA',
     party: 'Independent',
     role: 'U.S. Senator',
     location: 'Colorado',
@@ -74,7 +74,7 @@ const MOCK_POLITICIANS: PoliticianProfile[] = [
   },
   {
     name: 'Monica Reyes',
-    photoUrl: 'https://ui-avatars.com/api/?name=Monica+Reyes&background=515052&color=FFFFFA',
+    photoUrl: 'https://ui-avatars.com/api/?name=Monica+Reyes&background=0B1F3A&color=F5F7FA',
     party: 'Democratic',
     role: 'Governor',
     location: 'New Mexico',
@@ -102,7 +102,7 @@ const MOCK_POLITICIANS: PoliticianProfile[] = [
   },
   {
     name: 'Daniel Brooks',
-    photoUrl: 'https://ui-avatars.com/api/?name=Daniel+Brooks&background=FF312E&color=FFFFFA',
+    photoUrl: 'https://ui-avatars.com/api/?name=Daniel+Brooks&background=2A9D8F&color=F5F7FA',
     party: 'Republican',
     role: 'House Representative',
     location: 'Florida 7th District',

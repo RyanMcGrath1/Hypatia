@@ -31,7 +31,7 @@ import { headlineKey, useTopHeadlinesFeed } from "@/hooks/feed/useTopHeadlinesFe
 const FEED_LANG = "en";
 
 /**
- * Home tab: paginated news headlines from the Flask news API (port 5001).
+ * News tab: paginated news headlines from the Flask news API (port 5001).
  *
  * FlatList + infinite scroll: page 1 on mount/topic/refresh; append pages via onEndReached until !hasMore.
  */

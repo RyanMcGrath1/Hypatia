@@ -1,7 +1,7 @@
 import { Dimensions, StyleSheet, View } from 'react-native';
 import { LineChart } from 'react-native-chart-kit';
 
-import { Brand } from '@/constants/theme/Colors';
+import { Brand, BrandRgb } from '@/constants/theme/Colors';
 import { getSemanticColors } from '@/constants/theme/ThemeTokens';
 import { useColorScheme } from '@/hooks/useColorScheme';
 
@@ -15,9 +15,12 @@ export default function PoliticianLineChart() {
     backgroundGradientFrom: isDark ? Brand.slate : Brand.paper,
     backgroundGradientTo: isDark ? Brand.slate : Brand.paper,
     decimalPlaces: 0,
-    color: (opacity = 1) => `rgba(255, 49, 46, ${opacity})`,
+    color: (opacity = 1) =>
+      `rgba(${BrandRgb.teal[0]}, ${BrandRgb.teal[1]}, ${BrandRgb.teal[2]}, ${opacity})`,
     labelColor: (opacity = 1) =>
-      isDark ? `rgba(255, 255, 250, ${0.35 + 0.45 * opacity})` : `rgba(81, 80, 82, ${opacity})`,
+      isDark
+        ? `rgba(${BrandRgb.offWhite[0]}, ${BrandRgb.offWhite[1]}, ${BrandRgb.offWhite[2]}, ${0.35 + 0.45 * opacity})`
+        : `rgba(${BrandRgb.charcoal[0]}, ${BrandRgb.charcoal[1]}, ${BrandRgb.charcoal[2]}, ${opacity})`,
     propsForDots: {
       r: '4',
       strokeWidth: '2',

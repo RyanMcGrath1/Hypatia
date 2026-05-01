@@ -171,12 +171,12 @@ export const ECONOMIC_PULSE_SERIES: EconomicPulseSeries[] = [
   {
     label: 'GDP',
     values: [100, 99, 100, 101, 102, 103],
-    color: Brand.slate,
+    color: Brand.deepNavy,
   },
   {
     label: 'Policy Rate',
     values: [100, 100, 100, 100, 100, 100],
-    color: Brand.ink,
+    color: Brand.charcoal,
   },
 ];
 

@@ -4,12 +4,12 @@ import { Brand, Colors } from '@/constants/theme/Colors';
 
 export type AppColorScheme = 'light' | 'dark';
 
-/** Pillar wayfinding — derived only from the brand hex set. */
+/** Pillar wayfinding — derived from the brand palette. */
 export function getPillarColors(colorScheme: AppColorScheme) {
   return {
-    economy: Brand.slate,
-    politician: Brand.steel,
-    news: Brand.coral,
+    economy: Brand.slateBlue,
+    politician: Brand.charcoal,
+    news: Brand.teal,
   };
 }
 
@@ -20,7 +20,7 @@ export function getSemanticColors(colorScheme: AppColorScheme) {
   const cardShadow: ViewStyle = isDark
     ? {}
     : {
-        shadowColor: Brand.ink,
+        shadowColor: Brand.charcoal,
         shadowOffset: { width: 0, height: 4 },
         shadowOpacity: Platform.OS === 'android' ? 0.06 : 0.08,
         shadowRadius: 14,
@@ -29,18 +29,16 @@ export function getSemanticColors(colorScheme: AppColorScheme) {
 
   return {
     screenBackground: theme.background,
-    cardBackground: isDark ? Brand.slate : Brand.paper,
-    /** Slide-out sidebar (web / blur fallback) — translucent fill. */
-    sidePanelBackground: isDark ? 'rgba(51, 49, 56, 0.88)' : 'rgba(255, 255, 250, 0.88)',
-    /** Tint layered on top of `BlurView` inside the sidebar (native). */
-    sidePanelBlurOverlay: isDark ? 'rgba(51, 49, 56, 0.52)' : 'rgba(255, 255, 250, 0.52)',
-    cardSubtleBackground: isDark ? Brand.ink : Brand.paper,
-    cardBorder: isDark ? Brand.steel : Brand.slate,
-    mutedText: isDark ? 'rgba(255,255,250,0.62)' : Brand.steel,
+    cardBackground: isDark ? Brand.slateBlue : Brand.offWhite,
+    sidePanelBackground: isDark ? 'rgba(11, 31, 58, 0.88)' : 'rgba(245, 247, 250, 0.88)',
+    sidePanelBlurOverlay: isDark ? 'rgba(11, 31, 58, 0.52)' : 'rgba(245, 247, 250, 0.52)',
+    cardSubtleBackground: isDark ? Brand.charcoal : Brand.offWhite,
+    cardBorder: isDark ? Brand.slateBlue : Brand.slateBlue,
+    mutedText: isDark ? 'rgba(245,247,250,0.62)' : Brand.slateBlue,
     accent: theme.tint,
-    danger: Brand.coral,
-    hairline: isDark ? Brand.steel : Brand.slate,
-    overlayScrim: isDark ? 'rgba(0, 1, 3, 0.62)' : 'rgba(0, 1, 3, 0.35)',
+    danger: Brand.teal,
+    hairline: isDark ? Brand.slateBlue : Brand.slateBlue,
+    overlayScrim: isDark ? 'rgba(11, 31, 58, 0.62)' : 'rgba(31, 41, 51, 0.35)',
     cardShadow,
   };
 }
