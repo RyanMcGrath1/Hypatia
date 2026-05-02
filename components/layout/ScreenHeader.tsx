@@ -1,8 +1,8 @@
-import { StyleSheet, View, type StyleProp, type TextStyle } from 'react-native';
+import { StyleSheet, View, type StyleProp, type TextStyle } from "react-native";
 
-import { ThemedText } from '@/components/theme/ThemedText';
-import { Spacing } from '@/constants/theme/ThemeTokens';
-import { Fonts } from '@/constants/theme/Typography';
+import { ThemedText } from "@/components/theme/ThemedText";
+import { Spacing } from "@/constants/theme/ThemeTokens";
+import { Fonts } from "@/constants/theme/Typography";
 
 type ScreenHeaderProps = {
   title: string;

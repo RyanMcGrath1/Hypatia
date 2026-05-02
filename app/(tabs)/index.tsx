@@ -127,7 +127,7 @@ export default function HomeScreen() {
     () => (
       <View style={styles.listHeader}>
         <ScreenHeader
-          title="Hypatia"
+          title="Top Headlines"
           subtitle={`${new Date().toLocaleDateString("en-US", {
             month: "long",
             day: "numeric",
