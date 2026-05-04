@@ -1,10 +1,11 @@
 # Hypatia
 
-![Hypatia logo](assets/images/hypatia-second-logo.png)
+![Hypatia logo](assets/images/hypatia-brand.png)
 
 Hypatia is an Expo + React Native app with a tab-first mobile UX for exploring civic and economic information.
 
 The app currently includes:
+
 - an **Economy Dashboard** with macro pulse chart, KPI strip, and sector drilldowns,
 - a dedicated **Economy Detail** flow with stack navigation and gesture back,
 - a searchable **Politician Profiles** experience backed by local mock data,
@@ -13,6 +14,7 @@ The app currently includes:
 ## Core features
 
 ### Economy
+
 - `app/(tabs)/economy.tsx`: high-level dashboard with:
   - top economic pulse line chart,
   - compact KPI cards,
@@ -23,6 +25,7 @@ The app currently includes:
   - swipe-back enabled through stack navigation.
 
 ### Politician
+
 - `app/(tabs)/politician.tsx` provides:
   - type-ahead name search,
   - loading/empty/result states,
@@ -33,6 +36,7 @@ The app currently includes:
 ## UX and design system direction
 
 Recent improvements introduced:
+
 - shared route constants in `constants/app/routes.ts`,
 - semantic theme tokens in `constants/theme/ThemeTokens.ts`,
 - reusable primitives in `components/ScreenHeader.tsx`, `components/SectionCard.tsx`, and `components/EmptyState.tsx`,
