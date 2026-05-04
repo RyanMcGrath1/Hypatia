@@ -1,5 +1,7 @@
 # Hypatia
 
+![Hypatia logo](assets/images/hypatia-second-logo.png)
+
 Hypatia is an Expo + React Native app with a tab-first mobile UX for exploring civic and economic information.
 
 The app currently includes:
