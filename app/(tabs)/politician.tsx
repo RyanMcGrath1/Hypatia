@@ -1,238 +1,59 @@
 import FontAwesome from "@expo/vector-icons/FontAwesome";
 import { Image } from "expo-image";
-import { useCallback, useMemo, useRef, useState } from "react";
+import { useMemo } from "react";
 import {
   ActivityIndicator,
-  Keyboard,
   KeyboardAvoidingView,
   Platform,
   Pressable,
   SafeAreaView,
   ScrollView,
-  StyleSheet,
   TextInput,
   View,
 } from "react-native";
 
 import PoliticianLineChart from "@/components/charts/PoliticianLineChart";
+import { PoliticianShowcaseCarousel } from "@/components/politician/PoliticianShowcaseCarousel";
 import { StateNoticeCard } from "@/components/surfaces/StateNoticeCard";
 import { ThemedText } from "@/components/theme/ThemedText";
 import { ThemedView } from "@/components/theme/ThemedView";
 import { Brand, Colors } from "@/constants/theme/Colors";
 import { getSemanticColors } from "@/constants/theme/ThemeTokens";
+import { usePoliticianSearch } from "@/hooks/usePoliticianSearch";
 import { useColorScheme } from "@/hooks/useColorScheme";
 import { useThemeColor } from "@/hooks/useThemeColor";
+import { MOCK_POLITICIANS } from "@/lib/politician/mockProfileSearch";
+import { POLITICIAN_QUICK_TILES } from "@/lib/politician/quickTiles";
+import { politicianScreenStyles as styles } from "@/lib/politician/screenStyles";
 
 /**
- * Politician tab — local mock profiles + search UI (no live API yet).
- *
- * Rough anatomy:
- * - **Data layer**: `PoliticianProfile` / `NewsItem` types, `MOCK_POLITICIANS`, and `findPoliticianProfile()`
- *   (fuzzy matching + scoring) simulate lookup after a short artificial delay.
- * - **Screen state**: query input, focus (for suggestions dropdown), submitted query, loading flag,
- *   selected profile, recent searches, and timers for debounced “search” + blur dismissal.
- * - **Layout**: `SafeAreaView` → `KeyboardAvoidingView` → `ScrollView`, then:
- *   hero title → **search card** (field, type-ahead suggestions, recent chips; submit via Return or suggestion tap) → status line →
- *   **conditional blocks**: empty hint → loading row → no-results + quick chips → **profile stack**
- *   (identity card, metric chips, positions, headlines, chart).
- * - **Styles**: bottom `StyleSheet` — shared primitives like `resultCard`, section-specific modifiers.
+ * Politician tab — mock profiles + search. Data and ticker live under `@/lib/politician`
+ * and `@/components/politician`; search state in `usePoliticianSearch`.
  */
-
-/** Single headline row under “Recent Headlines”. */
-type NewsItem = {
-  headline: string;
-  source: string;
-  date: string;
-};
-
-/** One searchable politician record returned by `findPoliticianProfile`. */
-type PoliticianProfile = {
-  name: string;
-  photoUrl: string;
-  party: string;
-  role: string;
-  location: string;
-  bio: string;
-  approval: number;
-  yearsInOffice: number;
-  nextElection: string;
-  keyPositions: string[];
-  recentNews: NewsItem[];
-};
-
-/** In-memory fixtures; `findPoliticianProfile` scores against these rows only. */
-const MOCK_POLITICIANS: PoliticianProfile[] = [
-  {
-    name: "Alex Harper",
-    photoUrl:
-      "https://ui-avatars.com/api/?name=Alex+Harper&background=3A5A98&color=F5F7FA",
-    party: "Independent",
-    role: "U.S. Senator",
-    location: "Colorado",
-    bio: "Former teacher focused on education investment, wildfire preparedness, and housing affordability.",
-    approval: 58,
-    yearsInOffice: 9,
-    nextElection: "Nov 2028",
-    keyPositions: [
-      "Expand federal grants for teacher retention in rural districts.",
-      "Fund drought and wildfire resilience infrastructure projects.",
-      "Support bipartisan zoning incentives for more affordable housing.",
-    ],
-    recentNews: [
-      {
-        headline: "Harper unveils bipartisan water security bill",
-        source: "National Desk",
-        date: "Apr 10, 2026",
-      },
-      {
-        headline: "Town hall highlights student loan repayment proposal",
-        source: "State Chronicle",
-        date: "Apr 04, 2026",
-      },
-    ],
-  },
-  {
-    name: "Monica Reyes",
-    photoUrl:
-      "https://ui-avatars.com/api/?name=Monica+Reyes&background=0B1F3A&color=F5F7FA",
-    party: "Democratic",
-    role: "Governor",
-    location: "New Mexico",
-    bio: "Public health attorney emphasizing healthcare access, clean energy jobs, and small business growth.",
-    approval: 62,
-    yearsInOffice: 5,
-    nextElection: "Nov 2026",
-    keyPositions: [
-      "Increase coverage access through expanded community clinics.",
-      "Create workforce pathways tied to clean manufacturing.",
-      "Reduce licensing friction for first-time small business owners.",
-    ],
-    recentNews: [
-      {
-        headline: "Reyes signs statewide behavioral health package",
-        source: "Civic Daily",
-        date: "Apr 15, 2026",
-      },
-      {
-        headline: "Administration announces clean-tech apprenticeship grants",
-        source: "Public Wire",
-        date: "Apr 01, 2026",
-      },
-    ],
-  },
-  {
-    name: "Daniel Brooks",
-    photoUrl:
-      "https://ui-avatars.com/api/?name=Daniel+Brooks&background=2A9D8F&color=F5F7FA",
-    party: "Republican",
-    role: "House Representative",
-    location: "Florida 7th District",
-    bio: "Former Marine advocating for veterans services, port logistics modernization, and flood mitigation.",
-    approval: 49,
-    yearsInOffice: 3,
-    nextElection: "Nov 2026",
-    keyPositions: [
-      "Expand local veterans health navigation programs.",
-      "Improve supply-chain throughput at regional ports.",
-      "Prioritize resilient drainage projects in coastal communities.",
-    ],
-    recentNews: [
-      {
-        headline: "Brooks secures committee hearing on veterans claims backlog",
-        source: "Capitol Report",
-        date: "Apr 11, 2026",
-      },
-      {
-        headline: "District tour focuses on stormwater infrastructure needs",
-        source: "Metro Journal",
-        date: "Mar 29, 2026",
-      },
-    ],
-  },
-];
-
-/**
- * Resolves a query to the best-matching mock profile using exact/prefix/substring/alias checks
- * plus a small Levenshtein distance threshold for typos. Returns null if nothing scores.
- */
-function findPoliticianProfile(query: string): PoliticianProfile | null {
-  const normalizedQuery = query.trim().toLowerCase();
-  if (!normalizedQuery) {
-    return null;
-  }
-
-  const distance = (left: string, right: string) => {
-    const rows = left.length + 1;
-    const cols = right.length + 1;
-    const table = Array.from({ length: rows }, (_, rowIndex) =>
-      Array.from({ length: cols }, (_, colIndex) =>
-        rowIndex === 0 ? colIndex : colIndex === 0 ? rowIndex : 0,
-      ),
-    );
-    for (let row = 1; row < rows; row += 1) {
-      for (let col = 1; col < cols; col += 1) {
-        const cost = left[row - 1] === right[col - 1] ? 0 : 1;
-        table[row][col] = Math.min(
-          table[row - 1][col] + 1,
-          table[row][col - 1] + 1,
-          table[row - 1][col - 1] + cost,
-        );
-      }
-    }
-    return table[rows - 1][cols - 1];
-  };
-
-  const ranked = MOCK_POLITICIANS.map((profile) => {
-    const name = profile.name.toLowerCase();
-    const role = profile.role.toLowerCase();
-    const location = profile.location.toLowerCase();
-    const alias = `${role} ${location}`;
-    let score = -1;
-
-    if (name === normalizedQuery) {
-      score = 100;
-    } else if (name.startsWith(normalizedQuery)) {
-      score = 80;
-    } else if (name.includes(normalizedQuery)) {
-      score = 60;
-    } else if (alias.includes(normalizedQuery)) {
-      score = 50;
-    } else if (distance(name, normalizedQuery) <= 2) {
-      score = 40;
-    }
-
-    return { profile, score };
-  }).filter((entry) => entry.score >= 0);
-
-  if (ranked.length === 0) {
-    return null;
-  }
-
-  ranked.sort((left, right) => right.score - left.score);
-  return ranked[0].profile;
-}
-
 export default function PoliticianScreen() {
-  // --- Search / results UI state (`submittedQuery` + `hasSearched` gate what appears below the search card)
-  const [input, setInput] = useState("");
-  const [isInputFocused, setIsInputFocused] = useState(false);
-  const [submittedQuery, setSubmittedQuery] = useState("");
-  const [hasSearched, setHasSearched] = useState(false);
-  const [isLoading, setIsLoading] = useState(false);
-  const [selectedProfile, setSelectedProfile] =
-    useState<PoliticianProfile | null>(null);
-  const [recentSearches, setRecentSearches] = useState<string[]>([]);
-  /** Simulates network latency for `runSearch` (~420ms). */
-  const timeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
-  /** Delays hiding suggestions after blur so row taps still register. */
-  const blurTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const {
+    input,
+    setInput,
+    isInputFocused,
+    setIsInputFocused,
+    onBlurSearchField,
+    submittedQuery,
+    hasSearched,
+    isLoading,
+    selectedProfile,
+    recentSearches,
+    runSearch,
+    submitSearch,
+    suggestions,
+    handleSelectSuggestion,
+    statusCopy,
+  } = usePoliticianSearch();
 
   const colorScheme = useColorScheme() ?? "light";
   const theme = Colors[colorScheme];
   const textColor = useThemeColor({}, "text");
   const iconColor = useThemeColor({}, "icon");
 
-  /** Semantic colors folded into a small palette object for card borders and chips. */
   const palette = useMemo(() => {
     const semantic = getSemanticColors(colorScheme);
     return {
@@ -244,83 +65,9 @@ export default function PoliticianScreen() {
     };
   }, [colorScheme]);
 
-  /** Updates history, flips loading, then picks a profile after `timeoutRef` delay. */
-  const runSearch = useCallback((rawQuery: string) => {
-    const query = rawQuery.trim();
-    if (!query) {
-      return;
-    }
-    setSubmittedQuery(query);
-    setHasSearched(true);
-    setIsLoading(true);
-    setRecentSearches((current) =>
-      [query, ...current.filter((item) => item !== query)].slice(0, 5),
-    );
-
-    if (timeoutRef.current) {
-      clearTimeout(timeoutRef.current);
-    }
-
-    timeoutRef.current = setTimeout(() => {
-      setSelectedProfile(findPoliticianProfile(query));
-      setIsLoading(false);
-    }, 420);
-  }, []);
-
-  /** Keyboard Return / “search” key — dismisses chrome then `runSearch(input)`. */
-  const submitSearch = useCallback(() => {
-    Keyboard.dismiss();
-    setIsInputFocused(false);
-    runSearch(input);
-  }, [input, runSearch]);
-
-  /** Type-ahead list: filters mock rows while typing (shown only when input is focused). */
-  const suggestions = useMemo(() => {
-    const query = input.trim().toLowerCase();
-    if (!query) {
-      return [];
-    }
-
-    return MOCK_POLITICIANS.filter((profile) =>
-      `${profile.name} ${profile.role} ${profile.location}`
-        .toLowerCase()
-        .includes(query),
-    ).slice(0, 5);
-  }, [input]);
-
-  /** Chooses a suggestion row: syncs input, dismisses keyboard, runs full search. */
-  const handleSelectSuggestion = useCallback(
-    (name: string) => {
-      if (blurTimeoutRef.current) {
-        clearTimeout(blurTimeoutRef.current);
-      }
-
-      setInput(name);
-      Keyboard.dismiss();
-      setIsInputFocused(false);
-      runSearch(name);
-    },
-    [runSearch],
-  );
-
-  /** One-line helper under the search card (idle vs loading vs hit vs miss). */
-  const statusCopy = useMemo(() => {
-    if (!hasSearched) {
-      return "Press Return to search, or pick a name from suggestions — try Monica Reyes";
-    }
-    if (isLoading) {
-      return "Building profile...";
-    }
-    if (!selectedProfile) {
-      return `No profile found for "${submittedQuery}".`;
-    }
-    return `Showing profile for ${selectedProfile.name}`;
-  }, [hasSearched, isLoading, selectedProfile, submittedQuery]);
-
   return (
     <ThemedView style={styles.screen}>
       <SafeAreaView style={styles.safe}>
-        {/* Lifts content above keyboard on iOS; ScrollView owns vertical scroll + tap-through for suggestions */}
         <KeyboardAvoidingView
           style={styles.container}
           behavior={Platform.OS === "ios" ? "padding" : undefined}
@@ -336,21 +83,17 @@ export default function PoliticianScreen() {
             <ThemedText type="title" style={styles.title}>
               Politician Profiles
             </ThemedText>
-            {/* --- Search card: field + optional suggestion sheet + recent chips (submit: Return / suggestion / recent chip) --- */}
+
             <View
               style={[
                 styles.searchCard,
-                {
-                  backgroundColor: palette.cardBackground,
-                },
+                { backgroundColor: palette.cardBackground },
               ]}
             >
               <View
                 style={[
                   styles.searchContainer,
-                  {
-                    backgroundColor: palette.sectionBackground,
-                  },
+                  { backgroundColor: palette.sectionBackground },
                 ]}
               >
                 <FontAwesome name="search" size={16} color={iconColor} />
@@ -358,12 +101,8 @@ export default function PoliticianScreen() {
                   value={input}
                   onChangeText={setInput}
                   onFocus={() => setIsInputFocused(true)}
-                  onBlur={() => {
-                    blurTimeoutRef.current = setTimeout(() => {
-                      setIsInputFocused(false);
-                    }, 120);
-                  }}
-                  placeholder="Type a politician name"
+                  onBlur={onBlurSearchField}
+                  placeholder="Search politicians"
                   placeholderTextColor={Brand.steel}
                   style={[styles.searchInput, { color: textColor }]}
                   returnKeyType="search"
@@ -462,7 +201,12 @@ export default function PoliticianScreen() {
               {statusCopy}
             </ThemedText>
 
-            {/* --- Before first search: hint card only --- */}
+            <PoliticianShowcaseCarousel
+              profiles={MOCK_POLITICIANS}
+              borderColor={palette.cardBorder}
+              tileBackground={palette.cardBackground}
+            />
+
             {!hasSearched && (
               <StateNoticeCard
                 title="Start with a politician name"
@@ -473,7 +217,6 @@ export default function PoliticianScreen() {
               />
             )}
 
-            {/* --- Mid-flight: spinner row (replaces profile stack until timeout fires) --- */}
             {isLoading && (
               <View
                 style={[
@@ -492,7 +235,6 @@ export default function PoliticianScreen() {
               </View>
             )}
 
-            {/* --- Miss: notice + “quick try” chips for every mock name --- */}
             {hasSearched && !isLoading && !selectedProfile && (
               <View>
                 <StateNoticeCard
@@ -528,10 +270,8 @@ export default function PoliticianScreen() {
               </View>
             )}
 
-            {/* --- Hit: stacked sections inside `profileWrap` --- */}
             {selectedProfile && !isLoading && (
               <View style={styles.profileWrap}>
-                {/* Identity + bio */}
                 <View
                   style={[
                     styles.resultCard,
@@ -569,7 +309,6 @@ export default function PoliticianScreen() {
                   </ThemedText>
                 </View>
 
-                {/* Three metric tiles (approval / tenure / next election) */}
                 <View style={styles.metricsRow}>
                   <View
                     style={[
@@ -630,7 +369,6 @@ export default function PoliticianScreen() {
                   </View>
                 </View>
 
-                {/* Bulleted policy list */}
                 <View
                   style={[
                     styles.resultCard,
@@ -657,7 +395,6 @@ export default function PoliticianScreen() {
                   ))}
                 </View>
 
-                {/* Mock news feed rows */}
                 <View
                   style={[
                     styles.resultCard,
@@ -688,7 +425,6 @@ export default function PoliticianScreen() {
                   ))}
                 </View>
 
-                {/* Static sparkline chart component */}
                 <View
                   style={[
                     styles.resultCard,
@@ -706,210 +442,64 @@ export default function PoliticianScreen() {
                 </View>
               </View>
             )}
+
+            <View
+              style={[
+                styles.tileSection,
+                { borderTopColor: palette.cardBorder },
+              ]}
+            >
+              <ThemedText
+                type="defaultSemiBold"
+                style={styles.tileSectionTitle}
+              >
+                Quick links
+              </ThemedText>
+              <View style={styles.tileGrid}>
+                {[0, 2].map((rowStart) => (
+                  <View key={rowStart} style={styles.tileRow}>
+                    {POLITICIAN_QUICK_TILES.slice(rowStart, rowStart + 2).map(
+                      (tile) => (
+                        <Pressable
+                          key={tile.title}
+                          accessibilityRole="button"
+                          accessibilityLabel={`${tile.title}: ${tile.subtitle}`}
+                          style={({ pressed }) => [
+                            styles.tileCell,
+                            {
+                              backgroundColor: palette.cardBackground,
+                              borderColor: palette.cardBorder,
+                              opacity: pressed ? 0.88 : 1,
+                            },
+                          ]}
+                        >
+                          <FontAwesome
+                            name={tile.icon}
+                            size={20}
+                            color={theme.tint}
+                          />
+                          <ThemedText
+                            type="defaultSemiBold"
+                            style={styles.tileTitle}
+                          >
+                            {tile.title}
+                          </ThemedText>
+                          <ThemedText
+                            style={[styles.tileSubtitle, { color: theme.icon }]}
+                            numberOfLines={2}
+                          >
+                            {tile.subtitle}
+                          </ThemedText>
+                        </Pressable>
+                      ),
+                    )}
+                  </View>
+                ))}
+              </View>
+            </View>
           </ScrollView>
         </KeyboardAvoidingView>
       </SafeAreaView>
     </ThemedView>
   );
 }
-
-/** Layout tokens: `resultCard` is the shared bordered panel; modifiers add gaps/padding per section. */
-const styles = StyleSheet.create({
-  screen: {
-    flex: 1,
-  },
-  safe: {
-    flex: 1,
-  },
-  container: {
-    flex: 1,
-  },
-  scrollContent: {
-    flexGrow: 1,
-    paddingHorizontal: 16,
-    paddingTop: 12,
-    paddingBottom: 112,
-  },
-  title: {
-    marginBottom: 6,
-  },
-  subtitle: {
-    marginBottom: 16,
-    lineHeight: 20,
-  },
-  searchCard: {
-    width: "100%",
-    borderRadius: 14,
-    padding: 12,
-    marginBottom: 10,
-    gap: 10,
-  },
-  searchContainer: {
-    flexDirection: "row",
-    alignItems: "center",
-    gap: 10,
-    borderRadius: 12,
-    paddingHorizontal: 12,
-    paddingVertical: 10,
-  },
-  searchInput: {
-    flex: 1,
-    fontSize: 16,
-  },
-  clearButton: {
-    minWidth: 28,
-    minHeight: 28,
-    alignItems: "center",
-    justifyContent: "center",
-  },
-  suggestionsList: {
-    borderWidth: 1,
-    borderRadius: 10,
-    overflow: "hidden",
-  },
-  suggestionItem: {
-    paddingHorizontal: 12,
-    minHeight: 44,
-    justifyContent: "center",
-    paddingVertical: 10,
-    borderBottomWidth: StyleSheet.hairlineWidth,
-    borderBottomColor: Brand.steel,
-  },
-  suggestionMeta: {
-    fontSize: 12,
-    marginTop: 2,
-  },
-  helperText: {
-    marginBottom: 10,
-  },
-  recentWrap: {
-    gap: 6,
-  },
-  recentLabel: {
-    fontSize: 12,
-    fontWeight: "600",
-  },
-  recentChips: {
-    flexDirection: "row",
-    flexWrap: "wrap",
-    gap: 8,
-  },
-  recentChip: {
-    minHeight: 34,
-    borderWidth: 1,
-    borderRadius: 999,
-    paddingHorizontal: 10,
-    justifyContent: "center",
-  },
-  recentChipText: {
-    fontSize: 12,
-  },
-  resultCard: {
-    borderWidth: 1,
-    borderRadius: 14,
-    padding: 12,
-    marginBottom: 10,
-  },
-  quickTryWrap: {
-    flexDirection: "row",
-    flexWrap: "wrap",
-    gap: 8,
-    marginTop: 10,
-  },
-  quickTryChip: {
-    minHeight: 34,
-    borderWidth: 1,
-    borderRadius: 999,
-    justifyContent: "center",
-    paddingHorizontal: 10,
-  },
-  quickTryText: {
-    fontSize: 12,
-    fontWeight: "600",
-  },
-  loadingWrap: {
-    minHeight: 100,
-    alignItems: "center",
-    justifyContent: "center",
-    gap: 10,
-  },
-  profileWrap: {
-    gap: 12,
-  },
-  profileCard: {
-    gap: 5,
-  },
-  profileHeader: {
-    flexDirection: "row",
-    alignItems: "center",
-    gap: 10,
-  },
-  profileHeaderText: {
-    flex: 1,
-  },
-  profileImage: {
-    width: 48,
-    height: 48,
-    borderRadius: 24,
-    borderWidth: 1,
-    borderColor: Brand.slate,
-  },
-  roleLine: {
-    fontSize: 14,
-  },
-  locationLine: {
-    fontSize: 14,
-    marginBottom: 4,
-  },
-  bioText: {
-    lineHeight: 20,
-  },
-  metricsRow: {
-    flexDirection: "row",
-    gap: 8,
-  },
-  metricChip: {
-    flex: 1,
-    borderRadius: 10,
-    paddingVertical: 12,
-    paddingHorizontal: 8,
-    alignItems: "center",
-    gap: 4,
-  },
-  metricLabel: {
-    fontSize: 12,
-  },
-  sectionCard: {
-    gap: 10,
-  },
-  bulletRow: {
-    flexDirection: "row",
-    gap: 10,
-    alignItems: "flex-start",
-  },
-  bulletDot: {
-    width: 7,
-    height: 7,
-    borderRadius: 999,
-    marginTop: 7,
-  },
-  bulletText: {
-    flex: 1,
-    lineHeight: 20,
-  },
-  newsRow: {
-    borderTopWidth: StyleSheet.hairlineWidth,
-    borderTopColor: Brand.steel,
-    paddingTop: 10,
-    gap: 3,
-  },
-  newsHeadline: {
-    lineHeight: 20,
-  },
-  newsMeta: {
-    fontSize: 12,
-  },
-  chartTitle: {
-    marginBottom: 4,
-  },
-});
