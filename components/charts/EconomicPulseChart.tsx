@@ -1,25 +1,38 @@
-import { useEffect, useRef, useState } from 'react';
-import { Animated, Pressable, StyleSheet, Text, useWindowDimensions, View } from 'react-native';
-import Svg, { Circle, Defs, LinearGradient, Stop } from 'react-native-svg';
+import { useEffect, useRef, useState } from "react";
+import {
+  Animated,
+  Pressable,
+  StyleSheet,
+  Text,
+  useWindowDimensions,
+  View,
+} from "react-native";
+import Svg, { Circle, Defs, LinearGradient, Stop } from "react-native-svg";
 
-import { BrandRgb, Colors } from '@/constants/theme/Colors';
-import { Radius, Spacing, getSemanticColors } from '@/constants/theme/ThemeTokens';
-import { useColorScheme } from '@/hooks/useColorScheme';
+import { BrandRgb, Colors } from "@/constants/theme/Colors";
+import {
+  getSemanticColors,
+  Radius,
+  Spacing,
+} from "@/constants/theme/ThemeTokens";
+import { useColorScheme } from "@/hooks/useColorScheme";
 
 const DEFAULT_TREND = [50, 55, 60, 62, 65, 68] as const;
 
 const BREAKDOWN = [
-  { label: 'Growth', value: 80 },
-  { label: 'Labor', value: 60 },
-  { label: 'Inflation', value: 70 },
-  { label: 'Fiscal', value: 30 },
-  { label: 'Inequality', value: 40 },
-  { label: 'Investment', value: 65 },
+  { label: "Growth", value: 80 },
+  { label: "Labor", value: 60 },
+  { label: "Inflation", value: 70 },
+  { label: "Fiscal", value: 30 },
+  { label: "Inequality", value: 40 },
+  { label: "Investment", value: 65 },
 ] as const;
 
 type BreakdownItem = (typeof BREAKDOWN)[number];
 
 type EconomicPulseChartProps = {
+  title?: string;
+  subtitle?: string;
   score?: number;
   change?: number;
   trend?: number[];
@@ -27,9 +40,9 @@ type EconomicPulseChartProps = {
 };
 
 /** Traffic-light only; everything else uses Hypatia tokens. */
-const SCORE_BAD = '#ef4444';
-const SCORE_MID = '#f59e0b';
-const SCORE_GOOD = '#10b981';
+const SCORE_BAD = "#ef4444";
+const SCORE_MID = "#f59e0b";
+const SCORE_GOOD = "#10b981";
 
 const STROKE_WIDTH = 34;
 const MAX_GAUGE_PX = 280;
@@ -37,7 +50,7 @@ const GAUGE_WIDTH_FRAC = 0.6;
 const SPARKLINE_HEIGHT = 40;
 const GAUGE_ANIMATION_MS = 900;
 const ROW_STAGGER_MS = 70;
-const SPARK_TICKS = ['N', 'D', 'J', 'F', 'M', 'A'] as const;
+const SPARK_TICKS = ["N", "D", "J", "F", "M", "A"] as const;
 
 const AnimatedCircle = Animated.createAnimatedComponent(Circle);
 
@@ -52,33 +65,35 @@ function rgba(rgb: readonly [number, number, number], alpha: number) {
 }
 
 function scoreStatus(score: number) {
-  if (score < 40) return 'At Risk';
-  if (score < 70) return 'Mixed';
-  return 'Healthy';
+  if (score < 40) return "At Risk";
+  if (score < 70) return "Mixed";
+  return "Healthy";
 }
 
-function trendDirection(value: number): 'up' | 'flat' | 'down' {
-  if (value >= 70) return 'up';
-  if (value <= 45) return 'down';
-  return 'flat';
+function trendDirection(value: number): "up" | "flat" | "down" {
+  if (value >= 70) return "up";
+  if (value <= 45) return "down";
+  return "flat";
 }
 
-function trendGlyph(direction: 'up' | 'flat' | 'down') {
-  if (direction === 'up') return '↗';
-  if (direction === 'down') return '↘';
-  return '→';
+function trendGlyph(direction: "up" | "flat" | "down") {
+  if (direction === "up") return "↗";
+  if (direction === "down") return "↘";
+  return "→";
 }
 
 export default function EconomicPulseChart({
+  title = "United States 🇺🇸",
+  subtitle = "330 million",
   score = 68,
   change = 2.4,
   trend = [...DEFAULT_TREND],
   onBreakdownPress,
 }: EconomicPulseChartProps) {
-  const colorScheme = useColorScheme() ?? 'light';
+  const colorScheme = useColorScheme() ?? "light";
   const theme = Colors[colorScheme];
   const semantic = getSemanticColors(colorScheme);
-  const isDark = colorScheme === 'dark';
+  const isDark = colorScheme === "dark";
   const { width: windowWidth } = useWindowDimensions();
 
   const size = Math.min(windowWidth * GAUGE_WIDTH_FRAC, MAX_GAUGE_PX);
@@ -88,10 +103,18 @@ export default function EconomicPulseChart({
   const accent = scoreIndicatorColor(score);
 
   // Keep non-state UI on a single neutral tone family.
-  const neutralLine = isDark ? rgba(BrandRgb.offWhite, 0.22) : rgba(BrandRgb.charcoal, 0.22);
-  const neutralLineStrong = isDark ? rgba(BrandRgb.offWhite, 0.3) : rgba(BrandRgb.charcoal, 0.3);
-  const neutralFill = isDark ? rgba(BrandRgb.offWhite, 0.08) : rgba(BrandRgb.charcoal, 0.06);
-  const neutralFillPressed = isDark ? rgba(BrandRgb.offWhite, 0.14) : rgba(BrandRgb.charcoal, 0.11);
+  const neutralLine = isDark
+    ? rgba(BrandRgb.offWhite, 0.22)
+    : rgba(BrandRgb.charcoal, 0.22);
+  const neutralLineStrong = isDark
+    ? rgba(BrandRgb.offWhite, 0.3)
+    : rgba(BrandRgb.charcoal, 0.3);
+  const neutralFill = isDark
+    ? rgba(BrandRgb.offWhite, 0.08)
+    : rgba(BrandRgb.charcoal, 0.06);
+  const neutralFillPressed = isDark
+    ? rgba(BrandRgb.offWhite, 0.14)
+    : rgba(BrandRgb.charcoal, 0.11);
 
   const gaugeTrackStroke = neutralLine;
   const barTrackBg = neutralFill;
@@ -140,18 +163,41 @@ export default function EconomicPulseChart({
       rowsAnimation.stop();
       animatedScoreValue.removeListener(sub);
     };
-  }, [animatedDashOffset, animatedScoreValue, circumference, rowAnims, score, targetDashOffset]);
+  }, [
+    animatedDashOffset,
+    animatedScoreValue,
+    circumference,
+    rowAnims,
+    score,
+    targetDashOffset,
+  ]);
 
   return (
     <View
       style={[
         styles.card,
-        { backgroundColor: semantic.cardBackground, borderColor: semantic.cardBorder },
-      ]}>
+        {
+          backgroundColor: semantic.cardBackground,
+          borderColor: semantic.cardBorder,
+        },
+      ]}
+    >
+      <Text style={[styles.chartTitle, { color: theme.text }]}>{title}</Text>
+      {subtitle ? (
+        <Text style={[styles.chartSubtitle, { color: semantic.mutedText }]}>
+          {subtitle}
+        </Text>
+      ) : null}
       <View style={styles.gaugeContainer}>
         <Svg width={size} height={size}>
           <Defs>
-            <LinearGradient id="gaugeProgressGradient" x1="0%" y1="100%" x2="100%" y2="0%">
+            <LinearGradient
+              id="gaugeProgressGradient"
+              x1="0%"
+              y1="100%"
+              x2="100%"
+              y2="0%"
+            >
               <Stop offset="0%" stopColor={SCORE_BAD} />
               <Stop offset="100%" stopColor={SCORE_MID} />
             </LinearGradient>
@@ -182,10 +228,19 @@ export default function EconomicPulseChart({
         </Svg>
 
         <View style={styles.scoreContainer}>
-          <Text style={[styles.score, { color: theme.text }]}>{displayScore}</Text>
-          <Text style={[styles.status, { color: semantic.mutedText }]}>{scoreStatus(score)}</Text>
-          <Text style={[styles.change, { color: change >= 0 ? SCORE_GOOD : SCORE_BAD }]}>
-            {change >= 0 ? '▲' : '▼'} {Math.abs(change)}
+          <Text style={[styles.score, { color: theme.text }]}>
+            {displayScore}
+          </Text>
+          <Text style={[styles.status, { color: semantic.mutedText }]}>
+            {scoreStatus(score)}
+          </Text>
+          <Text
+            style={[
+              styles.change,
+              { color: change >= 0 ? SCORE_GOOD : SCORE_BAD },
+            ]}
+          >
+            {change >= 0 ? "▲" : "▼"} {Math.abs(change)}
           </Text>
         </View>
       </View>
@@ -196,30 +251,46 @@ export default function EconomicPulseChart({
             key={`${i}-${val}`}
             style={[
               styles.sparkBar,
-              { height: (val / 100) * SPARKLINE_HEIGHT, backgroundColor: accent },
+              {
+                height: (val / 100) * SPARKLINE_HEIGHT,
+                backgroundColor: accent,
+              },
             ]}
           />
         ))}
       </View>
       <View style={styles.sparklineTicksWrap}>
-        <View style={[styles.sparklineBaseline, { backgroundColor: neutralLine }]} />
+        <View
+          style={[styles.sparklineBaseline, { backgroundColor: neutralLine }]}
+        />
         <View style={styles.sparkDotsRow}>
           {SPARK_TICKS.map((tick, idx) => (
             <View key={tick} style={styles.sparkTickItem}>
               <View
                 style={[
                   styles.sparkDot,
-                  { backgroundColor: idx === SPARK_TICKS.length - 1 ? accent : neutralLineStrong },
+                  {
+                    backgroundColor:
+                      idx === SPARK_TICKS.length - 1
+                        ? accent
+                        : neutralLineStrong,
+                  },
                 ]}
               />
-              <Text style={[styles.sparkTickLabel, { color: semantic.mutedText }]}>{tick}</Text>
+              <Text
+                style={[styles.sparkTickLabel, { color: semantic.mutedText }]}
+              >
+                {tick}
+              </Text>
             </View>
           ))}
         </View>
       </View>
 
       <View style={[styles.sectionDivider, { backgroundColor: neutralLine }]} />
-      <Text style={[styles.sectionTitle, { color: semantic.mutedText }]}>Drivers</Text>
+      <Text style={[styles.sectionTitle, { color: semantic.mutedText }]}>
+        Drivers
+      </Text>
 
       <View style={styles.breakdown}>
         {BREAKDOWN.map((item, index) => (
@@ -235,7 +306,8 @@ export default function EconomicPulseChart({
                   }),
                 },
               ],
-            }}>
+            }}
+          >
             <Pressable
               accessibilityRole="button"
               accessibilityLabel={`${item.label}, ${item.value} out of 100`}
@@ -247,19 +319,22 @@ export default function EconomicPulseChart({
                   borderColor: neutralLine,
                 },
                 {
-                  backgroundColor: pressed
-                    ? neutralFillPressed
-                    : 'transparent',
+                  backgroundColor: pressed ? neutralFillPressed : "transparent",
                   transform: [{ scale: pressed ? 0.98 : 1 }],
                 },
-              ]}>
+              ]}
+            >
               <View style={styles.labelWrap}>
-                <Text style={[styles.label, { color: semantic.mutedText }]}>{item.label}</Text>
+                <Text style={[styles.label, { color: semantic.mutedText }]}>
+                  {item.label}
+                </Text>
                 <Text style={[styles.trendIcon, { color: semantic.mutedText }]}>
                   {trendGlyph(trendDirection(item.value))}
                 </Text>
               </View>
-              <View style={[styles.barBackground, { backgroundColor: barTrackBg }]}>
+              <View
+                style={[styles.barBackground, { backgroundColor: barTrackBg }]}
+              >
                 <View
                   style={[
                     styles.barFill,
@@ -270,7 +345,9 @@ export default function EconomicPulseChart({
                   ]}
                 />
               </View>
-              <Text style={[styles.value, { color: theme.text }]}>{item.value}</Text>
+              <Text style={[styles.value, { color: theme.text }]}>
+                {item.value}
+              </Text>
             </Pressable>
           </Animated.View>
         ))}
@@ -281,10 +358,10 @@ export default function EconomicPulseChart({
 
 const styles = StyleSheet.create({
   card: {
-    width: '100%',
+    width: "100%",
     maxWidth: 560,
-    alignSelf: 'center',
-    alignItems: 'center',
+    alignSelf: "center",
+    alignItems: "center",
     paddingHorizontal: Spacing.lg,
     paddingTop: Spacing.xl + 4,
     paddingBottom: Spacing.xl + 2,
@@ -292,17 +369,31 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderRadius: Radius.sm,
   },
+  chartTitle: {
+    alignSelf: "flex-start",
+    width: "100%",
+    fontSize: 18,
+    fontWeight: "600",
+    letterSpacing: -0.2,
+    marginBottom: 2,
+  },
+  chartSubtitle: {
+    alignSelf: "flex-start",
+    width: "100%",
+    fontSize: 13,
+    marginBottom: Spacing.sm,
+  },
   gaugeContainer: {
-    justifyContent: 'center',
-    alignItems: 'center',
+    justifyContent: "center",
+    alignItems: "center",
   },
   scoreContainer: {
-    position: 'absolute',
-    alignItems: 'center',
+    position: "absolute",
+    alignItems: "center",
   },
   score: {
     fontSize: 42,
-    fontWeight: 'bold',
+    fontWeight: "bold",
   },
   status: {
     fontSize: 12,
@@ -313,10 +404,10 @@ const styles = StyleSheet.create({
     marginTop: Spacing.xs,
   },
   sparklineContainer: {
-    flexDirection: 'row',
+    flexDirection: "row",
     marginTop: Spacing.lg,
     height: SPARKLINE_HEIGHT,
-    alignItems: 'flex-end',
+    alignItems: "flex-end",
   },
   sparkBar: {
     width: 6,
@@ -324,9 +415,9 @@ const styles = StyleSheet.create({
     borderRadius: 2,
   },
   sparklineTicksWrap: {
-    width: '100%',
+    width: "100%",
     marginTop: Spacing.sm,
-    alignItems: 'center',
+    alignItems: "center",
   },
   sparklineBaseline: {
     width: 170,
@@ -335,11 +426,11 @@ const styles = StyleSheet.create({
   sparkDotsRow: {
     width: 170,
     marginTop: 6,
-    flexDirection: 'row',
-    justifyContent: 'space-between',
+    flexDirection: "row",
+    justifyContent: "space-between",
   },
   sparkTickItem: {
-    alignItems: 'center',
+    alignItems: "center",
     width: 20,
   },
   sparkDot: {
@@ -352,24 +443,24 @@ const styles = StyleSheet.create({
     fontSize: 10,
   },
   sectionDivider: {
-    width: '100%',
+    width: "100%",
     height: StyleSheet.hairlineWidth,
     marginTop: Spacing.md,
   },
   sectionTitle: {
-    alignSelf: 'flex-start',
+    alignSelf: "flex-start",
     marginTop: Spacing.sm,
     fontSize: 12,
-    fontWeight: '600',
+    fontWeight: "600",
     letterSpacing: 0.2,
   },
   breakdown: {
-    width: '100%',
+    width: "100%",
     marginTop: Spacing.sm,
   },
   barRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
+    flexDirection: "row",
+    alignItems: "center",
     marginBottom: Spacing.xs + 2,
     paddingVertical: Spacing.xs + 2,
     paddingHorizontal: Spacing.sm,
@@ -382,9 +473,9 @@ const styles = StyleSheet.create({
   },
   labelWrap: {
     width: 92,
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
   },
   barBackground: {
     flex: 1,
@@ -398,13 +489,13 @@ const styles = StyleSheet.create({
   },
   trendIcon: {
     width: 14,
-    textAlign: 'center',
+    textAlign: "center",
     fontSize: 12,
     marginLeft: 4,
   },
   value: {
     width: 34,
-    textAlign: 'right',
+    textAlign: "right",
     fontSize: 13,
   },
 });

@@ -7,7 +7,7 @@
  *   (the same machine Expo connects to for Metro). We read that from the Expo manifest.
  * - **Android emulator**: Google routes host loopback through special alias `10.0.2.2` (maps to the host OS).
  *
- * Call sites typically combine `getDevApiBaseUrlForPort(5000)` / `(5001)` with env overrides
+ * Call sites typically use `getDevApiBaseUrlForPort(5001)` for hypatia-backend (main + news) with env overrides
  * (`EXPO_PUBLIC_*_BASE_URL`) in `flaskMainApi.ts` and `newsApi.ts`.
  */
 import Constants from "expo-constants";

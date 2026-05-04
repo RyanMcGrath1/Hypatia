@@ -1,15 +1,15 @@
 import { Platform, type ViewStyle } from 'react-native';
 
-import { Brand, Colors } from '@/constants/theme/Colors';
+import { Brand, BrandRgb, Colors } from '@/constants/theme/Colors';
 
 export type AppColorScheme = 'light' | 'dark';
 
 /** Pillar wayfinding — derived from the brand palette. */
-export function getPillarColors(colorScheme: AppColorScheme) {
+export function getPillarColors(_colorScheme: AppColorScheme) {
   return {
-    economy: Brand.slateBlue,
-    politician: Brand.charcoal,
-    news: Brand.teal,
+    economy: Brand.slateGrey,
+    politician: Brand.ink,
+    news: Brand.springGreen,
   };
 }
 
@@ -20,7 +20,7 @@ export function getSemanticColors(colorScheme: AppColorScheme) {
   const cardShadow: ViewStyle = isDark
     ? {}
     : {
-        shadowColor: Brand.charcoal,
+        shadowColor: Brand.ink,
         shadowOffset: { width: 0, height: 4 },
         shadowOpacity: Platform.OS === 'android' ? 0.06 : 0.08,
         shadowRadius: 14,
@@ -29,16 +29,24 @@ export function getSemanticColors(colorScheme: AppColorScheme) {
 
   return {
     screenBackground: theme.background,
-    cardBackground: isDark ? Brand.slateBlue : Brand.offWhite,
-    sidePanelBackground: isDark ? 'rgba(11, 31, 58, 0.88)' : 'rgba(245, 247, 250, 0.88)',
-    sidePanelBlurOverlay: isDark ? 'rgba(11, 31, 58, 0.52)' : 'rgba(245, 247, 250, 0.52)',
-    cardSubtleBackground: isDark ? Brand.charcoal : Brand.offWhite,
-    cardBorder: isDark ? Brand.slateBlue : Brand.slateBlue,
-    mutedText: isDark ? 'rgba(245,247,250,0.62)' : Brand.slateBlue,
+    cardBackground: isDark ? Brand.darkSlateGrey : Brand.lavender,
+    sidePanelBackground: isDark
+      ? `rgba(${BrandRgb.onyx[0]}, ${BrandRgb.onyx[1]}, ${BrandRgb.onyx[2]}, 0.88)`
+      : `rgba(${BrandRgb.lavender[0]}, ${BrandRgb.lavender[1]}, ${BrandRgb.lavender[2]}, 0.88)`,
+    sidePanelBlurOverlay: isDark
+      ? `rgba(${BrandRgb.onyx[0]}, ${BrandRgb.onyx[1]}, ${BrandRgb.onyx[2]}, 0.52)`
+      : `rgba(${BrandRgb.lavender[0]}, ${BrandRgb.lavender[1]}, ${BrandRgb.lavender[2]}, 0.52)`,
+    cardSubtleBackground: isDark ? Brand.slateGrey : Brand.lavender,
+    cardBorder: Brand.slateGrey,
+    mutedText: isDark
+      ? `rgba(${BrandRgb.lavender[0]}, ${BrandRgb.lavender[1]}, ${BrandRgb.lavender[2]}, 0.62)`
+      : Brand.slateGrey,
     accent: theme.tint,
-    danger: Brand.teal,
-    hairline: isDark ? Brand.slateBlue : Brand.slateBlue,
-    overlayScrim: isDark ? 'rgba(11, 31, 58, 0.62)' : 'rgba(31, 41, 51, 0.35)',
+    danger: Brand.springGreen,
+    hairline: Brand.slateGrey,
+    overlayScrim: isDark
+      ? `rgba(${BrandRgb.onyx[0]}, ${BrandRgb.onyx[1]}, ${BrandRgb.onyx[2]}, 0.62)`
+      : `rgba(${BrandRgb.onyx[0]}, ${BrandRgb.onyx[1]}, ${BrandRgb.onyx[2]}, 0.35)`,
     cardShadow,
   };
 }

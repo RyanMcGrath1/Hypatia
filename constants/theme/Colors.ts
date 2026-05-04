@@ -1,48 +1,63 @@
 /**
- * Hypatia palette — deep navy, slate blue, off-white, charcoal, teal.
- * Aliases (`paper`, `coral`, …) keep older call sites working.
+ * Hypatia palette — Onyx, Dark Slate Grey, Slate Grey, Lavender, Spring Green.
+ * Legacy keys (`deepNavy`, `slateBlue`, …) keep existing imports working.
  */
-export const Brand = {
-  deepNavy: '#0B1F3A',
-  slateBlue: '#3A5A98',
-  offWhite: '#F5F7FA',
-  charcoal: '#1F2933',
-  teal: '#2A9D8F',
+export const Palette = {
+  onyx: "#00120b",
+  darkSlateGrey: "#35605a",
+  slateGrey: "#6b818c",
+  lavender: "#d8e4ff",
+  springGreen: "#31e981",
+} as const;
 
-  paper: '#F5F7FA',
-  steel: '#3A5A98',
-  ink: '#1F2933',
-  slate: '#3A5A98',
-  coral: '#2A9D8F',
+export const Brand = {
+  ...Palette,
+  deepNavy: Palette.onyx,
+  slateBlue: Palette.slateGrey,
+  offWhite: Palette.lavender,
+  /** Legacy — secondary dark (charts); primary text uses `ink` / `onyx`. */
+  charcoal: Palette.darkSlateGrey,
+  teal: Palette.springGreen,
+  paper: Palette.lavender,
+  steel: Palette.slateGrey,
+  ink: Palette.onyx,
+  slate: Palette.darkSlateGrey,
+  coral: Palette.springGreen,
 } as const;
 
 /** RGB tuples for chart kit / overlays that need `rgba(...)`. */
 export const BrandRgb = {
-  offWhite: [245, 247, 250] as const,
-  teal: [42, 157, 143] as const,
-  charcoal: [31, 41, 51] as const,
-  slateBlue: [58, 90, 152] as const,
-  deepNavy: [11, 31, 58] as const,
+  onyx: [0, 18, 11] as const,
+  darkSlateGrey: [53, 96, 90] as const,
+  slateGrey: [107, 129, 140] as const,
+  lavender: [216, 228, 255] as const,
+  springGreen: [49, 233, 129] as const,
+  /** Legacy — same channels as palette names above */
+  offWhite: [216, 228, 255] as const,
+  teal: [49, 233, 129] as const,
+  charcoal: [0, 18, 11] as const,
+  slateBlue: [107, 129, 140] as const,
+  deepNavy: [0, 18, 11] as const,
 } as const;
 
-const tintLight = Brand.teal;
-const tintDark = Brand.teal;
+const tintLight = Brand.springGreen;
+const tintDark = Brand.springGreen;
 
 export const Colors = {
   light: {
-    text: Brand.charcoal,
-    background: Brand.offWhite,
+    text: Brand.ink,
+    background: Brand.lavender,
     tint: tintLight,
-    icon: Brand.slateBlue,
-    tabIconDefault: Brand.slateBlue,
+    icon: Brand.steel,
+    tabIconDefault: Brand.steel,
     tabIconSelected: tintLight,
   },
   dark: {
-    text: Brand.offWhite,
-    background: Brand.deepNavy,
+    text: Brand.lavender,
+    background: Brand.onyx,
     tint: tintDark,
-    icon: 'rgba(245,247,250,0.55)',
-    tabIconDefault: 'rgba(245,247,250,0.45)',
+    icon: "rgba(216,228,255,0.55)",
+    tabIconDefault: "rgba(216,228,255,0.45)",
     tabIconSelected: tintDark,
   },
 };

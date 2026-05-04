@@ -1,5 +1,5 @@
 /**
- * Main Flask service (default port 5000): `/hello`, civic APIs, and sample `/hello` hook.
+ * Main Flask service (hypatia-backend, default port 5001): `/hello`, civic APIs, and sample `/hello` hook.
  */
 import { useEffect, useState } from 'react';
 import { Platform } from 'react-native';
@@ -19,14 +19,14 @@ export function getFlaskApiBaseUrl(): string {
   if (fromEnv) {
     return fromEnv.replace(/\/$/, '');
   }
-  return getDevApiBaseUrlForPort(5000);
+  return getDevApiBaseUrlForPort(5001);
 }
 
 export function getFlaskHelloNetworkErrorMessage(): string {
   if (Platform.OS === 'web') {
     return 'Unable to reach Flask (enable CORS on the server for Expo web — see scripts/flask_cors_local.py)';
   }
-  return `Unable to reach Flask at ${getFlaskApiBaseUrl()}. On a real device, the app uses your dev machine's LAN IP (same as Metro). Run Flask bound to all interfaces, e.g. flask run --host=0.0.0.0 --port=5000, or set EXPO_PUBLIC_API_BASE_URL.`;
+  return `Unable to reach Flask at ${getFlaskApiBaseUrl()}. On a real device, the app uses your dev machine's LAN IP (same as Metro). Run Flask bound to all interfaces, e.g. flask run --host=0.0.0.0 --port=5001, or set EXPO_PUBLIC_API_BASE_URL.`;
 }
 
 async function fetchFlaskGet(
@@ -37,12 +37,12 @@ async function fetchFlaskGet(
   return fetchApiGet(getFlaskApiBaseUrl(), path, searchParams, signal);
 }
 
-/** `GET {base}/hello` — same contract as `curl http://127.0.0.1:5000/hello` when using default base on web/simulator. */
+/** `GET {base}/hello` — same contract as `curl http://127.0.0.1:5001/hello` when using default base on web/simulator. */
 export async function fetchFlaskHello(signal?: AbortSignal): Promise<unknown> {
   return fetchFlaskGet('/hello', undefined, signal);
 }
 
-/** Sample address matching `curl "http://127.0.0.1:5000/api/civic/representatives?address=1600%20Pennsylvania%20..."`. */
+/** Sample address matching `curl "http://127.0.0.1:5001/api/civic/representatives?address=1600%20Pennsylvania%20..."`. */
 export const DEFAULT_CIVIC_SAMPLE_ADDRESS =
   '1600 Pennsylvania Avenue NW Washington DC';
 
@@ -71,6 +71,16 @@ export async function fetchCivicDivisionsByAddress(
     { address: address.trim() },
     signal,
   );
+}
+
+/**
+ * `GET {base}/api/economy/overview` — US economic dashboard snapshot.
+ * Response shape is defined by your backend; map fields into UI when ready.
+ */
+export async function fetchEconomyOverview(
+  signal?: AbortSignal,
+): Promise<unknown> {
+  return fetchFlaskGet('/api/economy/overview', undefined, signal);
 }
 
 export function useFlaskHelloSearch(query: string): UseFlaskHelloSearchResult {

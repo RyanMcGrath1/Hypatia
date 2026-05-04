@@ -1,6 +1,6 @@
 import Feather from "@expo/vector-icons/Feather";
 import { useRouter } from "expo-router";
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import {
   Pressable,
   ScrollView,
@@ -31,6 +31,10 @@ import {
   Spacing,
   getSemanticColors,
 } from "@/constants/theme/ThemeTokens";
+import {
+  fetchEconomyOverview,
+  getFlaskHelloNetworkErrorMessage,
+} from "@/hooks/api/flaskMainApi";
 import { useColorScheme } from "@/hooks/useColorScheme";
 
 type TimeWindow = "1M" | "3M" | "6M" | "1Y";
@@ -132,8 +136,12 @@ export default function EconomyDashboardScreen() {
   // Router + view state
   const router = useRouter();
   const { width } = useWindowDimensions();
-  const [isLoading] = useState(false);
-  const [error] = useState<string | null>(null);
+  const [economyOverview, setEconomyOverview] = useState<unknown | null>(null);
+  const [isEconomyOverviewLoading, setIsEconomyOverviewLoading] =
+    useState(true);
+  const [economyOverviewError, setEconomyOverviewError] = useState<
+    string | null
+  >(null);
   const [timeWindow, setTimeWindow] = useState<TimeWindow>("6M");
   const [sortBy, setSortBy] = useState<SectorSort>("trend");
 
@@ -152,6 +160,46 @@ export default function EconomyDashboardScreen() {
     }
     return (available - gridGap) / 2;
   }, [width]);
+
+  useEffect(() => {
+    const controller = new AbortController();
+    let cancelled = false;
+
+    (async () => {
+      try {
+        setIsEconomyOverviewLoading(true);
+        setEconomyOverviewError(null);
+
+        const data = await fetchEconomyOverview(controller.signal);
+        if (!cancelled) {
+          setEconomyOverview(data);
+        }
+      } catch (err) {
+        if (err instanceof Error && err.name === "AbortError") {
+          return;
+        }
+        if (!cancelled) {
+          setEconomyOverview(null);
+          const message =
+            err instanceof Error && err.message.startsWith("Network error")
+              ? getFlaskHelloNetworkErrorMessage()
+              : err instanceof Error
+                ? err.message
+                : String(err);
+          setEconomyOverviewError(message);
+        }
+      } finally {
+        if (!cancelled) {
+          setIsEconomyOverviewLoading(false);
+        }
+      }
+    })();
+
+    return () => {
+      cancelled = true;
+      controller.abort();
+    };
+  }, []);
 
   const sortedSectors = useMemo(() => {
     const copy = [...US_ECONOMIC_SECTORS];
@@ -295,8 +343,21 @@ export default function EconomyDashboardScreen() {
             Window: {timeWindow} | Source: {ECONOMY_DATA_SOURCE}
           </ThemedText>
           <ThemedText style={[styles.metaText, { color: semantic.mutedText }]}>
-            Last refresh: {ECONOMY_LAST_REFRESH}
+            Last refresh:{" "}
+            {isEconomyOverviewLoading ? "…" : ECONOMY_LAST_REFRESH}
           </ThemedText>
+          {__DEV__ && economyOverview !== null && (
+            <ThemedText
+              style={[styles.metaText, { color: semantic.mutedText }]}
+              numberOfLines={3}
+            >
+              API payload received (dev):{" "}
+              {typeof economyOverview === "string"
+                ? economyOverview.slice(0, 120)
+                : JSON.stringify(economyOverview).slice(0, 120)}
+              …
+            </ThemedText>
+          )}
         </SectionCard>
         <View style={styles.controlsWrap}>
           <View style={styles.controlsRow}>
@@ -393,33 +454,30 @@ export default function EconomyDashboardScreen() {
           ))}
         </View>
 
-        {/* Loading + error states */}
-        {isLoading && (
+        {/* GET /api/economy/overview — loading + error (payload maps into UI later) */}
+        {isEconomyOverviewLoading && (
           <StateNoticeCard
             title="Loading"
-            message="Loading economic indicators..."
+            message="Fetching dashboard snapshot from the server…"
             borderColor={semantic.cardBorder}
             backgroundColor={semantic.cardBackground}
             messageColor={semantic.mutedText}
           />
         )}
 
-        {error !== null && (
+        {economyOverviewError !== null && (
           <StateNoticeCard
             title="Something went wrong"
-            message={error}
+            message={economyOverviewError}
             borderColor={semantic.danger}
             backgroundColor={semantic.cardBackground}
             messageColor={semantic.danger}
           />
         )}
 
-        {/* Sector overview grid */}
-        {!isLoading && error === null && (
-          <View style={styles.gridWrap}>
-            {sortedSectors.map((sector) => renderSectorCard(sector))}
-          </View>
-        )}
+        <View style={styles.gridWrap}>
+          {sortedSectors.map((sector) => renderSectorCard(sector))}
+        </View>
       </ScrollView>
     </ThemedView>
   );
