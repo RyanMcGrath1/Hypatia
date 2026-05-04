@@ -1,5 +1,5 @@
-import { ThemedText } from '@/components/theme/ThemedText';
-import { SectionCard } from '@/components/surfaces/SectionCard';
+import { SectionCard } from "@/components/surfaces/SectionCard";
+import { ThemedText } from "@/components/theme/ThemedText";
 
 type EmptyStateProps = {
   title: string;
@@ -9,7 +9,13 @@ type EmptyStateProps = {
   bodyColor: string;
 };
 
-export function EmptyState({ title, body, borderColor, backgroundColor, bodyColor }: EmptyStateProps) {
+export function EmptyState({
+  title,
+  body,
+  borderColor,
+  backgroundColor,
+  bodyColor,
+}: EmptyStateProps) {
   return (
     <SectionCard borderColor={borderColor} backgroundColor={backgroundColor}>
       <ThemedText type="subtitle">{title}</ThemedText>

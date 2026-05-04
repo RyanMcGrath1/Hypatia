@@ -37,6 +37,18 @@ import { useColorScheme } from "@/hooks/useColorScheme";
 
 const FEED_LANG = "en";
 
+/** Local clock: morning before noon, afternoon until 5pm, evening thereafter. */
+function getTimeOfDayGreeting(date = new Date()): string {
+  const hour = date.getHours();
+  if (hour < 12) {
+    return "Good Morning";
+  }
+  if (hour < 17) {
+    return "Good Afternoon";
+  }
+  return "Good Evening";
+}
+
 /**
  * News tab: paginated news headlines from the Flask news API (port 5001).
  *
@@ -127,7 +139,7 @@ export default function HomeScreen() {
     () => (
       <View style={styles.listHeader}>
         <ScreenHeader
-          title="Top Headlines"
+          title={getTimeOfDayGreeting()}
           subtitle={`${new Date().toLocaleDateString("en-US", {
             month: "long",
             day: "numeric",

@@ -1,6 +1,6 @@
-import FontAwesome from '@expo/vector-icons/FontAwesome';
-import { Image } from 'expo-image';
-import { useCallback, useMemo, useRef, useState } from 'react';
+import FontAwesome from "@expo/vector-icons/FontAwesome";
+import { Image } from "expo-image";
+import { useCallback, useMemo, useRef, useState } from "react";
 import {
   ActivityIndicator,
   Keyboard,
@@ -12,23 +12,40 @@ import {
   StyleSheet,
   TextInput,
   View,
-} from 'react-native';
+} from "react-native";
 
-import PoliticianLineChart from '@/components/charts/PoliticianLineChart';
-import { StateNoticeCard } from '@/components/surfaces/StateNoticeCard';
-import { ThemedText } from '@/components/theme/ThemedText';
-import { ThemedView } from '@/components/theme/ThemedView';
-import { Brand, Colors } from '@/constants/theme/Colors';
-import { getSemanticColors } from '@/constants/theme/ThemeTokens';
-import { useColorScheme } from '@/hooks/useColorScheme';
-import { useThemeColor } from '@/hooks/useThemeColor';
+import PoliticianLineChart from "@/components/charts/PoliticianLineChart";
+import { StateNoticeCard } from "@/components/surfaces/StateNoticeCard";
+import { ThemedText } from "@/components/theme/ThemedText";
+import { ThemedView } from "@/components/theme/ThemedView";
+import { Brand, Colors } from "@/constants/theme/Colors";
+import { getSemanticColors } from "@/constants/theme/ThemeTokens";
+import { useColorScheme } from "@/hooks/useColorScheme";
+import { useThemeColor } from "@/hooks/useThemeColor";
 
+/**
+ * Politician tab — local mock profiles + search UI (no live API yet).
+ *
+ * Rough anatomy:
+ * - **Data layer**: `PoliticianProfile` / `NewsItem` types, `MOCK_POLITICIANS`, and `findPoliticianProfile()`
+ *   (fuzzy matching + scoring) simulate lookup after a short artificial delay.
+ * - **Screen state**: query input, focus (for suggestions dropdown), submitted query, loading flag,
+ *   selected profile, recent searches, and timers for debounced “search” + blur dismissal.
+ * - **Layout**: `SafeAreaView` → `KeyboardAvoidingView` → `ScrollView`, then:
+ *   hero title → **search card** (field, type-ahead suggestions, recent chips; submit via Return or suggestion tap) → status line →
+ *   **conditional blocks**: empty hint → loading row → no-results + quick chips → **profile stack**
+ *   (identity card, metric chips, positions, headlines, chart).
+ * - **Styles**: bottom `StyleSheet` — shared primitives like `resultCard`, section-specific modifiers.
+ */
+
+/** Single headline row under “Recent Headlines”. */
 type NewsItem = {
   headline: string;
   source: string;
   date: string;
 };
 
+/** One searchable politician record returned by `findPoliticianProfile`. */
 type PoliticianProfile = {
   name: string;
   photoUrl: string;
@@ -43,93 +60,101 @@ type PoliticianProfile = {
   recentNews: NewsItem[];
 };
 
+/** In-memory fixtures; `findPoliticianProfile` scores against these rows only. */
 const MOCK_POLITICIANS: PoliticianProfile[] = [
   {
-    name: 'Alex Harper',
-    photoUrl: 'https://ui-avatars.com/api/?name=Alex+Harper&background=3A5A98&color=F5F7FA',
-    party: 'Independent',
-    role: 'U.S. Senator',
-    location: 'Colorado',
-    bio: 'Former teacher focused on education investment, wildfire preparedness, and housing affordability.',
+    name: "Alex Harper",
+    photoUrl:
+      "https://ui-avatars.com/api/?name=Alex+Harper&background=3A5A98&color=F5F7FA",
+    party: "Independent",
+    role: "U.S. Senator",
+    location: "Colorado",
+    bio: "Former teacher focused on education investment, wildfire preparedness, and housing affordability.",
     approval: 58,
     yearsInOffice: 9,
-    nextElection: 'Nov 2028',
+    nextElection: "Nov 2028",
     keyPositions: [
-      'Expand federal grants for teacher retention in rural districts.',
-      'Fund drought and wildfire resilience infrastructure projects.',
-      'Support bipartisan zoning incentives for more affordable housing.',
+      "Expand federal grants for teacher retention in rural districts.",
+      "Fund drought and wildfire resilience infrastructure projects.",
+      "Support bipartisan zoning incentives for more affordable housing.",
     ],
     recentNews: [
       {
-        headline: 'Harper unveils bipartisan water security bill',
-        source: 'National Desk',
-        date: 'Apr 10, 2026',
+        headline: "Harper unveils bipartisan water security bill",
+        source: "National Desk",
+        date: "Apr 10, 2026",
       },
       {
-        headline: 'Town hall highlights student loan repayment proposal',
-        source: 'State Chronicle',
-        date: 'Apr 04, 2026',
+        headline: "Town hall highlights student loan repayment proposal",
+        source: "State Chronicle",
+        date: "Apr 04, 2026",
       },
     ],
   },
   {
-    name: 'Monica Reyes',
-    photoUrl: 'https://ui-avatars.com/api/?name=Monica+Reyes&background=0B1F3A&color=F5F7FA',
-    party: 'Democratic',
-    role: 'Governor',
-    location: 'New Mexico',
-    bio: 'Public health attorney emphasizing healthcare access, clean energy jobs, and small business growth.',
+    name: "Monica Reyes",
+    photoUrl:
+      "https://ui-avatars.com/api/?name=Monica+Reyes&background=0B1F3A&color=F5F7FA",
+    party: "Democratic",
+    role: "Governor",
+    location: "New Mexico",
+    bio: "Public health attorney emphasizing healthcare access, clean energy jobs, and small business growth.",
     approval: 62,
     yearsInOffice: 5,
-    nextElection: 'Nov 2026',
+    nextElection: "Nov 2026",
     keyPositions: [
-      'Increase coverage access through expanded community clinics.',
-      'Create workforce pathways tied to clean manufacturing.',
-      'Reduce licensing friction for first-time small business owners.',
+      "Increase coverage access through expanded community clinics.",
+      "Create workforce pathways tied to clean manufacturing.",
+      "Reduce licensing friction for first-time small business owners.",
     ],
     recentNews: [
       {
-        headline: 'Reyes signs statewide behavioral health package',
-        source: 'Civic Daily',
-        date: 'Apr 15, 2026',
+        headline: "Reyes signs statewide behavioral health package",
+        source: "Civic Daily",
+        date: "Apr 15, 2026",
       },
       {
-        headline: 'Administration announces clean-tech apprenticeship grants',
-        source: 'Public Wire',
-        date: 'Apr 01, 2026',
+        headline: "Administration announces clean-tech apprenticeship grants",
+        source: "Public Wire",
+        date: "Apr 01, 2026",
       },
     ],
   },
   {
-    name: 'Daniel Brooks',
-    photoUrl: 'https://ui-avatars.com/api/?name=Daniel+Brooks&background=2A9D8F&color=F5F7FA',
-    party: 'Republican',
-    role: 'House Representative',
-    location: 'Florida 7th District',
-    bio: 'Former Marine advocating for veterans services, port logistics modernization, and flood mitigation.',
+    name: "Daniel Brooks",
+    photoUrl:
+      "https://ui-avatars.com/api/?name=Daniel+Brooks&background=2A9D8F&color=F5F7FA",
+    party: "Republican",
+    role: "House Representative",
+    location: "Florida 7th District",
+    bio: "Former Marine advocating for veterans services, port logistics modernization, and flood mitigation.",
     approval: 49,
     yearsInOffice: 3,
-    nextElection: 'Nov 2026',
+    nextElection: "Nov 2026",
     keyPositions: [
-      'Expand local veterans health navigation programs.',
-      'Improve supply-chain throughput at regional ports.',
-      'Prioritize resilient drainage projects in coastal communities.',
+      "Expand local veterans health navigation programs.",
+      "Improve supply-chain throughput at regional ports.",
+      "Prioritize resilient drainage projects in coastal communities.",
     ],
     recentNews: [
       {
-        headline: 'Brooks secures committee hearing on veterans claims backlog',
-        source: 'Capitol Report',
-        date: 'Apr 11, 2026',
+        headline: "Brooks secures committee hearing on veterans claims backlog",
+        source: "Capitol Report",
+        date: "Apr 11, 2026",
       },
       {
-        headline: 'District tour focuses on stormwater infrastructure needs',
-        source: 'Metro Journal',
-        date: 'Mar 29, 2026',
+        headline: "District tour focuses on stormwater infrastructure needs",
+        source: "Metro Journal",
+        date: "Mar 29, 2026",
       },
     ],
   },
 ];
 
+/**
+ * Resolves a query to the best-matching mock profile using exact/prefix/substring/alias checks
+ * plus a small Levenshtein distance threshold for typos. Returns null if nothing scores.
+ */
 function findPoliticianProfile(query: string): PoliticianProfile | null {
   const normalizedQuery = query.trim().toLowerCase();
   if (!normalizedQuery) {
@@ -140,7 +165,9 @@ function findPoliticianProfile(query: string): PoliticianProfile | null {
     const rows = left.length + 1;
     const cols = right.length + 1;
     const table = Array.from({ length: rows }, (_, rowIndex) =>
-      Array.from({ length: cols }, (_, colIndex) => (rowIndex === 0 ? colIndex : colIndex === 0 ? rowIndex : 0)),
+      Array.from({ length: cols }, (_, colIndex) =>
+        rowIndex === 0 ? colIndex : colIndex === 0 ? rowIndex : 0,
+      ),
     );
     for (let row = 1; row < rows; row += 1) {
       for (let col = 1; col < cols; col += 1) {
@@ -186,32 +213,38 @@ function findPoliticianProfile(query: string): PoliticianProfile | null {
 }
 
 export default function PoliticianScreen() {
-  const [input, setInput] = useState('');
+  // --- Search / results UI state (`submittedQuery` + `hasSearched` gate what appears below the search card)
+  const [input, setInput] = useState("");
   const [isInputFocused, setIsInputFocused] = useState(false);
-  const [submittedQuery, setSubmittedQuery] = useState('');
+  const [submittedQuery, setSubmittedQuery] = useState("");
   const [hasSearched, setHasSearched] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
-  const [selectedProfile, setSelectedProfile] = useState<PoliticianProfile | null>(null);
+  const [selectedProfile, setSelectedProfile] =
+    useState<PoliticianProfile | null>(null);
   const [recentSearches, setRecentSearches] = useState<string[]>([]);
+  /** Simulates network latency for `runSearch` (~420ms). */
   const timeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  /** Delays hiding suggestions after blur so row taps still register. */
   const blurTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
-  const colorScheme = useColorScheme() ?? 'light';
+  const colorScheme = useColorScheme() ?? "light";
   const theme = Colors[colorScheme];
-  const textColor = useThemeColor({}, 'text');
-  const iconColor = useThemeColor({}, 'icon');
+  const textColor = useThemeColor({}, "text");
+  const iconColor = useThemeColor({}, "icon");
 
+  /** Semantic colors folded into a small palette object for card borders and chips. */
   const palette = useMemo(() => {
     const semantic = getSemanticColors(colorScheme);
     return {
       cardBackground: semantic.cardBackground,
       cardBorder: semantic.cardBorder,
       sectionBackground: semantic.cardSubtleBackground,
-      buttonBackground: semantic.accent,
-      badgeBackground: colorScheme === 'dark' ? Brand.slate : semantic.cardSubtleBackground,
+      badgeBackground:
+        colorScheme === "dark" ? Brand.slate : semantic.cardSubtleBackground,
     };
   }, [colorScheme]);
 
+  /** Updates history, flips loading, then picks a profile after `timeoutRef` delay. */
   const runSearch = useCallback((rawQuery: string) => {
     const query = rawQuery.trim();
     if (!query) {
@@ -220,7 +253,9 @@ export default function PoliticianScreen() {
     setSubmittedQuery(query);
     setHasSearched(true);
     setIsLoading(true);
-    setRecentSearches((current) => [query, ...current.filter((item) => item !== query)].slice(0, 5));
+    setRecentSearches((current) =>
+      [query, ...current.filter((item) => item !== query)].slice(0, 5),
+    );
 
     if (timeoutRef.current) {
       clearTimeout(timeoutRef.current);
@@ -232,42 +267,49 @@ export default function PoliticianScreen() {
     }, 420);
   }, []);
 
+  /** Keyboard Return / “search” key — dismisses chrome then `runSearch(input)`. */
   const submitSearch = useCallback(() => {
     Keyboard.dismiss();
     setIsInputFocused(false);
     runSearch(input);
   }, [input, runSearch]);
 
+  /** Type-ahead list: filters mock rows while typing (shown only when input is focused). */
   const suggestions = useMemo(() => {
     const query = input.trim().toLowerCase();
     if (!query) {
       return [];
     }
 
-    return MOCK_POLITICIANS
-      .filter((profile) =>
-        `${profile.name} ${profile.role} ${profile.location}`.toLowerCase().includes(query),
-      )
-      .slice(0, 5);
+    return MOCK_POLITICIANS.filter((profile) =>
+      `${profile.name} ${profile.role} ${profile.location}`
+        .toLowerCase()
+        .includes(query),
+    ).slice(0, 5);
   }, [input]);
 
-  const handleSelectSuggestion = useCallback((name: string) => {
-    if (blurTimeoutRef.current) {
-      clearTimeout(blurTimeoutRef.current);
-    }
+  /** Chooses a suggestion row: syncs input, dismisses keyboard, runs full search. */
+  const handleSelectSuggestion = useCallback(
+    (name: string) => {
+      if (blurTimeoutRef.current) {
+        clearTimeout(blurTimeoutRef.current);
+      }
 
-    setInput(name);
-    Keyboard.dismiss();
-    setIsInputFocused(false);
-    runSearch(name);
-  }, [runSearch]);
+      setInput(name);
+      Keyboard.dismiss();
+      setIsInputFocused(false);
+      runSearch(name);
+    },
+    [runSearch],
+  );
 
+  /** One-line helper under the search card (idle vs loading vs hit vs miss). */
   const statusCopy = useMemo(() => {
     if (!hasSearched) {
-      return 'Search by full or partial name, for example: Monica Reyes';
+      return "Press Return to search, or pick a name from suggestions — try Monica Reyes";
     }
     if (isLoading) {
-      return 'Building profile...';
+      return "Building profile...";
     }
     if (!selectedProfile) {
       return `No profile found for "${submittedQuery}".`;
@@ -278,32 +320,39 @@ export default function PoliticianScreen() {
   return (
     <ThemedView style={styles.screen}>
       <SafeAreaView style={styles.safe}>
+        {/* Lifts content above keyboard on iOS; ScrollView owns vertical scroll + tap-through for suggestions */}
         <KeyboardAvoidingView
           style={styles.container}
-          behavior={Platform.OS === 'ios' ? 'padding' : undefined}>
+          behavior={Platform.OS === "ios" ? "padding" : undefined}
+        >
           <ScrollView
             keyboardShouldPersistTaps="handled"
-            keyboardDismissMode={Platform.OS === 'ios' ? 'interactive' : 'on-drag'}
+            keyboardDismissMode={
+              Platform.OS === "ios" ? "interactive" : "on-drag"
+            }
             contentContainerStyle={styles.scrollContent}
-            showsVerticalScrollIndicator={false}>
+            showsVerticalScrollIndicator={false}
+          >
             <ThemedText type="title" style={styles.title}>
               Politician Profiles
             </ThemedText>
-            <ThemedText style={[styles.subtitle, { color: theme.icon }]}>
-              Search a name to view a compact overview of office details, priorities, and headlines.
-            </ThemedText>
-
-            {/* Search controls and type-ahead suggestions */}
+            {/* --- Search card: field + optional suggestion sheet + recent chips (submit: Return / suggestion / recent chip) --- */}
             <View
               style={[
                 styles.searchCard,
-                { backgroundColor: palette.cardBackground, borderColor: palette.cardBorder },
-              ]}>
+                {
+                  backgroundColor: palette.cardBackground,
+                },
+              ]}
+            >
               <View
                 style={[
                   styles.searchContainer,
-                  { borderColor: palette.cardBorder, backgroundColor: palette.sectionBackground },
-                ]}>
+                  {
+                    backgroundColor: palette.sectionBackground,
+                  },
+                ]}
+              >
                 <FontAwesome name="search" size={16} color={iconColor} />
                 <TextInput
                   value={input}
@@ -320,6 +369,7 @@ export default function PoliticianScreen() {
                   returnKeyType="search"
                   blurOnSubmit
                   onSubmitEditing={submitSearch}
+                  accessibilityHint="Press Return on the keyboard to run the search, or choose a suggestion below"
                 />
                 {input.length > 0 && (
                   <Pressable
@@ -327,8 +377,13 @@ export default function PoliticianScreen() {
                     accessibilityLabel="Clear search input"
                     hitSlop={8}
                     style={styles.clearButton}
-                    onPress={() => setInput('')}>
-                    <FontAwesome name="times-circle" size={16} color={iconColor} />
+                    onPress={() => setInput("")}
+                  >
+                    <FontAwesome
+                      name="times-circle"
+                      size={16}
+                      color={iconColor}
+                    />
                   </Pressable>
                 )}
               </View>
@@ -337,18 +392,31 @@ export default function PoliticianScreen() {
                 <View
                   style={[
                     styles.suggestionsList,
-                    { borderColor: palette.cardBorder, backgroundColor: palette.sectionBackground },
-                  ]}>
+                    {
+                      borderColor: palette.cardBorder,
+                      backgroundColor: palette.sectionBackground,
+                    },
+                  ]}
+                >
                   {suggestions.map((profile) => (
                     <Pressable
                       key={profile.name}
                       style={({ pressed }) => [
                         styles.suggestionItem,
-                        { backgroundColor: pressed ? palette.badgeBackground : 'transparent' },
+                        {
+                          backgroundColor: pressed
+                            ? palette.badgeBackground
+                            : "transparent",
+                        },
                       ]}
-                      onPress={() => handleSelectSuggestion(profile.name)}>
-                      <ThemedText type="defaultSemiBold">{profile.name}</ThemedText>
-                      <ThemedText style={[styles.suggestionMeta, { color: theme.icon }]}>
+                      onPress={() => handleSelectSuggestion(profile.name)}
+                    >
+                      <ThemedText type="defaultSemiBold">
+                        {profile.name}
+                      </ThemedText>
+                      <ThemedText
+                        style={[styles.suggestionMeta, { color: theme.icon }]}
+                      >
                         {profile.role}
                       </ThemedText>
                     </Pressable>
@@ -358,7 +426,11 @@ export default function PoliticianScreen() {
 
               {recentSearches.length > 0 && (
                 <View style={styles.recentWrap}>
-                  <ThemedText style={[styles.recentLabel, { color: theme.icon }]}>Recent</ThemedText>
+                  <ThemedText
+                    style={[styles.recentLabel, { color: theme.icon }]}
+                  >
+                    Recent
+                  </ThemedText>
                   <View style={styles.recentChips}>
                     {recentSearches.map((term) => (
                       <Pressable
@@ -374,46 +446,53 @@ export default function PoliticianScreen() {
                         onPress={() => {
                           setInput(term);
                           runSearch(term);
-                        }}>
-                        <ThemedText style={styles.recentChipText}>{term}</ThemedText>
+                        }}
+                      >
+                        <ThemedText style={styles.recentChipText}>
+                          {term}
+                        </ThemedText>
                       </Pressable>
                     ))}
                   </View>
                 </View>
               )}
-
-              <Pressable
-                style={[styles.searchButton, { backgroundColor: palette.buttonBackground }]}
-                onPress={submitSearch}>
-                <ThemedText style={styles.searchButtonText}>Search</ThemedText>
-              </Pressable>
             </View>
 
-            <ThemedText style={[styles.helperText, { color: theme.icon }]}>{statusCopy}</ThemedText>
+            <ThemedText style={[styles.helperText, { color: theme.icon }]}>
+              {statusCopy}
+            </ThemedText>
 
-            {/* Empty and loading states */}
+            {/* --- Before first search: hint card only --- */}
             {!hasSearched && (
               <StateNoticeCard
                 title="Start with a politician name"
-                message="Try: Alex Harper, Monica Reyes, or Daniel Brooks."
+                message="Type a name and press Return, or choose below — Alex Harper, Monica Reyes, or Daniel Brooks."
                 borderColor={palette.cardBorder}
                 backgroundColor={palette.cardBackground}
                 messageColor={theme.icon}
               />
             )}
 
+            {/* --- Mid-flight: spinner row (replaces profile stack until timeout fires) --- */}
             {isLoading && (
               <View
                 style={[
                   styles.resultCard,
                   styles.loadingWrap,
-                  { backgroundColor: palette.cardBackground, borderColor: palette.cardBorder },
-                ]}>
+                  {
+                    backgroundColor: palette.cardBackground,
+                    borderColor: palette.cardBorder,
+                  },
+                ]}
+              >
                 <ActivityIndicator size="small" color={theme.tint} />
-                <ThemedText style={{ color: theme.icon }}>Fetching mock profile data...</ThemedText>
+                <ThemedText style={{ color: theme.icon }}>
+                  Fetching mock profile data...
+                </ThemedText>
               </View>
             )}
 
+            {/* --- Miss: notice + “quick try” chips for every mock name --- */}
             {hasSearched && !isLoading && !selectedProfile && (
               <View>
                 <StateNoticeCard
@@ -438,23 +517,31 @@ export default function PoliticianScreen() {
                       onPress={() => {
                         setInput(profile.name);
                         runSearch(profile.name);
-                      }}>
-                      <ThemedText style={styles.quickTryText}>{profile.name}</ThemedText>
+                      }}
+                    >
+                      <ThemedText style={styles.quickTryText}>
+                        {profile.name}
+                      </ThemedText>
                     </Pressable>
                   ))}
                 </View>
               </View>
             )}
 
-            {/* Main politician profile results */}
+            {/* --- Hit: stacked sections inside `profileWrap` --- */}
             {selectedProfile && !isLoading && (
               <View style={styles.profileWrap}>
+                {/* Identity + bio */}
                 <View
                   style={[
                     styles.resultCard,
                     styles.profileCard,
-                    { backgroundColor: palette.cardBackground, borderColor: palette.cardBorder },
-                  ]}>
+                    {
+                      backgroundColor: palette.cardBackground,
+                      borderColor: palette.cardBorder,
+                    },
+                  ]}
+                >
                   <View style={styles.profileHeader}>
                     <Image
                       source={{ uri: selectedProfile.photoUrl }}
@@ -462,90 +549,156 @@ export default function PoliticianScreen() {
                       contentFit="cover"
                     />
                     <View style={styles.profileHeaderText}>
-                      <ThemedText type="subtitle">{selectedProfile.name}</ThemedText>
-                      <ThemedText style={[styles.roleLine, { color: theme.icon }]}>
+                      <ThemedText type="subtitle">
+                        {selectedProfile.name}
+                      </ThemedText>
+                      <ThemedText
+                        style={[styles.roleLine, { color: theme.icon }]}
+                      >
                         {selectedProfile.role} - {selectedProfile.party}
                       </ThemedText>
-                      <ThemedText style={[styles.locationLine, { color: theme.icon }]}>
+                      <ThemedText
+                        style={[styles.locationLine, { color: theme.icon }]}
+                      >
                         {selectedProfile.location}
                       </ThemedText>
                     </View>
                   </View>
-                  <ThemedText style={styles.bioText}>{selectedProfile.bio}</ThemedText>
+                  <ThemedText style={styles.bioText}>
+                    {selectedProfile.bio}
+                  </ThemedText>
                 </View>
 
-                {/* At-a-glance metrics */}
+                {/* Three metric tiles (approval / tenure / next election) */}
                 <View style={styles.metricsRow}>
                   <View
                     style={[
                       styles.resultCard,
                       styles.metricChip,
-                      { backgroundColor: palette.badgeBackground, borderColor: palette.cardBorder },
-                    ]}>
-                    <ThemedText style={[styles.metricLabel, { color: theme.icon }]}>Approval</ThemedText>
-                    <ThemedText type="defaultSemiBold">{selectedProfile.approval}%</ThemedText>
+                      {
+                        backgroundColor: palette.badgeBackground,
+                        borderColor: palette.cardBorder,
+                      },
+                    ]}
+                  >
+                    <ThemedText
+                      style={[styles.metricLabel, { color: theme.icon }]}
+                    >
+                      Approval
+                    </ThemedText>
+                    <ThemedText type="defaultSemiBold">
+                      {selectedProfile.approval}%
+                    </ThemedText>
                   </View>
                   <View
                     style={[
                       styles.resultCard,
                       styles.metricChip,
-                      { backgroundColor: palette.badgeBackground, borderColor: palette.cardBorder },
-                    ]}>
-                    <ThemedText style={[styles.metricLabel, { color: theme.icon }]}>In Office</ThemedText>
-                    <ThemedText type="defaultSemiBold">{selectedProfile.yearsInOffice} yrs</ThemedText>
+                      {
+                        backgroundColor: palette.badgeBackground,
+                        borderColor: palette.cardBorder,
+                      },
+                    ]}
+                  >
+                    <ThemedText
+                      style={[styles.metricLabel, { color: theme.icon }]}
+                    >
+                      In Office
+                    </ThemedText>
+                    <ThemedText type="defaultSemiBold">
+                      {selectedProfile.yearsInOffice} yrs
+                    </ThemedText>
                   </View>
                   <View
                     style={[
                       styles.resultCard,
                       styles.metricChip,
-                      { backgroundColor: palette.badgeBackground, borderColor: palette.cardBorder },
-                    ]}>
-                    <ThemedText style={[styles.metricLabel, { color: theme.icon }]}>Election</ThemedText>
-                    <ThemedText type="defaultSemiBold">{selectedProfile.nextElection}</ThemedText>
+                      {
+                        backgroundColor: palette.badgeBackground,
+                        borderColor: palette.cardBorder,
+                      },
+                    ]}
+                  >
+                    <ThemedText
+                      style={[styles.metricLabel, { color: theme.icon }]}
+                    >
+                      Election
+                    </ThemedText>
+                    <ThemedText type="defaultSemiBold">
+                      {selectedProfile.nextElection}
+                    </ThemedText>
                   </View>
                 </View>
 
-                {/* Policy highlights */}
+                {/* Bulleted policy list */}
                 <View
                   style={[
                     styles.resultCard,
                     styles.sectionCard,
-                    { backgroundColor: palette.cardBackground, borderColor: palette.cardBorder },
-                  ]}>
+                    {
+                      backgroundColor: palette.cardBackground,
+                      borderColor: palette.cardBorder,
+                    },
+                  ]}
+                >
                   <ThemedText type="defaultSemiBold">Key Positions</ThemedText>
                   {selectedProfile.keyPositions.map((position) => (
                     <View key={position} style={styles.bulletRow}>
-                      <View style={[styles.bulletDot, { backgroundColor: theme.tint }]} />
-                      <ThemedText style={styles.bulletText}>{position}</ThemedText>
+                      <View
+                        style={[
+                          styles.bulletDot,
+                          { backgroundColor: theme.tint },
+                        ]}
+                      />
+                      <ThemedText style={styles.bulletText}>
+                        {position}
+                      </ThemedText>
                     </View>
                   ))}
                 </View>
 
-                {/* Recent news headlines */}
+                {/* Mock news feed rows */}
                 <View
                   style={[
                     styles.resultCard,
                     styles.sectionCard,
-                    { backgroundColor: palette.cardBackground, borderColor: palette.cardBorder },
-                  ]}>
-                  <ThemedText type="defaultSemiBold">Recent Headlines</ThemedText>
+                    {
+                      backgroundColor: palette.cardBackground,
+                      borderColor: palette.cardBorder,
+                    },
+                  ]}
+                >
+                  <ThemedText type="defaultSemiBold">
+                    Recent Headlines
+                  </ThemedText>
                   {selectedProfile.recentNews.map((item) => (
-                    <View key={`${item.headline}-${item.date}`} style={styles.newsRow}>
-                      <ThemedText style={styles.newsHeadline}>{item.headline}</ThemedText>
-                      <ThemedText style={[styles.newsMeta, { color: theme.icon }]}>
+                    <View
+                      key={`${item.headline}-${item.date}`}
+                      style={styles.newsRow}
+                    >
+                      <ThemedText style={styles.newsHeadline}>
+                        {item.headline}
+                      </ThemedText>
+                      <ThemedText
+                        style={[styles.newsMeta, { color: theme.icon }]}
+                      >
                         {item.source} - {item.date}
                       </ThemedText>
                     </View>
                   ))}
                 </View>
 
-                {/* Approval trend chart */}
+                {/* Static sparkline chart component */}
                 <View
                   style={[
                     styles.resultCard,
                     styles.sectionCard,
-                    { backgroundColor: palette.cardBackground, borderColor: palette.cardBorder },
-                  ]}>
+                    {
+                      backgroundColor: palette.cardBackground,
+                      borderColor: palette.cardBorder,
+                    },
+                  ]}
+                >
                   <ThemedText type="defaultSemiBold" style={styles.chartTitle}>
                     Approval Trend
                   </ThemedText>
@@ -560,6 +713,7 @@ export default function PoliticianScreen() {
   );
 }
 
+/** Layout tokens: `resultCard` is the shared bordered panel; modifiers add gaps/padding per section. */
 const styles = StyleSheet.create({
   screen: {
     flex: 1,
@@ -584,18 +738,16 @@ const styles = StyleSheet.create({
     lineHeight: 20,
   },
   searchCard: {
-    width: '100%',
-    borderWidth: 1,
+    width: "100%",
     borderRadius: 14,
     padding: 12,
     marginBottom: 10,
     gap: 10,
   },
   searchContainer: {
-    flexDirection: 'row',
-    alignItems: 'center',
+    flexDirection: "row",
+    alignItems: "center",
     gap: 10,
-    borderWidth: 1,
     borderRadius: 12,
     paddingHorizontal: 12,
     paddingVertical: 10,
@@ -607,29 +759,18 @@ const styles = StyleSheet.create({
   clearButton: {
     minWidth: 28,
     minHeight: 28,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  searchButton: {
-    minHeight: 44,
-    borderRadius: 10,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  searchButtonText: {
-    color: Brand.paper,
-    fontSize: 15,
-    fontWeight: '600',
+    alignItems: "center",
+    justifyContent: "center",
   },
   suggestionsList: {
     borderWidth: 1,
     borderRadius: 10,
-    overflow: 'hidden',
+    overflow: "hidden",
   },
   suggestionItem: {
     paddingHorizontal: 12,
     minHeight: 44,
-    justifyContent: 'center',
+    justifyContent: "center",
     paddingVertical: 10,
     borderBottomWidth: StyleSheet.hairlineWidth,
     borderBottomColor: Brand.steel,
@@ -646,11 +787,11 @@ const styles = StyleSheet.create({
   },
   recentLabel: {
     fontSize: 12,
-    fontWeight: '600',
+    fontWeight: "600",
   },
   recentChips: {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
+    flexDirection: "row",
+    flexWrap: "wrap",
     gap: 8,
   },
   recentChip: {
@@ -658,7 +799,7 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderRadius: 999,
     paddingHorizontal: 10,
-    justifyContent: 'center',
+    justifyContent: "center",
   },
   recentChipText: {
     fontSize: 12,
@@ -670,8 +811,8 @@ const styles = StyleSheet.create({
     marginBottom: 10,
   },
   quickTryWrap: {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
+    flexDirection: "row",
+    flexWrap: "wrap",
     gap: 8,
     marginTop: 10,
   },
@@ -679,17 +820,17 @@ const styles = StyleSheet.create({
     minHeight: 34,
     borderWidth: 1,
     borderRadius: 999,
-    justifyContent: 'center',
+    justifyContent: "center",
     paddingHorizontal: 10,
   },
   quickTryText: {
     fontSize: 12,
-    fontWeight: '600',
+    fontWeight: "600",
   },
   loadingWrap: {
     minHeight: 100,
-    alignItems: 'center',
-    justifyContent: 'center',
+    alignItems: "center",
+    justifyContent: "center",
     gap: 10,
   },
   profileWrap: {
@@ -699,8 +840,8 @@ const styles = StyleSheet.create({
     gap: 5,
   },
   profileHeader: {
-    flexDirection: 'row',
-    alignItems: 'center',
+    flexDirection: "row",
+    alignItems: "center",
     gap: 10,
   },
   profileHeaderText: {
@@ -724,7 +865,7 @@ const styles = StyleSheet.create({
     lineHeight: 20,
   },
   metricsRow: {
-    flexDirection: 'row',
+    flexDirection: "row",
     gap: 8,
   },
   metricChip: {
@@ -732,7 +873,7 @@ const styles = StyleSheet.create({
     borderRadius: 10,
     paddingVertical: 12,
     paddingHorizontal: 8,
-    alignItems: 'center',
+    alignItems: "center",
     gap: 4,
   },
   metricLabel: {
@@ -742,9 +883,9 @@ const styles = StyleSheet.create({
     gap: 10,
   },
   bulletRow: {
-    flexDirection: 'row',
+    flexDirection: "row",
     gap: 10,
-    alignItems: 'flex-start',
+    alignItems: "flex-start",
   },
   bulletDot: {
     width: 7,

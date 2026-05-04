@@ -1,8 +1,8 @@
-import { type ReactNode } from 'react';
-import { StyleSheet, View, type ViewStyle } from 'react-native';
+import { type ReactNode } from "react";
+import { StyleSheet, View, type ViewStyle } from "react-native";
 
-import { Radius, getSemanticColors } from '@/constants/theme/ThemeTokens';
-import { useColorScheme } from '@/hooks/useColorScheme';
+import { Radius, getSemanticColors } from "@/constants/theme/ThemeTokens";
+import { useColorScheme } from "@/hooks/useColorScheme";
 
 type SectionCardProps = {
   children: ReactNode;
@@ -11,8 +11,13 @@ type SectionCardProps = {
   style?: ViewStyle;
 };
 
-export function SectionCard({ children, backgroundColor, borderColor, style }: SectionCardProps) {
-  const colorScheme = useColorScheme() ?? 'light';
+export function SectionCard({
+  children,
+  backgroundColor,
+  borderColor,
+  style,
+}: SectionCardProps) {
+  const colorScheme = useColorScheme() ?? "light";
   const semantic = getSemanticColors(colorScheme);
 
   return (
@@ -22,7 +27,8 @@ export function SectionCard({ children, backgroundColor, borderColor, style }: S
         { backgroundColor, borderColor },
         semantic.cardShadow,
         style,
-      ]}>
+      ]}
+    >
       {children}
     </View>
   );
