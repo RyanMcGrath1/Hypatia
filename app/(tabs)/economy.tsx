@@ -31,11 +31,15 @@ import {
   Spacing,
   getSemanticColors,
 } from "@/constants/theme/ThemeTokens";
-import {
-  fetchEconomyOverview,
-  getFlaskHelloNetworkErrorMessage,
-} from "@/hooks/api/flaskMainApi";
+import { fetchEconomyOverview } from "@/hooks/api/flaskMainApi";
+import { getNewsApiNetworkErrorMessage } from "@/hooks/api/newsApi";
 import { useColorScheme } from "@/hooks/useColorScheme";
+import { getSectorCardDisplay } from "@/lib/economy/sectorOverviewMerge";
+import {
+  formatOverviewAsOfDisplay,
+  parseEconomyOverviewResponse,
+  type EconomyOverviewApiResponse,
+} from "@/lib/economy/economyOverviewTypes";
 
 type TimeWindow = "1M" | "3M" | "6M" | "1Y";
 type SectorSort = "trend" | "recency" | "name";
@@ -136,7 +140,8 @@ export default function EconomyDashboardScreen() {
   // Router + view state
   const router = useRouter();
   const { width } = useWindowDimensions();
-  const [economyOverview, setEconomyOverview] = useState<unknown | null>(null);
+  const [economyOverview, setEconomyOverview] =
+    useState<EconomyOverviewApiResponse | null>(null);
   const [isEconomyOverviewLoading, setIsEconomyOverviewLoading] =
     useState(true);
   const [economyOverviewError, setEconomyOverviewError] = useState<
@@ -172,7 +177,7 @@ export default function EconomyDashboardScreen() {
 
         const data = await fetchEconomyOverview(controller.signal);
         if (!cancelled) {
-          setEconomyOverview(data);
+          setEconomyOverview(parseEconomyOverviewResponse(data));
         }
       } catch (err) {
         if (err instanceof Error && err.name === "AbortError") {
@@ -182,7 +187,7 @@ export default function EconomyDashboardScreen() {
           setEconomyOverview(null);
           const message =
             err instanceof Error && err.message.startsWith("Network error")
-              ? getFlaskHelloNetworkErrorMessage()
+              ? getNewsApiNetworkErrorMessage()
               : err instanceof Error
                 ? err.message
                 : String(err);
@@ -227,6 +232,14 @@ export default function EconomyDashboardScreen() {
     [],
   );
 
+  const displayAsOf = useMemo(() => {
+    const iso = economyOverview?.as_of;
+    if (typeof iso === "string" && iso.trim() !== "") {
+      return formatOverviewAsOfDisplay(iso);
+    }
+    return overviewAsOf;
+  }, [economyOverview, overviewAsOf]);
+
   const openSectorDetails = (sectorId: string) => {
     router.push({
       pathname: AppRoutes.economyDetail,
@@ -234,11 +247,16 @@ export default function EconomyDashboardScreen() {
     });
   };
 
-  // Per-sector tile renderer — compact “indicator card” layout (title + sparkline, value + trend, period)
+  /**
+   * Sector tile: base route + sort keys come from mock `US_ECONOMIC_SECTORS`;
+   * numbers, labels, sparkline, and “Updated …” overlay from `economyOverview` when present
+   * (`SECTOR_ID_TO_OVERVIEW_KEY` in `sectorOverviewMerge.ts`).
+   */
   const renderSectorCard = (sector: EconomicSector) => {
-    const stepDir = getLastHistoryStepDirection(sector.history);
+    const display = getSectorCardDisplay(sector, economyOverview);
+    const stepDir = getLastHistoryStepDirection(display.history);
     const feather = getFeatherTrendVisual(stepDir, isDark);
-    const stepPercentLabel = formatLastStepPercentChange(sector.history);
+    const stepPercentLabel = formatLastStepPercentChange(display.history);
 
     return (
       <View
@@ -254,7 +272,7 @@ export default function EconomyDashboardScreen() {
       >
         <Pressable
           accessibilityRole="button"
-          accessibilityLabel={`${sector.title}, ${sector.headlineValue}, ${stepPercentLabel} vs prior reading. Open details.`}
+          accessibilityLabel={`${display.title}, ${display.headlineValue}, ${stepPercentLabel} vs prior reading. Open details.`}
           hitSlop={8}
           style={({ pressed }) => [
             styles.cardInner,
@@ -262,21 +280,23 @@ export default function EconomyDashboardScreen() {
           ]}
           onPress={() => openSectorDetails(sector.id)}
         >
+          {/* Header: sector name + mini sparkline */}
           <View style={styles.cardHeader}>
             <ThemedText
               numberOfLines={2}
               style={[styles.indicatorName, { color: semantic.mutedText }]}
             >
-              {sector.title}
+              {display.title}
             </ThemedText>
             <SectorSparkline
-              values={sector.history}
+              values={display.history}
               strokeColor={theme.tint}
               width={60}
               height={24}
             />
           </View>
 
+          {/* Body: primary figure vs step change */}
           <View style={styles.cardBody}>
             <View style={styles.valueColumn}>
               <ThemedText
@@ -284,7 +304,7 @@ export default function EconomyDashboardScreen() {
                 ellipsizeMode="tail"
                 style={[styles.indicatorValue, { color: theme.text }]}
               >
-                {sector.headlineValue}
+                {display.headlineValue}
               </ThemedText>
             </View>
             <View style={styles.trendContainer}>
@@ -304,17 +324,19 @@ export default function EconomyDashboardScreen() {
             </View>
           </View>
 
+          {/* Metric description line */}
           <ThemedText
             numberOfLines={1}
             ellipsizeMode="tail"
             style={[styles.metricCaption, { color: semantic.mutedText }]}
           >
-            {sector.headlineLabel}
+            {display.headlineLabel}
           </ThemedText>
+          {/* Last updated: API observation date when overview loaded */}
           <ThemedText
             style={[styles.periodText, { color: semantic.mutedText }]}
           >
-            Updated {sector.updatedAt}
+            Updated {display.updatedAt}
           </ThemedText>
         </Pressable>
       </View>
@@ -323,17 +345,30 @@ export default function EconomyDashboardScreen() {
 
   return (
     <ThemedView style={styles.screen}>
+      {/*
+        Screen anatomy (top → bottom, all inside ScrollView):
+        1. ScreenHeader     — title + “As of …” (from API `as_of` when loaded)
+        2. EconomicPulseChart — gauge + sparkline + “Drivers” (still mock data)
+        3. Meta SectionCard — data window, static source, last refresh, __DEV__ API preview
+        4. controlsWrap     — time-window chips, then sort chips (mock grid only)
+        5. kpiRow           — three KPI cards from ECONOMY_KPIS (mock)
+        6. StateNoticeCard  — optional loading / error from GET /api/economy/overview
+        7. gridWrap         — sector tiles (mock list); see renderSectorCard
+      */}
       <ScrollView
         contentContainerStyle={styles.scrollContent}
         showsVerticalScrollIndicator={false}
       >
+        {/* 1) Title + as-of line */}
         <ScreenHeader
           title="US Economic Dashboard"
-          meta={`As of ${overviewAsOf}`}
+          meta={`As of ${displayAsOf}`}
           subtitleColor={semantic.mutedText}
           metaColor={semantic.mutedText}
         />
+        {/* 2) National pulse (chart component owns its own internal layout) */}
         <EconomicPulseChart />
+        {/* 3) Provenance / dev: window, source, refresh; optional raw JSON preview */}
         <SectionCard
           backgroundColor={semantic.cardSubtleBackground}
           borderColor={semantic.cardBorder}
@@ -352,13 +387,12 @@ export default function EconomyDashboardScreen() {
               numberOfLines={3}
             >
               API payload received (dev):{" "}
-              {typeof economyOverview === "string"
-                ? economyOverview.slice(0, 120)
-                : JSON.stringify(economyOverview).slice(0, 120)}
+              {JSON.stringify(economyOverview).slice(0, 120)}
               …
             </ThemedText>
           )}
         </SectionCard>
+        {/* 4) Controls: (a) 1M/3M/6M/1Y (b) sort — affect mock sector list only today */}
         <View style={styles.controlsWrap}>
           <View style={styles.controlsRow}>
             {TIME_WINDOWS.map((option) => {
@@ -431,6 +465,7 @@ export default function EconomyDashboardScreen() {
             })}
           </View>
         </View>
+        {/* 5) Static KPI strip (inflation / jobs / rates copy) */}
         <View style={styles.kpiRow}>
           {ECONOMY_KPIS.map((kpi) => (
             <SectionCard
@@ -454,7 +489,7 @@ export default function EconomyDashboardScreen() {
           ))}
         </View>
 
-        {/* GET /api/economy/overview — loading + error (payload maps into UI later) */}
+        {/* 6) Overview fetch status — does not hide tiles below */}
         {isEconomyOverviewLoading && (
           <StateNoticeCard
             title="Loading"
@@ -475,6 +510,7 @@ export default function EconomyDashboardScreen() {
           />
         )}
 
+        {/* 7) Sector grid: responsive 1- or 2-column wrap; each tile = renderSectorCard */}
         <View style={styles.gridWrap}>
           {sortedSectors.map((sector) => renderSectorCard(sector))}
         </View>
@@ -483,6 +519,7 @@ export default function EconomyDashboardScreen() {
   );
 }
 
+// Layout styles: `screen` / `scrollContent` = shell; `gridWrap`+`card*` = sector tiles; `kpi*` = KPI row; `control*` = chips.
 const styles = StyleSheet.create({
   screen: {
     flex: 1,

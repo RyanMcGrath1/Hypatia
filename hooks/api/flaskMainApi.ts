@@ -6,6 +6,7 @@ import { Platform } from 'react-native';
 
 import { fetchApiGet } from '@/hooks/api/httpGet';
 import { getDevApiBaseUrlForPort } from '@/hooks/api/devServerBaseUrl';
+import { getNewsApiBaseUrl } from '@/hooks/api/newsApi';
 
 type UseFlaskHelloSearchResult = {
   isLoading: boolean;
@@ -75,12 +76,19 @@ export async function fetchCivicDivisionsByAddress(
 
 /**
  * `GET {base}/api/economy/overview` — US economic dashboard snapshot.
- * Response shape is defined by your backend; map fields into UI when ready.
+ * Resolves to **`http://127.0.0.1:5001/api/economy/overview`** when using defaults
+ * (`EXPO_PUBLIC_NEWS_API_BASE_URL` / dev LAN host). On **Expo web dev**, the base URL
+ * follows `getNewsApiBaseUrl()` so requests use the Metro same-origin proxy (no CORS to :5001).
  */
 export async function fetchEconomyOverview(
   signal?: AbortSignal,
 ): Promise<unknown> {
-  return fetchFlaskGet('/api/economy/overview', undefined, signal);
+  return fetchApiGet(
+    getNewsApiBaseUrl(),
+    '/api/economy/overview',
+    undefined,
+    signal,
+  );
 }
 
 export function useFlaskHelloSearch(query: string): UseFlaskHelloSearchResult {
