@@ -1,172 +1,239 @@
-import { Dimensions, Pressable, StyleSheet, View } from 'react-native';
-import { LineChart } from 'react-native-chart-kit';
-import { useMemo, useState } from 'react';
+import { Pressable, StyleSheet, Text, useWindowDimensions, View } from 'react-native';
+import Svg, { Circle } from 'react-native-svg';
 
-import { ThemedText } from '@/components/theme/ThemedText';
-import { Brand, BrandRgb, Colors } from '@/constants/theme/Colors';
+import { BrandRgb, Colors } from '@/constants/theme/Colors';
 import { Radius, Spacing, getSemanticColors } from '@/constants/theme/ThemeTokens';
-import { ECONOMIC_PULSE_MONTH_LABELS, ECONOMIC_PULSE_SERIES } from '@/constants/data/usEconomicData';
 import { useColorScheme } from '@/hooks/useColorScheme';
 
-export default function EconomicPulseChart() {
+const DEFAULT_TREND = [50, 55, 60, 62, 65, 68] as const;
+
+const BREAKDOWN = [
+  { label: 'Growth', value: 80 },
+  { label: 'Labor', value: 60 },
+  { label: 'Inflation', value: 70 },
+  { label: 'Fiscal', value: 30 },
+  { label: 'Inequality', value: 40 },
+  { label: 'Investment', value: 65 },
+] as const;
+
+type BreakdownItem = (typeof BREAKDOWN)[number];
+
+type EconomicPulseChartProps = {
+  score?: number;
+  change?: number;
+  trend?: number[];
+  onBreakdownPress?: (item: BreakdownItem) => void;
+};
+
+/** Traffic-light only; everything else uses Hypatia tokens. */
+const SCORE_BAD = '#ef4444';
+const SCORE_MID = '#f59e0b';
+const SCORE_GOOD = '#10b981';
+
+const STROKE_WIDTH = 14;
+const MAX_GAUGE_PX = 280;
+const GAUGE_WIDTH_FRAC = 0.6;
+const SPARKLINE_HEIGHT = 40;
+
+function scoreIndicatorColor(score: number) {
+  if (score < 40) return SCORE_BAD;
+  if (score < 70) return SCORE_MID;
+  return SCORE_GOOD;
+}
+
+function rgba(rgb: readonly [number, number, number], alpha: number) {
+  return `rgba(${rgb[0]},${rgb[1]},${rgb[2]},${alpha})`;
+}
+
+export default function EconomicPulseChart({
+  score = 68,
+  change = 2.4,
+  trend = [...DEFAULT_TREND],
+  onBreakdownPress,
+}: EconomicPulseChartProps) {
   const colorScheme = useColorScheme() ?? 'light';
   const theme = Colors[colorScheme];
   const semantic = getSemanticColors(colorScheme);
-  const chartWidth = Math.min(Dimensions.get('window').width - 72, 560);
   const isDark = colorScheme === 'dark';
-  const [visibleSeriesLabels, setVisibleSeriesLabels] = useState<string[]>(
-    ECONOMIC_PULSE_SERIES.map((series) => series.label),
-  );
+  const { width: windowWidth } = useWindowDimensions();
 
-  const activeSeries = useMemo(
-    () =>
-      ECONOMIC_PULSE_SERIES.filter((series) =>
-        visibleSeriesLabels.includes(series.label),
-      ),
-    [visibleSeriesLabels],
-  );
+  const size = Math.min(windowWidth * GAUGE_WIDTH_FRAC, MAX_GAUGE_PX);
+  const radius = (size - STROKE_WIDTH) / 2;
+  const circumference = 2 * Math.PI * radius;
+  const strokeDashoffset = circumference * (1 - score / 100);
+  const accent = scoreIndicatorColor(score);
 
-  const chartSeries = activeSeries.length > 0 ? activeSeries : ECONOMIC_PULSE_SERIES;
+  const gaugeTrackStroke = isDark
+    ? rgba(BrandRgb.offWhite, 0.16)
+    : rgba(BrandRgb.slateBlue, 0.35);
 
-  const toggleSeriesVisibility = (label: string) => {
-    setVisibleSeriesLabels((current) =>
-      current.includes(label) ? current.filter((item) => item !== label) : [...current, label],
-    );
-  };
+  const barTrackBg = isDark ? rgba(BrandRgb.offWhite, 0.12) : rgba(BrandRgb.charcoal, 0.1);
 
-  const chartConfig = {
-    backgroundGradientFrom: isDark ? Brand.slate : Brand.paper,
-    backgroundGradientTo: isDark ? Brand.slate : Brand.paper,
-    decimalPlaces: 0,
-    color: (opacity = 1) =>
-      `rgba(${BrandRgb.teal[0]}, ${BrandRgb.teal[1]}, ${BrandRgb.teal[2]}, ${opacity})`,
-    labelColor: (opacity = 1) =>
-      isDark
-        ? `rgba(${BrandRgb.offWhite[0]}, ${BrandRgb.offWhite[1]}, ${BrandRgb.offWhite[2]}, ${0.35 + 0.45 * opacity})`
-        : `rgba(${BrandRgb.charcoal[0]}, ${BrandRgb.charcoal[1]}, ${BrandRgb.charcoal[2]}, ${opacity})`,
-    propsForDots: {
-      r: '3',
-      strokeWidth: '1.5',
-      stroke: isDark ? Brand.ink : Brand.paper,
-    },
-    propsForBackgroundLines: {
-      stroke: isDark ? Brand.steel : Brand.slate,
-      strokeDasharray: '',
-    },
-    propsForLabels: {
-      fontSize: 11,
-    },
-  };
+  const center = size / 2;
 
   return (
-    <View style={[styles.wrap, { borderColor: semantic.cardBorder }]}>
-      <ThemedText type="defaultSemiBold">US Economic Pulse</ThemedText>
-      <ThemedText style={[styles.caption, { color: theme.icon }]}>
-        Indexed trend view (Nov=100) to compare macro direction.
-      </ThemedText>
+    <View
+      style={[
+        styles.card,
+        { backgroundColor: semantic.cardBackground, borderColor: semantic.cardBorder },
+      ]}>
+      <View style={styles.gaugeContainer}>
+        <Svg width={size} height={size}>
+          <Circle
+            stroke={gaugeTrackStroke}
+            fill="none"
+            cx={center}
+            cy={center}
+            r={radius}
+            strokeWidth={STROKE_WIDTH}
+          />
+          <Circle
+            stroke={accent}
+            fill="none"
+            cx={center}
+            cy={center}
+            r={radius}
+            strokeWidth={STROKE_WIDTH}
+            strokeDasharray={circumference}
+            strokeDashoffset={strokeDashoffset}
+            strokeLinecap="round"
+            rotation="-90"
+            originX={center}
+            originY={center}
+          />
+        </Svg>
 
-      <LineChart
-        data={{
-          labels: ECONOMIC_PULSE_MONTH_LABELS,
-          datasets: chartSeries.map((series) => ({
-            data: series.values,
-            color: (opacity = 1) => {
-              const hex = series.color;
-              const r = Number.parseInt(hex.slice(1, 3), 16);
-              const g = Number.parseInt(hex.slice(3, 5), 16);
-              const b = Number.parseInt(hex.slice(5, 7), 16);
-              return `rgba(${r}, ${g}, ${b}, ${opacity})`;
-            },
-            strokeWidth: 2,
-          })),
-          legend: chartSeries.map((series) => series.label),
-        }}
-        width={chartWidth}
-        height={220}
-        chartConfig={chartConfig}
-        bezier
-        withInnerLines
-        withOuterLines={false}
-        withShadow={false}
-        fromZero={false}
-        yLabelsOffset={8}
-        style={styles.chart}
-      />
-      <View style={styles.legendWrap}>
-        {ECONOMIC_PULSE_SERIES.map((series) => {
-          const isEnabled = visibleSeriesLabels.includes(series.label);
-          return (
-            <Pressable
-              key={series.label}
-              accessibilityRole="button"
-              accessibilityLabel={`Toggle ${series.label} trend line`}
-              hitSlop={8}
-              style={({ pressed }) => [
-                styles.legendChip,
-                {
-                  borderColor: isEnabled ? series.color : semantic.cardBorder,
-                  backgroundColor: isEnabled
-                    ? isDark
-                      ? Brand.ink
-                      : semantic.cardSubtleBackground
-                    : 'transparent',
-                  opacity: pressed ? 0.82 : 1,
-                },
-              ]}
-              onPress={() => toggleSeriesVisibility(series.label)}>
-              <View style={[styles.legendDot, { backgroundColor: series.color }]} />
-              <ThemedText style={{ color: isEnabled ? theme.text : semantic.mutedText, fontSize: 12 }}>
-                {series.label}
-              </ThemedText>
-            </Pressable>
-          );
-        })}
+        <View style={styles.scoreContainer}>
+          <Text style={[styles.score, { color: theme.text }]}>{score}</Text>
+          <Text style={[styles.change, { color: change >= 0 ? SCORE_GOOD : SCORE_BAD }]}>
+            {change >= 0 ? '▲' : '▼'} {Math.abs(change)}
+          </Text>
+        </View>
+      </View>
+
+      <View style={styles.sparklineContainer}>
+        {trend.map((val, i) => (
+          <View
+            key={`${i}-${val}`}
+            style={[
+              styles.sparkBar,
+              { height: (val / 100) * SPARKLINE_HEIGHT, backgroundColor: accent },
+            ]}
+          />
+        ))}
+      </View>
+
+      <View style={styles.breakdown}>
+        {BREAKDOWN.map((item) => (
+          <Pressable
+            key={item.label}
+            accessibilityRole="button"
+            accessibilityLabel={`${item.label}, ${item.value} out of 100`}
+            hitSlop={8}
+            onPress={() => onBreakdownPress?.(item)}
+            style={({ pressed }) => [
+              styles.barRow,
+              {
+                borderColor: isDark
+                  ? rgba(BrandRgb.offWhite, 0.28)
+                  : rgba(BrandRgb.slateBlue, 0.28),
+              },
+              {
+                backgroundColor: pressed
+                  ? isDark
+                    ? rgba(BrandRgb.offWhite, 0.08)
+                    : rgba(BrandRgb.charcoal, 0.06)
+                  : 'transparent',
+              },
+            ]}>
+            <Text style={[styles.label, { color: semantic.mutedText }]}>{item.label}</Text>
+            <View style={[styles.barBackground, { backgroundColor: barTrackBg }]}>
+              <View
+                style={[
+                  styles.barFill,
+                  {
+                    width: `${item.value}%`,
+                    backgroundColor: scoreIndicatorColor(item.value),
+                  },
+                ]}
+              />
+            </View>
+            <Text style={[styles.value, { color: theme.text }]}>{item.value}</Text>
+          </Pressable>
+        ))}
       </View>
     </View>
   );
 }
 
 const styles = StyleSheet.create({
-  wrap: {
+  card: {
     width: '100%',
     maxWidth: 560,
     alignSelf: 'center',
-    marginBottom: 14,
-    paddingTop: 12,
-    paddingBottom: 6,
-    paddingHorizontal: 8,
-    borderWidth: 1,
-    borderRadius: 12,
     alignItems: 'center',
+    padding: Spacing.lg,
+    marginBottom: Spacing.md,
+    borderWidth: 1,
+    borderRadius: Radius.sm,
   },
-  caption: {
-    fontSize: 12,
-    marginTop: 2,
-    marginBottom: 6,
-  },
-  chart: {
-    borderRadius: 12,
-  },
-  legendWrap: {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
-    gap: Spacing.sm,
+  gaugeContainer: {
     justifyContent: 'center',
-    paddingHorizontal: Spacing.sm,
-    paddingBottom: 8,
+    alignItems: 'center',
   },
-  legendChip: {
-    minHeight: 36,
-    borderRadius: Radius.md,
-    borderWidth: 1,
-    paddingHorizontal: Spacing.sm,
+  scoreContainer: {
+    position: 'absolute',
+    alignItems: 'center',
+  },
+  score: {
+    fontSize: 42,
+    fontWeight: 'bold',
+  },
+  change: {
+    fontSize: 16,
+    marginTop: Spacing.xs,
+  },
+  sparklineContainer: {
+    flexDirection: 'row',
+    marginTop: Spacing.lg,
+    height: SPARKLINE_HEIGHT,
+    alignItems: 'flex-end',
+  },
+  sparkBar: {
+    width: 6,
+    marginHorizontal: 2,
+    borderRadius: 2,
+  },
+  breakdown: {
+    width: '100%',
+    marginTop: Spacing.xl,
+  },
+  barRow: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 6,
+    marginBottom: Spacing.sm,
+    paddingVertical: Spacing.sm,
+    paddingHorizontal: Spacing.sm,
+    borderRadius: Radius.sm,
+    borderWidth: 1,
   },
-  legendDot: {
-    width: 8,
+  label: {
+    width: 90,
+    fontSize: 14,
+  },
+  barBackground: {
+    flex: 1,
     height: 8,
-    borderRadius: 999,
+    borderRadius: 4,
+    marginHorizontal: Spacing.sm,
+  },
+  barFill: {
+    height: 8,
+    borderRadius: 4,
+  },
+  value: {
+    width: 36,
+    textAlign: 'right',
+    fontSize: 14,
   },
 });
