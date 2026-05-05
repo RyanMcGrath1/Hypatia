@@ -6,6 +6,11 @@ import { Platform } from 'react-native';
 import { WEB_NEWS_DEV_PROXY_PREFIX } from '@/constants/app/newsDevProxy';
 import { fetchApiGet } from '@/hooks/api/httpGet';
 import { getDevApiBaseUrlForPort } from '@/hooks/api/devServerBaseUrl';
+import { parseTopHeadlinesPage } from '@/hooks/api/newsParse';
+import type { TopHeadlinesPageResult } from '@/hooks/api/newsParse';
+
+export type { TopHeadlineItem, TopHeadlinesPageResult } from '@/hooks/api/newsParse';
+export { parseTopHeadlinesPage, parseTopHeadlinesResponse } from '@/hooks/api/newsParse';
 
 /** True when env points at this machine’s loopback — browser CORS blocks cross-port unless we use the Metro proxy. */
 function isLoopbackOrLocalhostNewsUrl(url: string): boolean {
@@ -53,125 +58,8 @@ export function getNewsApiNetworkErrorMessage(): string {
   return `Unable to reach the news API at ${getNewsApiBaseUrl()}. On a real device, the app uses your dev machine's LAN IP (same as Metro). Run the server bound to all interfaces, or set EXPO_PUBLIC_NEWS_API_BASE_URL.`;
 }
 
-export type TopHeadlineItem = {
-  title: string;
-  description: string | null;
-  url: string | null;
-  /** Hero/thumbnail URL when the API provides one */
-  imageUrl: string | null;
-  /** Single line for source / date when present */
-  meta: string | null;
-};
-
 /** Default page size for `/api/news/top-headlines` (server clamps 1–50). */
 export const NEWS_FEED_PAGE_SIZE = 10;
-
-export type TopHeadlinesPageResult = {
-  items: TopHeadlineItem[];
-  hasMore: boolean;
-  /** Next 1-based page for `page=` query; null when no further pages. */
-  nextPage: number | null;
-};
-
-function pickString(obj: Record<string, unknown>, keys: string[]): string | null {
-  for (const k of keys) {
-    const v = obj[k];
-    if (typeof v === 'string' && v.trim().length > 0) {
-      return v.trim();
-    }
-  }
-  return null;
-}
-
-function extractHeadlineArray(payload: unknown): unknown[] {
-  if (Array.isArray(payload)) {
-    return payload;
-  }
-  if (payload && typeof payload === 'object') {
-    const o = payload as Record<string, unknown>;
-    /** Prefer `items` then `articles` for paginated Flask responses. */
-    const candidates = ['items', 'articles', 'headlines', 'data', 'results', 'news'];
-    for (const key of candidates) {
-      const v = o[key];
-      if (Array.isArray(v)) {
-        return v;
-      }
-    }
-  }
-  return [];
-}
-
-/** Normalize `/api/news/top-headlines` JSON into headline rows. */
-export function parseTopHeadlinesResponse(payload: unknown): TopHeadlineItem[] {
-  const rows = extractHeadlineArray(payload);
-  const out: TopHeadlineItem[] = [];
-
-  for (const raw of rows) {
-    if (!raw || typeof raw !== 'object') {
-      continue;
-    }
-    const obj = raw as Record<string, unknown>;
-    const title =
-      pickString(obj, ['title', 'headline', 'name', 'head_line']) ?? 'Untitled';
-    const description = pickString(obj, ['description', 'summary', 'abstract', 'snippet', 'content']);
-    const url = pickString(obj, ['url', 'link', 'href']);
-
-    let source = pickString(obj, ['source', 'source_name', 'publisher']);
-    if (!source && obj.source && typeof obj.source === 'object') {
-      source = pickString(obj.source as Record<string, unknown>, ['name', 'title']);
-    }
-    const published =
-      pickString(obj, ['published_at', 'publishedAt', 'published', 'date', 'time']);
-
-    let imageUrl = pickString(obj, [
-      'urlToImage',
-      'image_url',
-      'imageUrl',
-      'thumbnail',
-      'thumbnail_url',
-      'hero_image',
-      'og_image',
-      'picture',
-      'image',
-    ]);
-    if (!imageUrl && obj.image && typeof obj.image === 'object') {
-      imageUrl = pickString(obj.image as Record<string, unknown>, ['url', 'src', 'href', 'uri']);
-    }
-
-    let meta: string | null = null;
-    if (source && published) {
-      meta = `${source} · ${published}`;
-    } else if (source) {
-      meta = source;
-    } else if (published) {
-      meta = published;
-    }
-
-    out.push({ title, description, url, imageUrl, meta });
-  }
-
-  return out;
-}
-
-/**
- * Parses paginated envelope + headline rows (`items` or `articles`).
- * Legacy array-only responses yield `hasMore: false`, `nextPage: null`.
- */
-export function parseTopHeadlinesPage(payload: unknown): TopHeadlinesPageResult {
-  const items = parseTopHeadlinesResponse(payload);
-  if (!payload || typeof payload !== 'object' || Array.isArray(payload)) {
-    return { items, hasMore: false, nextPage: null };
-  }
-  const o = payload as Record<string, unknown>;
-  const hasMore = typeof o.hasMore === 'boolean' ? o.hasMore : false;
-  let nextPage: number | null = null;
-  if (typeof o.nextPage === 'number' && Number.isFinite(o.nextPage)) {
-    nextPage = o.nextPage;
-  } else if (o.nextPage === null) {
-    nextPage = null;
-  }
-  return { items, hasMore, nextPage };
-}
 
 export type FetchNewsTopHeadlinesOptions = {
   /** Skip caches (extra query param so CDNs/proxies treat each pull-to-refresh as a new URL). */

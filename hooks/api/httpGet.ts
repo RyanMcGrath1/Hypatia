@@ -1,6 +1,15 @@
 /**
  * Shared GET helper for JSON/text backends (used by Flask main + news clients).
+ * Sends **X-Request-ID** so hypatia-backend logs can correlate with the client.
  */
+
+function createRequestId(): string {
+  const c = globalThis.crypto as Crypto | undefined;
+  if (c?.randomUUID) {
+    return c.randomUUID();
+  }
+  return `req_${Date.now()}_${Math.random().toString(36).slice(2, 11)}`;
+}
 
 function parseResponseBody(text: string): unknown {
   const trimmed = text.trim();
@@ -35,6 +44,7 @@ export async function fetchApiGet(
         Accept: 'application/json, text/plain, */*',
         'Cache-Control': 'no-cache',
         Pragma: 'no-cache',
+        'X-Request-ID': createRequestId(),
       },
       cache: 'no-store',
       signal,

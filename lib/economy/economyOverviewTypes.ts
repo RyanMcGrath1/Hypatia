@@ -1,6 +1,7 @@
 /**
  * `GET /api/economy/overview` response — two most recent observations per section (newest first).
  */
+import { economyOverviewResponseSchema } from '@/lib/economy/economyOverviewSchema';
 
 export type EconomyObservation = {
   date: string;
@@ -43,21 +44,18 @@ export const ECONOMY_OVERVIEW_SECTION_KEYS = [
   "labor",
 ] as const satisfies readonly EconomyOverviewSectionKey[];
 
-/** Narrow `fetch` JSON to the overview contract (minimal structural check). */
+/**
+ * Narrow `fetch` JSON to the overview contract (Zod).
+ * Runtime payloads may include per-section error objects from FRED; the UI falls back when `observations` is absent.
+ */
 export function parseEconomyOverviewResponse(
   data: unknown,
 ): EconomyOverviewApiResponse | null {
-  if (typeof data !== "object" || data === null) {
+  const parsed = economyOverviewResponseSchema.safeParse(data);
+  if (!parsed.success) {
     return null;
   }
-  const row = data as Record<string, unknown>;
-  if (typeof row.as_of !== "string") {
-    return null;
-  }
-  if (typeof row.sections !== "object" || row.sections === null) {
-    return null;
-  }
-  return data as EconomyOverviewApiResponse;
+  return parsed.data as EconomyOverviewApiResponse;
 }
 
 /** Latest observation for a section (API lists newest first). */
