@@ -126,11 +126,11 @@ export default function EconomyDashboardScreen() {
       .map((sector) => {
         const display = getSectorCardDisplay(sector, economyOverview);
         return {
-          id: display.id,
+          id: sector.id,
           title: display.title.toUpperCase(),
           subtitle: display.headlineLabel,
           value: display.headlineValue,
-          trend: display.trend,
+          trend: sector.trend,
           history: display.history,
         };
       });

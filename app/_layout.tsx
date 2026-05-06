@@ -9,7 +9,7 @@ import { Fraunces_600SemiBold, Fraunces_700Bold } from '@expo-google-fonts/fraun
 import { useFonts } from 'expo-font';
 import { Stack } from 'expo-router';
 import * as SplashScreen from 'expo-splash-screen';
-import { useEffect } from 'react';
+import { useEffect, useRef } from 'react';
 import { StatusBar } from 'expo-status-bar';
 import { View } from 'react-native';
 import 'react-native-reanimated';
@@ -18,8 +18,6 @@ import { SafeAreaProvider, SafeAreaView } from 'react-native-safe-area-context';
 import { AppBanner } from '@/components/navigation/AppBanner';
 import { Colors } from '@/constants/theme/Colors';
 import { useColorScheme } from '@/hooks/useColorScheme';
-
-void SplashScreen.preventAutoHideAsync();
 
 export default function RootLayout() {
   const colorScheme = useColorScheme() ?? 'light';
@@ -33,10 +31,30 @@ export default function RootLayout() {
     Fraunces_700Bold,
     SpaceMono: require('../assets/fonts/SpaceMono-Regular.ttf'),
   });
+  const canHideSplashRef = useRef(false);
 
   useEffect(() => {
-    if (loaded || error) {
-      void SplashScreen.hideAsync();
+    let mounted = true;
+    (async () => {
+      try {
+        await SplashScreen.preventAutoHideAsync();
+        if (mounted) {
+          canHideSplashRef.current = true;
+        }
+      } catch {
+        canHideSplashRef.current = false;
+      }
+    })();
+    return () => {
+      mounted = false;
+    };
+  }, []);
+
+  useEffect(() => {
+    if ((loaded || error) && canHideSplashRef.current) {
+      void SplashScreen.hideAsync().catch(() => {
+        // No-op in runtimes that do not register a native splash controller.
+      });
     }
   }, [loaded, error]);
 
