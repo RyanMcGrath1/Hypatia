@@ -37,6 +37,23 @@ import { useColorScheme } from "@/hooks/useColorScheme";
 
 const FEED_LANG = "en";
 
+/** Max characters for headline card description; longer copy is truncated with an ellipsis. */
+const HEADLINE_CARD_DESCRIPTION_MAX_CHARS = 240;
+
+function truncateHeadlineDescription(text: string, maxChars: number): string {
+  const t = text.trim();
+  if (t.length <= maxChars) {
+    return t;
+  }
+  const slice = t.slice(0, maxChars);
+  const lastSpace = slice.lastIndexOf(" ");
+  const base =
+    lastSpace > maxChars * 0.55
+      ? slice.slice(0, lastSpace).trimEnd()
+      : slice.trimEnd();
+  return `${base}…`;
+}
+
 /** Local clock: morning before noon, afternoon until 5pm, evening thereafter. */
 function getTimeOfDayGreeting(date = new Date()): string {
   const hour = date.getHours();
@@ -120,7 +137,10 @@ export default function HomeScreen() {
           ) : null}
           {item.description ? (
             <ThemedText style={[styles.copy, { color: semantic.mutedText }]}>
-              {item.description}
+              {truncateHeadlineDescription(
+                item.description,
+                HEADLINE_CARD_DESCRIPTION_MAX_CHARS,
+              )}
             </ThemedText>
           ) : null}
         </SectionCard>
