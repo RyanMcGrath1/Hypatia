@@ -1,6 +1,7 @@
 import { Stack, useLocalSearchParams } from 'expo-router';
 import { ScrollView, StyleSheet, View } from 'react-native';
 
+import { getEconomyPremiumDetailScreen } from '@/components/economy/detail/premiumRegistry';
 import { EmptyState } from '@/components/surfaces/EmptyState';
 import { SectionCard } from '@/components/surfaces/SectionCard';
 import { ThemedText } from '@/components/theme/ThemedText';
@@ -31,6 +32,17 @@ export default function EconomicSectorDetailScreen() {
   };
 
   const normalizedId = Array.isArray(sectorId) ? sectorId[0] : sectorId;
+  const PremiumDetail = getEconomyPremiumDetailScreen(normalizedId);
+
+  if (PremiumDetail) {
+    return (
+      <>
+        <Stack.Screen options={{ headerShown: false }} />
+        <PremiumDetail />
+      </>
+    );
+  }
+
   const sector = normalizedId ? getEconomicSectorById(normalizedId) : null;
 
   if (!sector) {
