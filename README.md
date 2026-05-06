@@ -1,37 +1,56 @@
 # Hypatia
 
-![Hypatia logo](assets/images/hypatia-brand.png)
+![Hypatia logo](./assets/images/hypatia-logo.png)
 
-Hypatia is an Expo + React Native app with a tab-first mobile UX for exploring civic and economic information.
+Hypatia is an Expo + React Native app with a tab-first mobile UX for exploring economic signals, political intelligence, and AI-curated news.
 
 The app currently includes:
 
-- an **Economy Dashboard** with macro pulse chart, KPI strip, and sector drilldowns,
+- a redesigned **Economy Dashboard** with sentiment hero, API-driven indicator cards, and sector drilldowns,
 - a dedicated **Economy Detail** flow with stack navigation and gesture back,
-- a searchable **Politician Profiles** experience backed by local mock data,
-- supporting `Home` and `Explore` tabs for additional feature development.
+- a redesigned **Politician Intelligence** tab with trending cards, legislative actions, and financial analytics,
+- a news-first **Home** tab with sticky topic filters and article category stamps,
+- a redesigned **Explore/Discover** tab for quick entry into major app domains.
 
 ## Core features
 
 ### Economy
 
 - `app/(tabs)/economy.tsx`: high-level dashboard with:
-  - top economic pulse line chart,
-  - compact KPI cards,
-  - sector tiles that navigate to detail views.
+  - sentiment hero gauge and summary stats,
+  - indicator cards with trend states (green up, red down, yellow neutral),
+  - API-backed mini bar charts in each indicator card,
+  - CTA rows that route to sector details.
 - `app/economy/[sectorId].tsx`: sector deep-dive screen with:
   - header configured via stack options,
   - interpretation + key metrics,
   - swipe-back enabled through stack navigation.
 
+### News (Home tab)
+
+- `app/(tabs)/index.tsx` provides:
+  - paginated top-headlines feed,
+  - sticky category chips while scrolling,
+  - per-article category stamp (top-right),
+  - source/time metadata split styling (source accent + relative timestamp),
+  - pull-to-refresh and infinite scroll states.
+
 ### Politician
 
 - `app/(tabs)/politician.tsx` provides:
+  - discover-style top layout (filters, trending now carousel, legislative actions, financial analytics),
   - type-ahead name search,
   - loading/empty/result states,
   - profile summary and metrics,
   - key positions and recent headlines,
   - trend chart visualization.
+
+### Explore (Discover)
+
+- `app/(tabs)/explore.tsx` provides:
+  - top-level discovery dashboard,
+  - domain cards linking to economy/politician/news tabs,
+  - featured insight and quick-action cards.
 
 ## UX and design system direction
 
@@ -39,8 +58,9 @@ Recent improvements introduced:
 
 - shared route constants in `constants/app/routes.ts`,
 - semantic theme tokens in `constants/theme/ThemeTokens.ts`,
-- reusable primitives in `components/ScreenHeader.tsx`, `components/SectionCard.tsx`, and `components/EmptyState.tsx`,
-- accessibility-friendly tab metadata with icon-first presentation.
+- reusable primitives in `components/layout/ScreenHeader.tsx`, `components/surfaces/SectionCard.tsx`, and `components/surfaces/EmptyState.tsx`,
+- accessibility-friendly tab metadata with icon-first presentation,
+- docked bottom tab bar anchored to the screen bottom.
 
 ## Tech stack
 
