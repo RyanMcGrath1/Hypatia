@@ -340,7 +340,7 @@ const styles = StyleSheet.create({
     alignItems: "center",
     gap: 10,
     borderWidth: 1,
-    borderRadius: Radius.lg,
+    borderRadius: Radius.xl,
     paddingHorizontal: 14,
     minHeight: 48,
   },
@@ -387,7 +387,7 @@ const styles = StyleSheet.create({
     flexDirection: "row",
     alignItems: "center",
     borderWidth: 1,
-    borderRadius: Radius.lg,
+    borderRadius: Radius.xl,
     padding: Spacing.md,
     gap: 12,
   },
@@ -418,7 +418,7 @@ const styles = StyleSheet.create({
   },
   featuredCard: {
     borderWidth: 1,
-    borderRadius: Radius.lg,
+    borderRadius: Radius.xl,
     overflow: "hidden",
   },
   featuredImageWrap: {
@@ -473,7 +473,7 @@ const styles = StyleSheet.create({
     fontFamily: Fonts.bodySemiBold,
   },
   promoCard: {
-    borderRadius: Radius.lg,
+    borderRadius: Radius.xl,
     padding: Spacing.lg,
     gap: 8,
   },
@@ -501,7 +501,7 @@ const styles = StyleSheet.create({
   },
   summaryCard: {
     borderWidth: 1,
-    borderRadius: Radius.lg,
+    borderRadius: Radius.xl,
     padding: Spacing.md,
     gap: 8,
     marginBottom: 8,

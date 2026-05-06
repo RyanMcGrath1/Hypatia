@@ -20,7 +20,7 @@ export default function PoliticianLineChart() {
     labelColor: (opacity = 1) =>
       isDark
         ? `rgba(${BrandRgb.offWhite[0]}, ${BrandRgb.offWhite[1]}, ${BrandRgb.offWhite[2]}, ${0.35 + 0.45 * opacity})`
-        : `rgba(${BrandRgb.charcoal[0]}, ${BrandRgb.charcoal[1]}, ${BrandRgb.charcoal[2]}, ${opacity})`,
+        : `rgba(${BrandRgb.ink[0]}, ${BrandRgb.ink[1]}, ${BrandRgb.ink[2]}, ${opacity})`,
     propsForDots: {
       r: '4',
       strokeWidth: '2',

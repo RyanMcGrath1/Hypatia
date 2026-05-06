@@ -25,7 +25,11 @@ export function StateNoticeCard({
   onActionPress,
 }: StateNoticeCardProps) {
   return (
-    <SectionCard borderColor={borderColor} backgroundColor={backgroundColor}>
+    <SectionCard
+      borderColor={borderColor}
+      backgroundColor={backgroundColor}
+      outlineWidth={1}
+    >
       <ThemedText type="defaultSemiBold">{title}</ThemedText>
       <ThemedText style={{ color: messageColor, lineHeight: 20 }}>
         {message}

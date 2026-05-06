@@ -738,7 +738,7 @@ const styles = StyleSheet.create({
     alignItems: "center",
     gap: 10,
     borderWidth: 1,
-    borderRadius: Radius.lg,
+    borderRadius: Radius.xl,
     paddingHorizontal: 14,
     minHeight: 48,
   },
@@ -809,7 +809,7 @@ const styles = StyleSheet.create({
   trendingCard: {
     width: 260,
     borderWidth: 1,
-    borderRadius: Radius.lg,
+    borderRadius: Radius.xl,
     padding: Spacing.md,
     gap: Spacing.sm,
   },
@@ -863,7 +863,7 @@ const styles = StyleSheet.create({
   },
   legislativeCard: {
     borderWidth: 1,
-    borderRadius: Radius.lg,
+    borderRadius: Radius.xl,
     overflow: "hidden",
   },
   legislativeItem: {
@@ -915,7 +915,7 @@ const styles = StyleSheet.create({
   },
   financialCard: {
     borderWidth: 1,
-    borderRadius: Radius.lg,
+    borderRadius: Radius.xl,
     padding: Spacing.md,
     gap: 8,
   },

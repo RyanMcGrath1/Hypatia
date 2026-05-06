@@ -4,7 +4,7 @@ import { Brand, BrandRgb, Colors } from '@/constants/theme/Colors';
 
 export type AppColorScheme = 'light' | 'dark';
 
-/** Pillar wayfinding — matches dashboard accents (growth green, neutral ink, primary blue). */
+/** Pillar wayfinding — growth green, neutral ink, primary blue */
 export function getPillarColors(_colorScheme: AppColorScheme) {
   return {
     economy: Brand.success,
@@ -13,6 +13,7 @@ export function getPillarColors(_colorScheme: AppColorScheme) {
   };
 }
 
+/** Ambient card shadow (light): 0 4px 12px rgba(0,0,0,0.05) per DESIGN.md */
 export function getSemanticColors(colorScheme: AppColorScheme) {
   const theme = Colors[colorScheme];
   const isDark = colorScheme === 'dark';
@@ -20,9 +21,9 @@ export function getSemanticColors(colorScheme: AppColorScheme) {
   const cardShadow: ViewStyle = isDark
     ? {}
     : {
-        shadowColor: Brand.ink,
+        shadowColor: '#000000',
         shadowOffset: { width: 0, height: 4 },
-        shadowOpacity: Platform.OS === 'android' ? 0.06 : 0.07,
+        shadowOpacity: Platform.OS === 'android' ? 0.06 : 0.05,
         shadowRadius: 12,
         elevation: 2,
       };
@@ -37,11 +38,12 @@ export function getSemanticColors(colorScheme: AppColorScheme) {
       ? `rgba(${BrandRgb.darkCanvas[0]}, ${BrandRgb.darkCanvas[1]}, ${BrandRgb.darkCanvas[2]}, 0.55)`
       : `rgba(${BrandRgb.white[0]}, ${BrandRgb.white[1]}, ${BrandRgb.white[2]}, 0.55)`,
     cardSubtleBackground: isDark ? Brand.darkElevated : Brand.primarySoft,
-    cardBorder: isDark ? 'rgba(255,255,255,0.1)' : Brand.border,
-    mutedText: isDark ? 'rgba(232,234,237,0.58)' : Brand.muted,
+    cardBorder: isDark ? Brand.border : 'transparent',
+    cardOutlineWidth: isDark ? 1 : 0,
+    mutedText: isDark ? 'rgba(241,239,251,0.58)' : Brand.muted,
     accent: theme.tint,
     danger: Brand.danger,
-    hairline: isDark ? 'rgba(255,255,255,0.08)' : Brand.divider,
+    hairline: isDark ? 'rgba(196,197,215,0.12)' : Brand.divider,
     overlayScrim: isDark
       ? `rgba(${BrandRgb.darkCanvas[0]}, ${BrandRgb.darkCanvas[1]}, ${BrandRgb.darkCanvas[2]}, 0.62)`
       : `rgba(${BrandRgb.ink[0]}, ${BrandRgb.ink[1]}, ${BrandRgb.ink[2]}, 0.35)`,
@@ -49,17 +51,26 @@ export function getSemanticColors(colorScheme: AppColorScheme) {
   };
 }
 
+/** 8px base scale + container tokens from DESIGN.md */
 export const Spacing = {
   xs: 4,
-  sm: 8,
-  md: 12,
-  lg: 16,
-  xl: 20,
-  xxl: 28,
+  sm: 12,
+  md: 16,
+  lg: 24,
+  xl: 32,
+  containerPadding: 24,
+  gutter: 20,
 } as const;
 
+/**
+ * Radii from DESIGN.md (16px root): sm 4, md 8, lg 12, xl 16, xxl 24.
+ * Large containers / cards use `xl` (1rem); buttons / inputs use `md` (0.5rem).
+ */
 export const Radius = {
-  sm: 10,
-  md: 14,
-  lg: 16,
+  sm: 4,
+  md: 8,
+  lg: 12,
+  xl: 16,
+  xxl: 24,
+  full: 9999,
 } as const;

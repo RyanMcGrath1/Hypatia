@@ -37,36 +37,39 @@ export function ThemedText({
   );
 }
 
+/** Hypatia Precision: body-lg, display-md, display-lg scale (Inter). */
 const styles = StyleSheet.create({
   default: {
     fontFamily: Fonts.body,
     fontSize: 16,
-    lineHeight: 24,
+    lineHeight: 26,
   },
   defaultSemiBold: {
     fontFamily: Fonts.bodySemiBold,
     fontSize: 16,
-    lineHeight: 24,
+    lineHeight: 26,
   },
   title: {
-    fontFamily: Fonts.displayBold,
-    fontSize: 30,
-    lineHeight: 36,
-    letterSpacing: -0.4,
+    fontFamily: Fonts.displaySemibold,
+    fontSize: 24,
+    lineHeight: 31,
+    letterSpacing: -0.24,
   },
   subtitle: {
     fontFamily: Fonts.bodyBold,
-    fontSize: 20,
-    lineHeight: 28,
+    fontSize: 14,
+    lineHeight: 21,
+    letterSpacing: 0.14,
   },
   link: {
     fontFamily: Fonts.body,
-    lineHeight: 24,
+    lineHeight: 26,
     fontSize: 16,
   },
   para: {
     fontFamily: Fonts.displayBold,
     fontSize: 32,
     lineHeight: 38,
+    letterSpacing: -0.64,
   },
 });

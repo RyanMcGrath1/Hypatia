@@ -15,8 +15,7 @@
     "check": "npm run typecheck && npm run lint && npm run test && npm run test:navigation-smoke"
   },
   "dependencies": {
-    "@expo-google-fonts/dm-sans": "^0.4.2",
-    "@expo-google-fonts/fraunces": "^0.4.1",
+    "@expo-google-fonts/inter": "^0.4.2",
     "@expo/vector-icons": "^15.0.3",
     "@react-navigation/bottom-tabs": "^7.3.10",
     "@react-navigation/elements": "^2.3.8",

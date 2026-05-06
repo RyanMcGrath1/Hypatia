@@ -17,7 +17,7 @@ import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { ThemedText } from "@/components/theme/ThemedText";
 import { ThemedView } from "@/components/theme/ThemedView";
 import { AppRoutes } from "@/constants/app/routes";
-import { Colors } from "@/constants/theme/Colors";
+import { Brand, Colors } from "@/constants/theme/Colors";
 import { getSemanticColors } from "@/constants/theme/ThemeTokens";
 import { useColorScheme } from "@/hooks/useColorScheme";
 
@@ -64,13 +64,12 @@ export function AppBanner() {
     () => ({
       panelBg: semantic.sidePanelBackground,
       panelBlurOverlay: semantic.sidePanelBlurOverlay,
-      panelBorder: semantic.cardBorder,
+      panelBorder: Brand.border,
       scrim: semantic.overlayScrim,
     }),
     [
       semantic.sidePanelBackground,
       semantic.sidePanelBlurOverlay,
-      semantic.cardBorder,
       semantic.overlayScrim,
     ],
   );
@@ -160,7 +159,7 @@ export function AppBanner() {
             style={[
               styles.profileAvatar,
               {
-                borderColor: semantic.cardBorder,
+                borderColor: Brand.border,
                 backgroundColor: semantic.cardSubtleBackground,
               },
             ]}

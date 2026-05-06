@@ -1,30 +1,38 @@
 /**
- * Dashboard-inspired palette (reference: soft gray canvas, white cards, primary blue).
- * Legacy `Brand` keys keep older imports working (e.g. `springGreen` → primary accent).
+ * Hypatia Precision — Material-style tokens (YAML reference).
+ * `Brand` legacy keys preserve older imports (e.g. `springGreen` → primary).
  */
 
 export const Palette = {
-  canvas: "#F4F7F9",
-  white: "#FFFFFF",
-  ink: "#333333",
-  muted: "#828282",
-  border: "#E0E0E0",
-  divider: "#F2F2F2",
-  primary: "#4A6CF7",
-  primarySoft: "#E8EEFF",
-  success: "#6FCF97",
-  successSoft: "#E3F7EB",
-  warning: "#F2C94C",
-  warningSoft: "#FFF8E5",
-  danger: "#EB5757",
-  dangerSoft: "#FFEAEA",
-  info: "#56CCF2",
-  infoSoft: "#E5F7FD",
-  darkCanvas: "#1a1d26",
-  darkElevated: "#242832",
+  canvas: '#fbf8ff',
+  white: '#ffffff',
+  ink: '#1a1b23',
+  muted: '#444655',
+  border: '#c4c5d7',
+  divider: '#e2e1ed',
+  outline: '#747686',
+  primary: '#264dd9',
+  primarySoft: '#dde1ff',
+  surfaceTint: '#294fdb',
+  secondary: '#006780',
+  secondarySoft: '#b7eaff',
+  tertiary: '#974300',
+  tertiarySoft: '#ffdbc9',
+  /** Positive trends / success — calm green (not in YAML; pairs with data viz). */
+  success: '#1d6f52',
+  successSoft: '#d9eee6',
+  warning: '#974300',
+  warningSoft: '#ffdbc9',
+  danger: '#ba1a1a',
+  dangerSoft: '#ffdad6',
+  info: '#006780',
+  infoSoft: '#b7eaff',
+  darkCanvas: '#1a1b23',
+  darkElevated: '#2f3039',
+  darkSurfaceHigh: '#3a3b47',
 } as const;
 
-/** Legacy names mapped to dashboard tokens */
+/** Legacy names mapped to Precision tokens */
 export const Brand = {
   ...Palette,
   onyx: Palette.darkCanvas,
@@ -34,7 +42,7 @@ export const Brand = {
   darkSlateGrey: Palette.darkElevated,
   slateBlue: Palette.muted,
   slateGrey: Palette.muted,
-  steel: Palette.muted,
+  steel: Palette.outline,
   offWhite: Palette.canvas,
   paper: Palette.white,
   lavender: Palette.canvas,
@@ -47,29 +55,30 @@ export const Brand = {
 
 /** RGB tuples for charts and overlays. */
 export const BrandRgb = {
-  canvas: [244, 247, 249] as const,
+  canvas: [251, 248, 255] as const,
   white: [255, 255, 255] as const,
-  ink: [51, 51, 51] as const,
-  muted: [130, 130, 130] as const,
-  primary: [74, 108, 247] as const,
-  success: [111, 207, 151] as const,
-  danger: [235, 87, 87] as const,
-  darkCanvas: [26, 29, 38] as const,
-  darkElevated: [36, 40, 50] as const,
+  ink: [26, 27, 35] as const,
+  muted: [68, 70, 85] as const,
+  primary: [38, 77, 217] as const,
+  success: [29, 111, 82] as const,
+  danger: [186, 26, 26] as const,
+  darkCanvas: [26, 27, 35] as const,
+  darkElevated: [47, 48, 57] as const,
   /** Legacy aliases */
-  onyx: [26, 29, 38] as const,
-  lavender: [244, 247, 249] as const,
-  offWhite: [244, 247, 249] as const,
-  charcoal: [36, 40, 50] as const,
-  teal: [74, 108, 247] as const,
-  springGreen: [74, 108, 247] as const,
-  slateGrey: [130, 130, 130] as const,
-  slateBlue: [130, 130, 130] as const,
-  deepNavy: [26, 29, 38] as const,
+  onyx: [26, 27, 35] as const,
+  lavender: [251, 248, 255] as const,
+  offWhite: [251, 248, 255] as const,
+  charcoal: [47, 48, 57] as const,
+  teal: [38, 77, 217] as const,
+  springGreen: [38, 77, 217] as const,
+  slateGrey: [68, 70, 85] as const,
+  slateBlue: [68, 70, 85] as const,
+  deepNavy: [26, 27, 35] as const,
 } as const;
 
 const tintLight = Palette.primary;
-const tintDark = Palette.primary;
+/** Inverse primary — interactive accent on dark surfaces (DESIGN.md). */
+const tintDark = '#b8c3ff';
 
 export const Colors = {
   light: {
@@ -81,11 +90,11 @@ export const Colors = {
     tabIconSelected: tintLight,
   },
   dark: {
-    text: "#E8EAED",
+    text: '#f1effb',
     background: Brand.darkCanvas,
     tint: tintDark,
-    icon: "rgba(232,234,237,0.55)",
-    tabIconDefault: "rgba(232,234,237,0.45)",
-    tabIconSelected: "#8EA4FB",
+    icon: 'rgba(241,239,251,0.55)',
+    tabIconDefault: 'rgba(241,239,251,0.45)',
+    tabIconSelected: tintDark,
   },
 };
