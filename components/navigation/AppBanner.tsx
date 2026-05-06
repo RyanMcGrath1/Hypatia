@@ -52,6 +52,13 @@ export function AppBanner() {
   const colorScheme = useColorScheme() ?? "light";
   const theme = Colors[colorScheme];
   const semantic = getSemanticColors(colorScheme);
+  const bannerLogo = useMemo(
+    () =>
+      colorScheme === "light"
+        ? require("@/assets/images/hypatia-logo-lightmode.png")
+        : require("@/assets/images/hypatia-logo.png"),
+    [colorScheme],
+  );
   const panelAnim = useRef(new Animated.Value(0)).current;
   const panelColors = useMemo(
     () => ({
@@ -132,7 +139,7 @@ export function AppBanner() {
         </Pressable>
 
         <Image
-          source={require("@/assets/images/hypatia-logo.png")}
+          source={bannerLogo}
           style={styles.image}
           contentFit="contain"
           accessibilityLabel="App banner"
