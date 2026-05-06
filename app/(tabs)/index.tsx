@@ -66,6 +66,24 @@ function getTimeOfDayGreeting(date = new Date()): string {
   return "Good Evening";
 }
 
+function formatPublishedTimeAgo(published: string): string {
+  const parsed = new Date(published);
+  if (Number.isNaN(parsed.getTime())) {
+    return published;
+  }
+  const elapsedMs = Date.now() - parsed.getTime();
+  if (elapsedMs <= 0) {
+    return "just now";
+  }
+  const elapsedMinutes = Math.floor(elapsedMs / (1000 * 60));
+  if (elapsedMinutes < 60) {
+    const mins = Math.max(1, elapsedMinutes);
+    return `${mins} min${mins === 1 ? "" : "s"} ago`;
+  }
+  const elapsedHours = Math.floor(elapsedMinutes / 60);
+  return `${elapsedHours} hr${elapsedHours === 1 ? "" : "s"} ago`;
+}
+
 /**
  * News tab: paginated news headlines from the Flask news API (port 5001).
  *
@@ -194,6 +212,9 @@ export default function HomeScreen() {
         item.category?.trim() && item.category.trim().length > 0
           ? item.category.trim()
           : selectedTopicLabel;
+      const publishedLabel = item.published
+        ? formatPublishedTimeAgo(item.published)
+        : null;
 
       return (
       <Pressable
@@ -230,17 +251,17 @@ export default function HomeScreen() {
                   {item.source}
                 </ThemedText>
               ) : null}
-              {item.source && item.published ? (
+              {item.source && publishedLabel ? (
                 <ThemedText style={[styles.meta, { color: semantic.mutedText }]}>
                   {" · "}
                 </ThemedText>
               ) : null}
-              {item.published ? (
-                <ThemedText style={[styles.meta, { color: "#CA8A04" }]}>
-                  {item.published}
+              {publishedLabel ? (
+                <ThemedText style={[styles.meta, { color: semantic.mutedText }]}>
+                  {publishedLabel}
                 </ThemedText>
               ) : !item.source && item.meta ? (
-                <ThemedText style={[styles.meta, { color: "#CA8A04" }]}>
+                <ThemedText style={[styles.meta, { color: semantic.mutedText }]}>
                   {item.meta}
                 </ThemedText>
               ) : null}
