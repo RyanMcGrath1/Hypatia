@@ -13,7 +13,6 @@ import { useSafeAreaInsets } from "react-native-safe-area-context";
 
 import { ThemedText } from "@/components/theme/ThemedText";
 import { ThemedView } from "@/components/theme/ThemedView";
-import { AppRoutes } from "@/constants/app/routes";
 import { Brand, Colors } from "@/constants/theme/Colors";
 import { Radius, Spacing, getSemanticColors } from "@/constants/theme/ThemeTokens";
 import { Fonts } from "@/constants/theme/Typography";
@@ -74,7 +73,8 @@ export default function ExploreScreen() {
         contentContainerStyle={[
           styles.scroll,
           {
-            paddingTop: insets.top + Spacing.sm,
+            // Root `SafeAreaView` already applies top inset; only add a small gap under `AppBanner`.
+            paddingTop: Spacing.xs,
             paddingBottom: insets.bottom + FLOATING_TAB_CLEARANCE,
           },
         ]}
@@ -89,27 +89,6 @@ export default function ExploreScreen() {
             <ThemedText style={[styles.brandTitle, { color: Brand.primary }]}>
               Hypatia
             </ThemedText>
-          </View>
-          <View style={styles.topBarActions}>
-            <Pressable
-              accessibilityRole="button"
-              accessibilityLabel="Search"
-              hitSlop={8}
-              style={({ pressed }) => [{ opacity: pressed ? 0.7 : 1 }]}
-            >
-              <Ionicons name="search-outline" size={22} color={theme.text} />
-            </Pressable>
-            <Pressable
-              accessibilityRole="button"
-              accessibilityLabel="Profile"
-              hitSlop={8}
-              onPress={() => router.push(AppRoutes.profile)}
-              style={({ pressed }) => [{ opacity: pressed ? 0.7 : 1 }]}
-            >
-              <View style={[styles.avatar, { borderColor: semantic.cardBorder }]}>
-                <Ionicons name="person" size={18} color={semantic.mutedText} />
-              </View>
-            </Pressable>
           </View>
         </View>
 
@@ -337,8 +316,7 @@ const styles = StyleSheet.create({
   topBar: {
     flexDirection: "row",
     alignItems: "center",
-    justifyContent: "space-between",
-    marginBottom: 4,
+    marginBottom: 0,
   },
   brandRow: {
     flexDirection: "row",
@@ -356,20 +334,6 @@ const styles = StyleSheet.create({
     fontSize: 18,
     fontFamily: Fonts.bodySemiBold,
     letterSpacing: -0.3,
-  },
-  topBarActions: {
-    flexDirection: "row",
-    alignItems: "center",
-    gap: 14,
-  },
-  avatar: {
-    width: 34,
-    height: 34,
-    borderRadius: 17,
-    borderWidth: 1,
-    alignItems: "center",
-    justifyContent: "center",
-    overflow: "hidden",
   },
   searchShell: {
     flexDirection: "row",

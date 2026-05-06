@@ -161,7 +161,8 @@ export default function PoliticianScreen() {
           contentContainerStyle={[
             styles.scrollContent,
             {
-              paddingTop: insets.top + Spacing.sm,
+              // Root `SafeAreaView` already applies top inset; small gap under `AppBanner` only.
+              paddingTop: Spacing.xs,
               paddingBottom: insets.bottom + 112,
             },
           ]}
@@ -174,15 +175,6 @@ export default function PoliticianScreen() {
             <ThemedText style={[styles.brandTitle, { color: Brand.primary }]}>
               HYPATIA
             </ThemedText>
-            <Pressable
-              accessibilityRole="button"
-              accessibilityLabel="Focus search"
-              hitSlop={12}
-              onPress={() => searchRef.current?.focus()}
-              style={({ pressed }) => [{ opacity: pressed ? 0.7 : 1, marginLeft: "auto" }]}
-            >
-              <Ionicons name="search-outline" size={22} color={theme.text} />
-            </Pressable>
           </View>
 
           <View
@@ -727,7 +719,7 @@ const styles = StyleSheet.create({
     flexDirection: "row",
     alignItems: "center",
     gap: 10,
-    marginBottom: 4,
+    marginBottom: 0,
   },
   headerIconWrap: {
     width: 36,
