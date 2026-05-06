@@ -1,6 +1,8 @@
+import { router } from "expo-router";
 import { useCallback, useMemo, useRef, useState } from "react";
 import { Keyboard } from "react-native";
 
+import { AppRoutes } from "@/constants/app/routes";
 import {
   findPoliticianProfile,
   MOCK_POLITICIANS,
@@ -62,19 +64,25 @@ export function usePoliticianSearch() {
     ).slice(0, 5);
   }, [input]);
 
-  const handleSelectSuggestion = useCallback(
-    (name: string) => {
-      if (blurTimeoutRef.current) {
-        clearTimeout(blurTimeoutRef.current);
-      }
-
-      setInput(name);
-      Keyboard.dismiss();
-      setIsInputFocused(false);
-      runSearch(name);
-    },
-    [runSearch],
-  );
+  const handleSelectSuggestion = useCallback((name: string) => {
+    if (blurTimeoutRef.current) {
+      clearTimeout(blurTimeoutRef.current);
+    }
+    const q = name.trim();
+    if (!q) {
+      return;
+    }
+    setRecentSearches((current) =>
+      [q, ...current.filter((item) => item !== q)].slice(0, 5),
+    );
+    setInput("");
+    Keyboard.dismiss();
+    setIsInputFocused(false);
+    router.push({
+      pathname: AppRoutes.politicianDetail,
+      params: { name: q },
+    });
+  }, []);
 
   const onBlurSearchField = useCallback(() => {
     blurTimeoutRef.current = setTimeout(() => {

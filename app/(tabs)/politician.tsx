@@ -14,7 +14,7 @@ import {
 } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 
-import PoliticianLineChart from "@/components/charts/PoliticianLineChart";
+import { PoliticianProfileDetail } from "@/components/politician/PoliticianProfileDetail";
 import { StateNoticeCard } from "@/components/surfaces/StateNoticeCard";
 import { ThemedText } from "@/components/theme/ThemedText";
 import { ThemedView } from "@/components/theme/ThemedView";
@@ -573,134 +573,7 @@ export default function PoliticianScreen() {
           ) : null}
 
           {selectedProfile && !isLoading ? (
-            <View style={ps.profileWrap}>
-              <View
-                style={[
-                  ps.resultCard,
-                  ps.profileCard,
-                  {
-                    backgroundColor: palette.cardBackground,
-                    borderColor: palette.cardBorder,
-                  },
-                ]}
-              >
-                <View style={ps.profileHeader}>
-                  <Image
-                    source={{ uri: selectedProfile.photoUrl }}
-                    style={ps.profileImage}
-                    contentFit="cover"
-                  />
-                  <View style={ps.profileHeaderText}>
-                    <ThemedText type="subtitle">{selectedProfile.name}</ThemedText>
-                    <ThemedText style={[ps.roleLine, { color: theme.icon }]}>
-                      {selectedProfile.role} - {selectedProfile.party}
-                    </ThemedText>
-                    <ThemedText style={[ps.locationLine, { color: theme.icon }]}>
-                      {selectedProfile.location}
-                    </ThemedText>
-                  </View>
-                </View>
-                <ThemedText style={ps.bioText}>{selectedProfile.bio}</ThemedText>
-              </View>
-
-              <View style={ps.metricsRow}>
-                <View
-                  style={[
-                    ps.resultCard,
-                    ps.metricChip,
-                    {
-                      backgroundColor: palette.badgeBackground,
-                      borderColor: palette.cardBorder,
-                    },
-                  ]}
-                >
-                  <ThemedText style={[ps.metricLabel, { color: theme.icon }]}>Approval</ThemedText>
-                  <ThemedText type="defaultSemiBold">{selectedProfile.approval}%</ThemedText>
-                </View>
-                <View
-                  style={[
-                    ps.resultCard,
-                    ps.metricChip,
-                    {
-                      backgroundColor: palette.badgeBackground,
-                      borderColor: palette.cardBorder,
-                    },
-                  ]}
-                >
-                  <ThemedText style={[ps.metricLabel, { color: theme.icon }]}>In Office</ThemedText>
-                  <ThemedText type="defaultSemiBold">{selectedProfile.yearsInOffice} yrs</ThemedText>
-                </View>
-                <View
-                  style={[
-                    ps.resultCard,
-                    ps.metricChip,
-                    {
-                      backgroundColor: palette.badgeBackground,
-                      borderColor: palette.cardBorder,
-                    },
-                  ]}
-                >
-                  <ThemedText style={[ps.metricLabel, { color: theme.icon }]}>Election</ThemedText>
-                  <ThemedText type="defaultSemiBold">{selectedProfile.nextElection}</ThemedText>
-                </View>
-              </View>
-
-              <View
-                style={[
-                  ps.resultCard,
-                  ps.sectionCard,
-                  {
-                    backgroundColor: palette.cardBackground,
-                    borderColor: palette.cardBorder,
-                  },
-                ]}
-              >
-                <ThemedText type="defaultSemiBold">Key Positions</ThemedText>
-                {selectedProfile.keyPositions.map((position) => (
-                  <View key={position} style={ps.bulletRow}>
-                    <View style={[ps.bulletDot, { backgroundColor: theme.tint }]} />
-                    <ThemedText style={ps.bulletText}>{position}</ThemedText>
-                  </View>
-                ))}
-              </View>
-
-              <View
-                style={[
-                  ps.resultCard,
-                  ps.sectionCard,
-                  {
-                    backgroundColor: palette.cardBackground,
-                    borderColor: palette.cardBorder,
-                  },
-                ]}
-              >
-                <ThemedText type="defaultSemiBold">Recent Headlines</ThemedText>
-                {selectedProfile.recentNews.map((item) => (
-                  <View key={`${item.headline}-${item.date}`} style={ps.newsRow}>
-                    <ThemedText style={ps.newsHeadline}>{item.headline}</ThemedText>
-                    <ThemedText style={[ps.newsMeta, { color: theme.icon }]}>
-                      {item.source} - {item.date}
-                    </ThemedText>
-                  </View>
-                ))}
-              </View>
-
-              <View
-                style={[
-                  ps.resultCard,
-                  ps.sectionCard,
-                  {
-                    backgroundColor: palette.cardBackground,
-                    borderColor: palette.cardBorder,
-                  },
-                ]}
-              >
-                <ThemedText type="defaultSemiBold" style={ps.chartTitle}>
-                  Approval Trend
-                </ThemedText>
-                <PoliticianLineChart />
-              </View>
-            </View>
+            <PoliticianProfileDetail profile={selectedProfile} />
           ) : null}
         </ScrollView>
       </KeyboardAvoidingView>
