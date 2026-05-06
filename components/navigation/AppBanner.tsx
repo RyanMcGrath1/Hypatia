@@ -56,7 +56,7 @@ export function AppBanner() {
     () =>
       colorScheme === "light"
         ? require("@/assets/images/hypatia-logo-lightmode.png")
-        : require("@/assets/images/hypatia-logo.png"),
+        : require("@/assets/images/hypatia-logo-darkmode.png"),
     [colorScheme],
   );
   const panelAnim = useRef(new Animated.Value(0)).current;
