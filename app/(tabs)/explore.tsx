@@ -1,239 +1,330 @@
-import { useCallback, useEffect, useRef, useState } from 'react';
-import { ActivityIndicator, Pressable, ScrollView, StyleSheet, TextInput, View } from 'react-native';
-
-import { ScreenHeader } from '@/components/layout/ScreenHeader';
-import { SectionCard } from '@/components/surfaces/SectionCard';
-import { StateNoticeCard } from '@/components/surfaces/StateNoticeCard';
-import { ThemedText } from '@/components/theme/ThemedText';
-import { ThemedView } from '@/components/theme/ThemedView';
-import { Brand } from '@/constants/theme/Colors';
-import { Radius, Spacing, getSemanticColors } from '@/constants/theme/ThemeTokens';
+import Ionicons from "@expo/vector-icons/Ionicons";
+import { Image } from "expo-image";
+import { router } from "expo-router";
+import { useCallback, useState } from "react";
 import {
-  DEFAULT_CIVIC_SAMPLE_ADDRESS,
-  DEFAULT_CIVIC_DIVISIONS_SAMPLE_ADDRESS,
-  fetchCivicDivisionsByAddress,
-  getFlaskApiBaseUrl,
-  getFlaskHelloNetworkErrorMessage,
-} from '@/hooks/api/flaskMainApi';
-import { useColorScheme } from '@/hooks/useColorScheme';
+  Pressable,
+  ScrollView,
+  StyleSheet,
+  TextInput,
+  View,
+} from "react-native";
+import { useSafeAreaInsets } from "react-native-safe-area-context";
 
-type ParsedDivision = {
-  id: string;
-  name: string;
-  officeCount: number;
-};
+import { ThemedText } from "@/components/theme/ThemedText";
+import { ThemedView } from "@/components/theme/ThemedView";
+import { AppRoutes } from "@/constants/app/routes";
+import { Brand, Colors } from "@/constants/theme/Colors";
+import { Radius, Spacing, getSemanticColors } from "@/constants/theme/ThemeTokens";
+import { Fonts } from "@/constants/theme/Typography";
+import { useColorScheme } from "@/hooks/useColorScheme";
 
-function parseDivisionCards(payload: unknown): ParsedDivision[] {
-  if (!payload || typeof payload !== 'object') {
-    return [];
-  }
-  const asRecord = payload as Record<string, unknown>;
-  const divisionsRecord = asRecord.divisions;
-  if (!divisionsRecord || typeof divisionsRecord !== 'object') {
-    return [];
-  }
-  return Object.entries(divisionsRecord as Record<string, unknown>)
-    .slice(0, 20)
-    .map(([id, value]) => {
-      const details = value && typeof value === 'object' ? (value as Record<string, unknown>) : {};
-      const name = typeof details.name === 'string' && details.name.trim().length > 0 ? details.name : id;
-      const officeIndices = Array.isArray(details.officeIndices) ? details.officeIndices : [];
-      return { id, name, officeCount: officeIndices.length };
-    });
-}
+const RECENT_SEARCHES = ["Alex Rivera", "CPI Data", "Semiconductor Trade"] as const;
+
+const BROWSE_DOMAINS = [
+  {
+    id: "economy",
+    title: "National Economics",
+    subtitle: "GDP, Labor, Inflation",
+    icon: "bar-chart" as const,
+    iconBg: Brand.primarySoft,
+    iconColor: Brand.primary,
+    href: "/(tabs)/economy" as const,
+  },
+  {
+    id: "politician",
+    title: "Politician Research",
+    subtitle: "Profiles, Voting Records, Financials",
+    icon: "people" as const,
+    iconBg: Brand.infoSoft,
+    iconColor: Brand.primary,
+    href: "/(tabs)/politician" as const,
+  },
+  {
+    id: "news",
+    title: "AI News Feed",
+    subtitle: "Latest headlines & AI insights",
+    icon: "newspaper" as const,
+    iconBg: Brand.warningSoft,
+    iconColor: "#E65100",
+    href: "/(tabs)/" as const,
+  },
+];
+
+const FEATURED_IMAGE =
+  "https://images.unsplash.com/photo-1518770660439-4636190af475?w=800&q=80";
 
 export default function ExploreScreen() {
-  const [isLoading, setIsLoading] = useState(false);
-  const [error, setError] = useState<string | null>(null);
-  const [apiData, setApiData] = useState<unknown | null>(null);
-  const [address, setAddress] = useState(DEFAULT_CIVIC_DIVISIONS_SAMPLE_ADDRESS);
-  const [showRawResponse, setShowRawResponse] = useState(false);
-  const abortRef = useRef<AbortController | null>(null);
-  const requestIdRef = useRef(0);
-  const colorScheme = useColorScheme() ?? 'light';
+  const insets = useSafeAreaInsets();
+  const colorScheme = useColorScheme() ?? "light";
+  const isDark = colorScheme === "dark";
+  const theme = Colors[colorScheme];
   const semantic = getSemanticColors(colorScheme);
 
-  useEffect(() => {
-    return () => {
-      abortRef.current?.abort();
-    };
+  const canvasTint = isDark ? semantic.screenBackground : "#F4F2FA";
+  const [searchQuery, setSearchQuery] = useState("");
+
+  const goTab = useCallback((href: string) => {
+    router.push(href as Parameters<typeof router.push>[0]);
   }, []);
-
-  const loadDivisionsByAddress = useCallback(async (requestedAddress: string) => {
-    const normalizedAddress = requestedAddress.trim();
-    if (!normalizedAddress) {
-      setError('Enter an address or ZIP code before searching.');
-      setApiData(null);
-      return;
-    }
-
-    abortRef.current?.abort();
-    const controller = new AbortController();
-    abortRef.current = controller;
-    const requestId = ++requestIdRef.current;
-
-    setIsLoading(true);
-    setError(null);
-
-    const base = getFlaskApiBaseUrl();
-    const params = new URLSearchParams({ address: normalizedAddress });
-    const url = `${base}/api/civic/divisions-by-address?${params.toString()}`;
-
-    try {
-      const data = await fetchCivicDivisionsByAddress(
-        normalizedAddress,
-        controller.signal,
-      );
-      if (requestIdRef.current !== requestId) {
-        return;
-      }
-      setApiData(data);
-    } catch (err) {
-      if (err instanceof Error && err.name === 'AbortError') {
-        return;
-      }
-      if (requestIdRef.current !== requestId) {
-        return;
-      }
-      if (err instanceof Error) {
-        console.error(
-          `[Explore] GET /api/civic/divisions-by-address failed url=${url} ${err.name}: ${err.message}${err.stack ? `\n${err.stack}` : ''}`,
-        );
-      } else {
-        console.error(`[Explore] GET /api/civic/divisions-by-address failed url=${url}`, String(err));
-      }
-      setApiData(null);
-      const hint = getFlaskHelloNetworkErrorMessage();
-      const detail = err instanceof Error && err.message ? err.message : null;
-      setError(detail ? `${hint}\n\n${detail}` : hint);
-    } finally {
-      if (requestIdRef.current === requestId) {
-        setIsLoading(false);
-      }
-    }
-  }, []);
-
-  /** Same handler; keeps a `loadHello` binding for Metro/HMR if an old reference lingers. */
-  const loadHello = () => loadDivisionsByAddress(address);
-
-  const responseText =
-    apiData === null
-      ? null
-      : typeof apiData === 'string'
-        ? apiData
-        : JSON.stringify(apiData, null, 2);
-  const parsedDivisions = parseDivisionCards(apiData);
 
   return (
-    <ThemedView style={styles.screen}>
-      <ScrollView contentContainerStyle={styles.scroll} keyboardShouldPersistTaps="handled">
-        <ScreenHeader
-          title="Civic Explorer"
-          subtitle="Find district and office coverage by address or ZIP code."
-          subtitleColor={semantic.mutedText}
-        />
-        <SectionCard backgroundColor={semantic.cardSubtleBackground} borderColor={semantic.cardBorder}>
-          <ThemedText style={[styles.subtitle, { color: semantic.mutedText }]}>
-            Enter an address and we will call <ThemedText type="defaultSemiBold">GET /api/civic/divisions-by-address</ThemedText>.
-            Base URL: <ThemedText type="defaultSemiBold">{getFlaskApiBaseUrl()}</ThemedText>.
-          </ThemedText>
+    <ThemedView style={[styles.screen, { backgroundColor: canvasTint }]}>
+      <ScrollView
+        contentContainerStyle={[
+          styles.scroll,
+          {
+            paddingTop: insets.top + Spacing.sm,
+            paddingBottom: insets.bottom + FLOATING_TAB_CLEARANCE,
+          },
+        ]}
+        keyboardShouldPersistTaps="handled"
+        showsVerticalScrollIndicator={false}
+      >
+        <View style={styles.topBar}>
+          <View style={styles.brandRow}>
+            <View style={[styles.brandIconWrap, { backgroundColor: Brand.primarySoft }]}>
+              <Ionicons name="bar-chart" size={18} color={Brand.primary} />
+            </View>
+            <ThemedText style={[styles.brandTitle, { color: Brand.primary }]}>
+              Hypatia
+            </ThemedText>
+          </View>
+          <View style={styles.topBarActions}>
+            <Pressable
+              accessibilityRole="button"
+              accessibilityLabel="Search"
+              hitSlop={8}
+              style={({ pressed }) => [{ opacity: pressed ? 0.7 : 1 }]}
+            >
+              <Ionicons name="search-outline" size={22} color={theme.text} />
+            </Pressable>
+            <Pressable
+              accessibilityRole="button"
+              accessibilityLabel="Profile"
+              hitSlop={8}
+              onPress={() => router.push(AppRoutes.profile)}
+              style={({ pressed }) => [{ opacity: pressed ? 0.7 : 1 }]}
+            >
+              <View style={[styles.avatar, { borderColor: semantic.cardBorder }]}>
+                <Ionicons name="person" size={18} color={semantic.mutedText} />
+              </View>
+            </Pressable>
+          </View>
+        </View>
+
+        <View
+          style={[
+            styles.searchShell,
+            {
+              backgroundColor: semantic.cardBackground,
+              borderColor: semantic.cardBorder,
+            },
+          ]}
+        >
+          <Ionicons name="search" size={20} color={semantic.mutedText} />
           <TextInput
-            value={address}
-            onChangeText={setAddress}
-            placeholder={`Try ${DEFAULT_CIVIC_SAMPLE_ADDRESS} or ${DEFAULT_CIVIC_DIVISIONS_SAMPLE_ADDRESS}`}
-            placeholderTextColor={Brand.steel}
-            style={[
-              styles.addressInput,
-              { borderColor: semantic.cardBorder, color: semantic.mutedText, backgroundColor: semantic.cardBackground },
-            ]}
-            autoCapitalize="words"
+            value={searchQuery}
+            onChangeText={setSearchQuery}
+            placeholder="Search politicians, economic data, or reports"
+            placeholderTextColor={semantic.mutedText}
+            style={[styles.searchInput, { color: theme.text }]}
             returnKeyType="search"
-            onSubmitEditing={loadHello}
           />
-          <View style={styles.examplesWrap}>
-            {[DEFAULT_CIVIC_SAMPLE_ADDRESS, DEFAULT_CIVIC_DIVISIONS_SAMPLE_ADDRESS].map((example) => (
+        </View>
+
+        <View style={styles.recentRow}>
+          <ThemedText style={[styles.recentLabel, { color: semantic.mutedText }]}>
+            Recent:
+          </ThemedText>
+          <ScrollView
+            horizontal
+            showsHorizontalScrollIndicator={false}
+            contentContainerStyle={styles.recentChipsContent}
+          >
+            {RECENT_SEARCHES.map((label) => (
               <Pressable
-                key={example}
+                key={label}
+                onPress={() => setSearchQuery(label)}
                 style={({ pressed }) => [
-                  styles.exampleChip,
+                  styles.recentChip,
                   {
+                    backgroundColor: semantic.cardSubtleBackground,
                     borderColor: semantic.cardBorder,
-                    backgroundColor: semantic.cardBackground,
-                    opacity: pressed ? 0.82 : 1,
+                    opacity: pressed ? 0.88 : 1,
                   },
                 ]}
-                onPress={() => setAddress(example)}>
-                <ThemedText style={styles.exampleLabel}>{example}</ThemedText>
+              >
+                <ThemedText style={[styles.recentChipText, { color: theme.text }]}>
+                  {label}
+                </ThemedText>
               </Pressable>
             ))}
+          </ScrollView>
+        </View>
+
+        <ThemedText type="defaultSemiBold" style={[styles.sectionHeading, { color: theme.text }]}>
+          Browse by Domain
+        </ThemedText>
+        <View style={styles.domainList}>
+          {BROWSE_DOMAINS.map((domain) => (
+            <Pressable
+              key={domain.id}
+              accessibilityRole="button"
+              accessibilityLabel={`${domain.title}: ${domain.subtitle}`}
+              onPress={() => goTab(domain.href)}
+              style={({ pressed }) => [
+                styles.domainCard,
+                {
+                  backgroundColor: semantic.cardBackground,
+                  borderColor: semantic.cardBorder,
+                  opacity: pressed ? 0.92 : 1,
+                },
+                semantic.cardShadow,
+              ]}
+            >
+              <View style={[styles.domainIcon, { backgroundColor: domain.iconBg }]}>
+                <Ionicons name={domain.icon} size={22} color={domain.iconColor} />
+              </View>
+              <View style={styles.domainTextCol}>
+                <ThemedText type="defaultSemiBold" style={{ color: theme.text }}>
+                  {domain.title}
+                </ThemedText>
+                <ThemedText style={[styles.domainSubtitle, { color: semantic.mutedText }]}>
+                  {domain.subtitle}
+                </ThemedText>
+              </View>
+              <Ionicons name="chevron-forward" size={18} color={semantic.mutedText} />
+            </Pressable>
+          ))}
+        </View>
+
+        <View style={styles.trendingHeader}>
+          <ThemedText type="defaultSemiBold" style={[styles.sectionHeading, { color: theme.text }]}>
+            Trending Insights
+          </ThemedText>
+          <Pressable onPress={() => goTab("/(tabs)/economy")} hitSlop={8}>
+            <ThemedText style={[styles.viewAnalysis, { color: Brand.primary }]}>
+              View Analysis →
+            </ThemedText>
+          </Pressable>
+        </View>
+
+        <View
+          style={[
+            styles.featuredCard,
+            {
+              backgroundColor: semantic.cardBackground,
+              borderColor: semantic.cardBorder,
+            },
+            semantic.cardShadow,
+          ]}
+        >
+          <View style={styles.featuredImageWrap}>
+            <Image
+              source={{ uri: FEATURED_IMAGE }}
+              style={styles.featuredImage}
+              contentFit="cover"
+              transition={200}
+            />
+            <View style={[styles.pill, { backgroundColor: Brand.primary }]}>
+              <ThemedText style={styles.pillText}>AI IMPACT REPORT</ThemedText>
+            </View>
           </View>
-        </SectionCard>
+          <View style={styles.featuredBody}>
+            <ThemedText type="defaultSemiBold" style={[styles.featuredTitle, { color: theme.text }]}>
+              Tech Regulation Impact
+            </ThemedText>
+            <ThemedText style={[styles.featuredCopy, { color: semantic.mutedText }]}>
+              Bill HR-842 could reshape semiconductor supply chains. Hypatia models
+              second-order effects on labor and pricing over the next two quarters.
+            </ThemedText>
+            <View style={styles.metricsRow}>
+              <View style={styles.metricCol}>
+                <ThemedText style={[styles.metricLabel, { color: semantic.mutedText }]}>
+                  POTENTIAL RISK
+                </ThemedText>
+                <ThemedText style={[styles.metricValue, { color: Brand.danger }]}>
+                  High
+                </ThemedText>
+              </View>
+              <View style={styles.metricCol}>
+                <ThemedText style={[styles.metricLabel, { color: semantic.mutedText }]}>
+                  MARKET CONFIDENCE
+                </ThemedText>
+                <ThemedText style={[styles.metricValue, { color: Brand.info }]}>
+                  68%
+                </ThemedText>
+              </View>
+            </View>
+          </View>
+        </View>
 
         <Pressable
+          onPress={() => goTab("/(tabs)/economy")}
           style={({ pressed }) => [
-            styles.button,
-            { backgroundColor: semantic.accent, opacity: pressed ? 0.86 : 1 },
+            styles.promoCard,
+            { backgroundColor: Brand.primary, opacity: pressed ? 0.92 : 1 },
           ]}
-          onPress={loadHello}
-          disabled={isLoading}>
-          {isLoading ? (
-            <View style={styles.buttonLoading}>
-              <ActivityIndicator color={Brand.paper} />
-              <ThemedText style={styles.buttonLabel}>Loading…</ThemedText>
-            </View>
-          ) : (
-            <ThemedText style={styles.buttonLabel}>Find civic divisions</ThemedText>
-          )}
+        >
+          <Ionicons name="analytics" size={28} color={Brand.white} />
+          <ThemedText style={styles.promoTitle}>Debt Ceiling Alpha</ThemedText>
+          <ThemedText style={styles.promoSubtitle}>
+            Forward-looking signal on fiscal headlines and rate sensitivity.
+          </ThemedText>
+          <View style={styles.promoCta}>
+            <ThemedText style={[styles.promoCtaText, { color: Brand.primary }]}>
+              Explore Signal
+            </ThemedText>
+          </View>
         </Pressable>
 
-        {error !== null && !isLoading && (
-          <StateNoticeCard
-            title="Unable to load civic data"
-            message={error}
-            borderColor={semantic.danger}
-            backgroundColor={semantic.cardBackground}
-            messageColor={semantic.danger}
-            actionLabel="Retry"
-            actionColor={semantic.accent}
-            onActionPress={loadHello}
-          />
-        )}
-
-        {parsedDivisions.length > 0 && !isLoading && error === null && (
-          <View style={styles.resultsWrap}>
-            <ThemedText type="defaultSemiBold">Matched divisions ({parsedDivisions.length})</ThemedText>
-            {parsedDivisions.map((division) => (
-              <SectionCard
-                key={division.id}
-                backgroundColor={semantic.cardBackground}
-                borderColor={semantic.cardBorder}
-                style={styles.divisionCard}>
-                <ThemedText type="defaultSemiBold">{division.name}</ThemedText>
-                <ThemedText style={{ color: semantic.mutedText, fontSize: 12 }}>{division.id}</ThemedText>
-                <ThemedText style={{ color: semantic.mutedText }}>Offices linked: {division.officeCount}</ThemedText>
-              </SectionCard>
-            ))}
+        <View
+          style={[
+            styles.summaryCard,
+            {
+              backgroundColor: semantic.cardSubtleBackground,
+              borderColor: semantic.cardBorder,
+            },
+          ]}
+        >
+          <View style={styles.summaryTop}>
+            <Ionicons name="shield-checkmark-outline" size={22} color={semantic.mutedText} />
+            <ThemedText style={[styles.summaryDelta, { color: Brand.danger }]}>
+              -1.2%
+            </ThemedText>
           </View>
-        )}
-
-        {responseText !== null && (
-          <SectionCard backgroundColor={semantic.cardSubtleBackground} borderColor={semantic.cardBorder}>
-            <Pressable
-              style={({ pressed }) => [styles.rawToggle, { opacity: pressed ? 0.85 : 1 }]}
-              onPress={() => setShowRawResponse((current) => !current)}>
-              <ThemedText type="defaultSemiBold">{showRawResponse ? 'Hide raw response' : 'Show raw response'}</ThemedText>
-            </Pressable>
-            {showRawResponse && (
-              <ThemedText selectable style={styles.response}>
-                {responseText}
-              </ThemedText>
-            )}
-          </SectionCard>
-        )}
+          <ThemedText type="defaultSemiBold" style={{ color: theme.text }}>
+            Trade Tariffs
+          </ThemedText>
+          <ThemedText style={[styles.summaryCopy, { color: semantic.mutedText }]}>
+            Watchlist item: import-sensitive sectors and retaliatory risk scenarios.
+          </ThemedText>
+        </View>
       </ScrollView>
+
+      <Pressable
+        accessibilityRole="button"
+        accessibilityLabel="Quick insights"
+        onPress={() => goTab("/(tabs)/economy")}
+        style={({ pressed }) => [
+          styles.fab,
+          {
+            backgroundColor: Brand.primary,
+            bottom: insets.bottom + FAB_BOTTOM,
+            opacity: pressed ? 0.9 : 1,
+          },
+        ]}
+      >
+        <Ionicons name="flash" size={24} color={Brand.white} />
+      </Pressable>
     </ThemedView>
   );
 }
+
+/** Space above the floating tab bar (height + offset + padding). */
+const FLOATING_TAB_CLEARANCE = 112;
+const FAB_BOTTOM = 88;
 
 const styles = StyleSheet.create({
   screen: {
@@ -241,65 +332,236 @@ const styles = StyleSheet.create({
   },
   scroll: {
     paddingHorizontal: Spacing.lg,
-    paddingTop: Spacing.md,
-    paddingBottom: 112,
     gap: Spacing.md,
   },
-  subtitle: {
-    lineHeight: 20,
+  topBar: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
+    marginBottom: 4,
   },
-  addressInput: {
-    minHeight: 46,
-    borderWidth: 1,
-    borderRadius: Radius.md,
-    paddingHorizontal: 12,
-    fontSize: 15,
-  },
-  examplesWrap: {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
+  brandRow: {
+    flexDirection: "row",
+    alignItems: "center",
     gap: 8,
   },
-  exampleChip: {
-    minHeight: 34,
+  brandIconWrap: {
+    width: 32,
+    height: 32,
+    borderRadius: 8,
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  brandTitle: {
+    fontSize: 18,
+    fontFamily: Fonts.bodySemiBold,
+    letterSpacing: -0.3,
+  },
+  topBarActions: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 14,
+  },
+  avatar: {
+    width: 34,
+    height: 34,
+    borderRadius: 17,
+    borderWidth: 1,
+    alignItems: "center",
+    justifyContent: "center",
+    overflow: "hidden",
+  },
+  searchShell: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 10,
+    borderWidth: 1,
+    borderRadius: Radius.lg,
+    paddingHorizontal: 14,
+    minHeight: 48,
+  },
+  searchInput: {
+    flex: 1,
+    fontSize: 15,
+    fontFamily: Fonts.body,
+    paddingVertical: 10,
+  },
+  recentRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 8,
+    marginTop: -4,
+  },
+  recentLabel: {
+    fontSize: 13,
+    fontFamily: Fonts.bodyMedium,
+  },
+  recentChipsContent: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 8,
+    paddingRight: 4,
+  },
+  recentChip: {
     borderWidth: 1,
     borderRadius: 999,
-    paddingHorizontal: 10,
-    justifyContent: 'center',
+    paddingHorizontal: 12,
+    paddingVertical: 6,
   },
-  exampleLabel: {
-    fontSize: 12,
+  recentChipText: {
+    fontSize: 13,
+    fontFamily: Fonts.bodyMedium,
   },
-  button: {
-    minHeight: 44,
-    borderRadius: Radius.md,
-    alignItems: 'center',
-    justifyContent: 'center',
-    paddingHorizontal: Spacing.md,
+  sectionHeading: {
+    fontSize: 16,
+    marginTop: 4,
   },
-  buttonLabel: {
-    color: Brand.paper,
-    fontSize: 15,
-    fontWeight: '600',
+  domainList: {
+    gap: Spacing.sm,
   },
-  buttonLoading: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 10,
+  domainCard: {
+    flexDirection: "row",
+    alignItems: "center",
+    borderWidth: 1,
+    borderRadius: Radius.lg,
+    padding: Spacing.md,
+    gap: 12,
   },
-  resultsWrap: {
-    gap: 8,
+  domainIcon: {
+    width: 44,
+    height: 44,
+    borderRadius: 12,
+    alignItems: "center",
+    justifyContent: "center",
   },
-  divisionCard: {
-    gap: 4,
+  domainTextCol: {
+    flex: 1,
+    gap: 2,
   },
-  rawToggle: {
-    minHeight: 36,
-    justifyContent: 'center',
-  },
-  response: {
-    fontFamily: 'monospace',
+  domainSubtitle: {
     fontSize: 13,
     lineHeight: 18,
+  },
+  trendingHeader: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
+    marginTop: 8,
+  },
+  viewAnalysis: {
+    fontSize: 14,
+    fontFamily: Fonts.bodySemiBold,
+  },
+  featuredCard: {
+    borderWidth: 1,
+    borderRadius: Radius.lg,
+    overflow: "hidden",
+  },
+  featuredImageWrap: {
+    position: "relative",
+  },
+  featuredImage: {
+    width: "100%",
+    aspectRatio: 16 / 9,
+    backgroundColor: Brand.border,
+  },
+  pill: {
+    position: "absolute",
+    top: 12,
+    left: 12,
+    paddingHorizontal: 10,
+    paddingVertical: 4,
+    borderRadius: 999,
+  },
+  pillText: {
+    color: Brand.white,
+    fontSize: 10,
+    fontWeight: "700",
+    letterSpacing: 0.4,
+  },
+  featuredBody: {
+    padding: Spacing.md,
+    gap: Spacing.sm,
+  },
+  featuredTitle: {
+    fontSize: 17,
+  },
+  featuredCopy: {
+    fontSize: 13,
+    lineHeight: 20,
+  },
+  metricsRow: {
+    flexDirection: "row",
+    gap: Spacing.lg,
+    marginTop: 4,
+  },
+  metricCol: {
+    flex: 1,
+    gap: 4,
+  },
+  metricLabel: {
+    fontSize: 10,
+    fontWeight: "600",
+    letterSpacing: 0.3,
+  },
+  metricValue: {
+    fontSize: 16,
+    fontFamily: Fonts.bodySemiBold,
+  },
+  promoCard: {
+    borderRadius: Radius.lg,
+    padding: Spacing.lg,
+    gap: 8,
+  },
+  promoTitle: {
+    color: Brand.white,
+    fontSize: 18,
+    fontFamily: Fonts.bodySemiBold,
+  },
+  promoSubtitle: {
+    color: "rgba(255,255,255,0.88)",
+    fontSize: 13,
+    lineHeight: 18,
+  },
+  promoCta: {
+    alignSelf: "flex-start",
+    marginTop: 8,
+    backgroundColor: Brand.white,
+    paddingHorizontal: 16,
+    paddingVertical: 10,
+    borderRadius: Radius.md,
+  },
+  promoCtaText: {
+    fontSize: 14,
+    fontFamily: Fonts.bodySemiBold,
+  },
+  summaryCard: {
+    borderWidth: 1,
+    borderRadius: Radius.lg,
+    padding: Spacing.md,
+    gap: 8,
+    marginBottom: 8,
+  },
+  summaryTop: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "center",
+  },
+  summaryDelta: {
+    fontSize: 15,
+    fontFamily: Fonts.bodySemiBold,
+  },
+  summaryCopy: {
+    fontSize: 13,
+    lineHeight: 18,
+  },
+  fab: {
+    position: "absolute",
+    right: Spacing.lg,
+    width: 52,
+    height: 52,
+    borderRadius: 14,
+    alignItems: "center",
+    justifyContent: "center",
   },
 });
