@@ -1,7 +1,7 @@
 import Ionicons from "@expo/vector-icons/Ionicons";
 import { Image } from "expo-image";
 import { router } from "expo-router";
-import { useCallback, useState } from "react";
+import { useCallback, useMemo, useState } from "react";
 import {
   Pressable,
   ScrollView,
@@ -17,38 +17,9 @@ import { Brand, Colors } from "@/constants/theme/Colors";
 import { Radius, Spacing, getSemanticColors } from "@/constants/theme/ThemeTokens";
 import { Fonts } from "@/constants/theme/Typography";
 import { useColorScheme } from "@/hooks/useColorScheme";
+import { useThemeInteractive } from "@/hooks/useThemeInteractive";
 
 const RECENT_SEARCHES = ["Alex Rivera", "CPI Data", "Semiconductor Trade"] as const;
-
-const BROWSE_DOMAINS = [
-  {
-    id: "economy",
-    title: "National Economics",
-    subtitle: "GDP, Labor, Inflation",
-    icon: "bar-chart" as const,
-    iconBg: Brand.primarySoft,
-    iconColor: Brand.primary,
-    href: "/(tabs)/economy" as const,
-  },
-  {
-    id: "politician",
-    title: "Politician Research",
-    subtitle: "Profiles, Voting Records, Financials",
-    icon: "people" as const,
-    iconBg: Brand.infoSoft,
-    iconColor: Brand.primary,
-    href: "/(tabs)/politician" as const,
-  },
-  {
-    id: "news",
-    title: "AI News Feed",
-    subtitle: "Latest headlines & AI insights",
-    icon: "newspaper" as const,
-    iconBg: Brand.warningSoft,
-    iconColor: "#E65100",
-    href: "/(tabs)/" as const,
-  },
-];
 
 const FEATURED_IMAGE =
   "https://images.unsplash.com/photo-1518770660439-4636190af475?w=800&q=80";
@@ -59,6 +30,41 @@ export default function ExploreScreen() {
   const isDark = colorScheme === "dark";
   const theme = Colors[colorScheme];
   const semantic = getSemanticColors(colorScheme);
+  const interactive = useThemeInteractive();
+
+  const browseDomains = useMemo(
+    () =>
+      [
+        {
+          id: "economy",
+          title: "National Economics",
+          subtitle: "GDP, Labor, Inflation",
+          icon: "bar-chart" as const,
+          iconBg: interactive.primarySoft,
+          iconColor: interactive.primary,
+          href: "/(tabs)/economy" as const,
+        },
+        {
+          id: "politician",
+          title: "Politician Research",
+          subtitle: "Profiles, Voting Records, Financials",
+          icon: "people" as const,
+          iconBg: interactive.infoSoft,
+          iconColor: interactive.primary,
+          href: "/(tabs)/politician" as const,
+        },
+        {
+          id: "news",
+          title: "AI News Feed",
+          subtitle: "Latest headlines & AI insights",
+          icon: "newspaper" as const,
+          iconBg: interactive.warningSoft,
+          iconColor: interactive.tertiary,
+          href: "/(tabs)/" as const,
+        },
+      ] as const,
+    [interactive],
+  );
 
   const canvasTint = isDark ? semantic.screenBackground : "#F4F2FA";
   const [searchQuery, setSearchQuery] = useState("");
@@ -83,10 +89,10 @@ export default function ExploreScreen() {
       >
         <View style={styles.topBar}>
           <View style={styles.brandRow}>
-            <View style={[styles.brandIconWrap, { backgroundColor: Brand.primarySoft }]}>
-              <Ionicons name="bar-chart" size={18} color={Brand.primary} />
+            <View style={[styles.brandIconWrap, { backgroundColor: interactive.primarySoft }]}>
+              <Ionicons name="bar-chart" size={18} color={interactive.primary} />
             </View>
-            <ThemedText style={[styles.brandTitle, { color: Brand.primary }]}>
+            <ThemedText style={[styles.brandTitle, { color: interactive.primary }]}>
               Hypatia
             </ThemedText>
           </View>
@@ -146,7 +152,7 @@ export default function ExploreScreen() {
           Browse by Domain
         </ThemedText>
         <View style={styles.domainList}>
-          {BROWSE_DOMAINS.map((domain) => (
+          {browseDomains.map((domain) => (
             <Pressable
               key={domain.id}
               accessibilityRole="button"
@@ -183,7 +189,7 @@ export default function ExploreScreen() {
             Trending Insights
           </ThemedText>
           <Pressable onPress={() => goTab("/(tabs)/economy")} hitSlop={8}>
-            <ThemedText style={[styles.viewAnalysis, { color: Brand.primary }]}>
+            <ThemedText style={[styles.viewAnalysis, { color: interactive.primary }]}>
               View Analysis →
             </ThemedText>
           </Pressable>
@@ -206,7 +212,7 @@ export default function ExploreScreen() {
               contentFit="cover"
               transition={200}
             />
-            <View style={[styles.pill, { backgroundColor: Brand.primary }]}>
+            <View style={[styles.pill, { backgroundColor: interactive.primaryFill }]}>
               <ThemedText style={styles.pillText}>AI IMPACT REPORT</ThemedText>
             </View>
           </View>
@@ -223,7 +229,7 @@ export default function ExploreScreen() {
                 <ThemedText style={[styles.metricLabel, { color: semantic.mutedText }]}>
                   POTENTIAL RISK
                 </ThemedText>
-                <ThemedText style={[styles.metricValue, { color: Brand.danger }]}>
+                <ThemedText style={[styles.metricValue, { color: interactive.danger }]}>
                   High
                 </ThemedText>
               </View>
@@ -231,7 +237,7 @@ export default function ExploreScreen() {
                 <ThemedText style={[styles.metricLabel, { color: semantic.mutedText }]}>
                   MARKET CONFIDENCE
                 </ThemedText>
-                <ThemedText style={[styles.metricValue, { color: Brand.info }]}>
+                <ThemedText style={[styles.metricValue, { color: interactive.info }]}>
                   68%
                 </ThemedText>
               </View>
@@ -243,7 +249,7 @@ export default function ExploreScreen() {
           onPress={() => goTab("/(tabs)/economy")}
           style={({ pressed }) => [
             styles.promoCard,
-            { backgroundColor: Brand.primary, opacity: pressed ? 0.92 : 1 },
+            { backgroundColor: interactive.primaryFill, opacity: pressed ? 0.92 : 1 },
           ]}
         >
           <Ionicons name="analytics" size={28} color={Brand.white} />
@@ -252,7 +258,7 @@ export default function ExploreScreen() {
             Forward-looking signal on fiscal headlines and rate sensitivity.
           </ThemedText>
           <View style={styles.promoCta}>
-            <ThemedText style={[styles.promoCtaText, { color: Brand.primary }]}>
+            <ThemedText style={[styles.promoCtaText, { color: interactive.primary }]}>
               Explore Signal
             </ThemedText>
           </View>
@@ -269,7 +275,7 @@ export default function ExploreScreen() {
         >
           <View style={styles.summaryTop}>
             <Ionicons name="shield-checkmark-outline" size={22} color={semantic.mutedText} />
-            <ThemedText style={[styles.summaryDelta, { color: Brand.danger }]}>
+            <ThemedText style={[styles.summaryDelta, { color: interactive.danger }]}>
               -1.2%
             </ThemedText>
           </View>
@@ -289,7 +295,7 @@ export default function ExploreScreen() {
         style={({ pressed }) => [
           styles.fab,
           {
-            backgroundColor: Brand.primary,
+            backgroundColor: interactive.primaryFill,
             bottom: insets.bottom + FAB_BOTTOM,
             opacity: pressed ? 0.9 : 1,
           },

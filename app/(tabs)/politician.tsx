@@ -24,6 +24,7 @@ import { Fonts } from "@/constants/theme/Typography";
 import { usePoliticianSearch } from "@/hooks/usePoliticianSearch";
 import { useColorScheme } from "@/hooks/useColorScheme";
 import { useThemeColor } from "@/hooks/useThemeColor";
+import { useThemeInteractive } from "@/hooks/useThemeInteractive";
 import { MOCK_POLITICIANS } from "@/lib/politician/mockProfileSearch";
 import type { PoliticianProfile } from "@/lib/politician/types";
 import { politicianScreenStyles as ps } from "@/lib/politician/screenStyles";
@@ -128,6 +129,7 @@ export default function PoliticianScreen() {
   const colorScheme = useColorScheme() ?? "light";
   const theme = Colors[colorScheme];
   const semantic = getSemanticColors(colorScheme);
+  const interactive = useThemeInteractive();
   const textColor = useThemeColor({}, "text");
   const iconColor = useThemeColor({}, "icon");
 
@@ -138,10 +140,9 @@ export default function PoliticianScreen() {
       cardBackground: semantic.cardBackground,
       cardBorder: semantic.cardBorder,
       sectionBackground: semantic.cardSubtleBackground,
-      badgeBackground:
-        colorScheme === "dark" ? Brand.slate : semantic.cardSubtleBackground,
+      badgeBackground: semantic.cardSubtleBackground,
     }),
-    [colorScheme, semantic],
+    [semantic],
   );
 
   const filteredTrending = useMemo(
@@ -169,10 +170,10 @@ export default function PoliticianScreen() {
           showsVerticalScrollIndicator={false}
         >
           <View style={styles.topBar}>
-            <View style={[styles.headerIconWrap, { backgroundColor: Brand.primarySoft }]}>
-              <Ionicons name="business" size={20} color={Brand.primary} />
+            <View style={[styles.headerIconWrap, { backgroundColor: interactive.primarySoft }]}>
+              <Ionicons name="business" size={20} color={interactive.primary} />
             </View>
-            <ThemedText style={[styles.brandTitle, { color: Brand.primary }]}>
+            <ThemedText style={[styles.brandTitle, { color: interactive.primary }]}>
               HYPATIA
             </ThemedText>
           </View>
@@ -258,8 +259,8 @@ export default function PoliticianScreen() {
                   style={({ pressed }) => [
                     styles.filterChip,
                     {
-                      backgroundColor: selected ? Brand.primary : palette.sectionBackground,
-                      borderColor: selected ? Brand.primary : palette.cardBorder,
+                      backgroundColor: selected ? interactive.primaryFill : palette.sectionBackground,
+                      borderColor: selected ? interactive.primaryFill : palette.cardBorder,
                       opacity: pressed ? 0.9 : 1,
                     },
                   ]}
@@ -314,7 +315,7 @@ export default function PoliticianScreen() {
               Trending Now
             </ThemedText>
             <Pressable hitSlop={8}>
-              <ThemedText style={[styles.viewAllLink, { color: Brand.primary }]}>View all</ThemedText>
+              <ThemedText style={[styles.viewAllLink, { color: interactive.primary }]}>View all</ThemedText>
             </Pressable>
           </View>
 
@@ -329,12 +330,12 @@ export default function PoliticianScreen() {
                 sentiment: "Sentiment: trending",
                 bars: profile.party === "Republican" ? ("red" as const) : ("blue" as const),
               };
-              const barColor = meta.bars === "red" ? Brand.danger : Brand.primary;
+              const barColor = meta.bars === "red" ? interactive.danger : interactive.primary;
               const partyDot =
                 profile.party === "Republican"
-                  ? Brand.danger
+                  ? interactive.danger
                   : profile.party === "Democratic"
-                    ? Brand.primary
+                    ? interactive.primary
                     : semantic.mutedText;
               const subtitleParts = meta.subtitle.split("•").map((s) => s.trim());
               const districtLine = subtitleParts[0] ?? "";
@@ -392,7 +393,7 @@ export default function PoliticianScreen() {
                   <View style={[styles.trendingChartBg, { backgroundColor: palette.sectionBackground }]}>
                     <MiniApprovalBars color={barColor} variant={meta.bars} />
                   </View>
-                  <ThemedText style={[styles.sentimentLine, { color: Brand.primary }]} numberOfLines={2}>
+                  <ThemedText style={[styles.sentimentLine, { color: interactive.primary }]} numberOfLines={2}>
                     {meta.sentiment}
                   </ThemedText>
                 </Pressable>
@@ -423,14 +424,14 @@ export default function PoliticianScreen() {
                     style={[
                       styles.legTag,
                       item.variant === "blue"
-                        ? { backgroundColor: Brand.primarySoft }
+                        ? { backgroundColor: interactive.primarySoft }
                         : { backgroundColor: "#E65100" },
                     ]}
                   >
                     <ThemedText
                       style={[
                         styles.legTagText,
-                        item.variant === "blue" ? { color: Brand.primary } : { color: Brand.white },
+                        item.variant === "blue" ? { color: interactive.primary } : { color: Brand.white },
                       ]}
                     >
                       {item.tag}
@@ -450,8 +451,8 @@ export default function PoliticianScreen() {
                   <View style={styles.legFooterRow}>
                     {item.showPartyDots ? (
                       <View style={styles.partyDots}>
-                        <View style={[styles.smallPartyDot, { backgroundColor: Brand.primary }]} />
-                        <View style={[styles.smallPartyDot, { backgroundColor: Brand.danger, marginLeft: -6 }]} />
+                        <View style={[styles.smallPartyDot, { backgroundColor: interactive.primary }]} />
+                        <View style={[styles.smallPartyDot, { backgroundColor: interactive.danger, marginLeft: -6 }]} />
                       </View>
                     ) : null}
                     <ThemedText style={[styles.legFooterText, { color: semantic.mutedText }]}>
@@ -462,7 +463,7 @@ export default function PoliticianScreen() {
               </View>
             ))}
             <Pressable style={styles.calendarLinkWrap}>
-              <ThemedText style={[styles.calendarLink, { color: Brand.primary }]}>View full calendar</ThemedText>
+              <ThemedText style={[styles.calendarLink, { color: interactive.primary }]}>View full calendar</ThemedText>
             </Pressable>
           </View>
 
@@ -486,7 +487,7 @@ export default function PoliticianScreen() {
               </ThemedText>
             </View>
             <View style={[styles.progressTrack, { backgroundColor: palette.sectionBackground }]}>
-              <View style={[styles.progressFill, { width: "78%", backgroundColor: Brand.primary }]} />
+              <View style={[styles.progressFill, { width: "78%", backgroundColor: interactive.primary }]} />
             </View>
             <View style={styles.finRow}>
               <ThemedText style={{ color: theme.text }}>Corporate PACs</ThemedText>
@@ -516,7 +517,7 @@ export default function PoliticianScreen() {
             <Pressable
               style={({ pressed }) => [
                 styles.unlockButton,
-                { backgroundColor: Brand.primary, opacity: pressed ? 0.9 : 1 },
+                { backgroundColor: interactive.primaryFill, opacity: pressed ? 0.9 : 1 },
               ]}
             >
               <ThemedText style={styles.unlockButtonText}>Unlock Full Portfolio Access</ThemedText>

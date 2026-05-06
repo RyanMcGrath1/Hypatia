@@ -7,10 +7,11 @@ import { PoliticianDetailScreenBody } from "@/components/politician/PoliticianDe
 import { ThemedText } from "@/components/theme/ThemedText";
 import { ThemedView } from "@/components/theme/ThemedView";
 import { AppRoutes } from "@/constants/app/routes";
-import { Brand, Colors } from "@/constants/theme/Colors";
+import { Colors } from "@/constants/theme/Colors";
 import { Spacing, getSemanticColors } from "@/constants/theme/ThemeTokens";
 import { Fonts } from "@/constants/theme/Typography";
 import { useColorScheme } from "@/hooks/useColorScheme";
+import { useThemeInteractive } from "@/hooks/useThemeInteractive";
 import { findPoliticianProfile } from "@/lib/politician/mockProfileSearch";
 
 export default function PoliticianDetailScreen() {
@@ -24,6 +25,7 @@ export default function PoliticianDetailScreen() {
   const colorScheme = useColorScheme() ?? "light";
   const theme = Colors[colorScheme];
   const semantic = getSemanticColors(colorScheme);
+  const interactive = useThemeInteractive();
 
   const sharedHeaderOptions = {
     gestureEnabled: true,
@@ -46,7 +48,7 @@ export default function PoliticianDetailScreen() {
               <ThemedText
                 style={{
                   fontFamily: Fonts.bodyBold,
-                  color: Brand.primary,
+                  color: interactive.primary,
                   letterSpacing: 0.8,
                   fontSize: 15,
                 }}
@@ -83,7 +85,7 @@ export default function PoliticianDetailScreen() {
             <ThemedText
               style={{
                 fontFamily: Fonts.bodyBold,
-                color: Brand.primary,
+                color: interactive.primary,
                 letterSpacing: 0.8,
                 fontSize: 15,
               }}

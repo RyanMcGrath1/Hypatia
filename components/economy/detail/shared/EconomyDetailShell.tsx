@@ -7,36 +7,46 @@ import { useSafeAreaInsets } from "react-native-safe-area-context";
 
 import { ThemedText } from "@/components/theme/ThemedText";
 import { ThemedView } from "@/components/theme/ThemedView";
-import { Brand, Colors } from "@/constants/theme/Colors";
+import { Colors } from "@/constants/theme/Colors";
 import { Spacing, getSemanticColors } from "@/constants/theme/ThemeTokens";
 import { Fonts } from "@/constants/theme/Typography";
 import { formatUpdatedEst } from "@/lib/economy/detail/formatUpdatedEst";
 import { useColorScheme } from "@/hooks/useColorScheme";
+import { useThemeInteractive } from "@/hooks/useThemeInteractive";
 
 export const ECONOMY_DASHBOARD_POSITIVE_GREEN = "#16A34A";
 
+export type EconomyDetailHeaderLayout = "hypatia" | "sectorInline";
+
 type EconomyDetailShellProps = {
-  /** Large all-caps style title (e.g. LABOR MARKET). */
+  /** Large all-caps style title (e.g. LABOR MARKET or INFLATION & PRICES). */
   pageTitle: string;
   children: ReactNode;
   /** Show green “LIVE DATA FEED” next to the title. Default true. */
   showLiveFeed?: boolean;
+  /**
+   * `hypatia` — HYPATIA row + accent + title + live (labor-style).
+   * `sectorInline` — one row: icon + title + UPDATED (inflation-style).
+   */
+  headerLayout?: EconomyDetailHeaderLayout;
 };
 
 /**
- * Full-bleed economy dashboard: back control, HYPATIA brand row, EST timestamp,
- * accent + page title + optional live badge, then scrollable body.
+ * Full-bleed economy dashboard: back control, then header (see `headerLayout`),
+ * then scrollable body.
  */
 export function EconomyDetailShell({
   pageTitle,
   children,
   showLiveFeed = true,
+  headerLayout = "hypatia",
 }: EconomyDetailShellProps) {
   const router = useRouter();
   const insets = useSafeAreaInsets();
   const colorScheme = useColorScheme() ?? "light";
   const semantic = getSemanticColors(colorScheme);
   const theme = Colors[colorScheme];
+  const interactive = useThemeInteractive();
   const updated = useMemo(() => formatUpdatedEst(), []);
 
   return (
@@ -61,28 +71,44 @@ export function EconomyDetailShell({
           <Ionicons name="chevron-back" size={26} color={theme.text} />
         </Pressable>
 
-        <View style={styles.brandRow}>
-          <View style={styles.brandLeft}>
-            <Feather name="bar-chart-2" size={20} color={Brand.primary} />
-            <ThemedText style={[styles.brandWordmark, { color: theme.text }]}>HYPATIA</ThemedText>
+        {headerLayout === "sectorInline" ? (
+          <View style={styles.inlineHeaderRow}>
+            <View style={[styles.inlineHeaderIcon, { backgroundColor: interactive.primarySoft }]}>
+              <Feather name="bar-chart-2" size={20} color={interactive.primary} />
+            </View>
+            <ThemedText style={[styles.inlinePageTitle, { color: theme.text }]} numberOfLines={2}>
+              {pageTitle}
+            </ThemedText>
+            <ThemedText style={[styles.updatedStamp, { color: semantic.mutedText, flexShrink: 0 }]}>
+              UPDATED {updated} EST
+            </ThemedText>
           </View>
-          <ThemedText style={[styles.updatedStamp, { color: semantic.mutedText }]}>
-            UPDATED {updated} EST
-          </ThemedText>
-        </View>
-
-        <View style={styles.titleBlock}>
-          <View style={[styles.accentBar, { backgroundColor: Brand.primary }]} />
-          <ThemedText style={[styles.pageTitle, { color: theme.text }]}>{pageTitle}</ThemedText>
-          {showLiveFeed ? (
-            <View style={styles.liveFeed}>
-              <View style={[styles.liveDot, { backgroundColor: ECONOMY_DASHBOARD_POSITIVE_GREEN }]} />
-              <ThemedText style={[styles.liveText, { color: ECONOMY_DASHBOARD_POSITIVE_GREEN }]}>
-                LIVE DATA FEED
+        ) : (
+          <>
+            <View style={styles.brandRow}>
+              <View style={styles.brandLeft}>
+                <Feather name="bar-chart-2" size={20} color={interactive.primary} />
+                <ThemedText style={[styles.brandWordmark, { color: theme.text }]}>HYPATIA</ThemedText>
+              </View>
+              <ThemedText style={[styles.updatedStamp, { color: semantic.mutedText }]}>
+                UPDATED {updated} EST
               </ThemedText>
             </View>
-          ) : null}
-        </View>
+
+            <View style={styles.titleBlock}>
+              <View style={[styles.accentBar, { backgroundColor: interactive.primary }]} />
+              <ThemedText style={[styles.pageTitle, { color: theme.text }]}>{pageTitle}</ThemedText>
+              {showLiveFeed ? (
+                <View style={styles.liveFeed}>
+                  <View style={[styles.liveDot, { backgroundColor: ECONOMY_DASHBOARD_POSITIVE_GREEN }]} />
+                  <ThemedText style={[styles.liveText, { color: ECONOMY_DASHBOARD_POSITIVE_GREEN }]}>
+                    LIVE DATA FEED
+                  </ThemedText>
+                </View>
+              ) : null}
+            </View>
+          </>
+        )}
 
         {children}
       </ScrollView>
@@ -157,5 +183,24 @@ const styles = StyleSheet.create({
     fontSize: 11,
     fontFamily: Fonts.bodyBold,
     letterSpacing: 0.4,
+  },
+  inlineHeaderRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: Spacing.sm,
+    marginBottom: Spacing.md,
+  },
+  inlineHeaderIcon: {
+    width: 32,
+    height: 32,
+    borderRadius: 8,
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  inlinePageTitle: {
+    flex: 1,
+    fontSize: 15,
+    fontFamily: Fonts.bodyBold,
+    letterSpacing: 0.6,
   },
 });

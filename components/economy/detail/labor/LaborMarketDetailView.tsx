@@ -8,7 +8,7 @@ import {
   EconomyDetailShell,
 } from "@/components/economy/detail/shared/EconomyDetailShell";
 import { ThemedText } from "@/components/theme/ThemedText";
-import { Brand, Colors } from "@/constants/theme/Colors";
+import { Colors } from "@/constants/theme/Colors";
 import { Radius, Spacing, getSemanticColors } from "@/constants/theme/ThemeTokens";
 import { Fonts } from "@/constants/theme/Typography";
 import {
@@ -17,6 +17,7 @@ import {
   LABOR_PAYROLL_RELATIVE,
 } from "@/components/economy/detail/labor/laborDetailData";
 import { useColorScheme } from "@/hooks/useColorScheme";
+import { useThemeInteractive } from "@/hooks/useThemeInteractive";
 
 const CHART_GRAY_LIGHT = "#E5E7EB";
 const CHART_GRAY_DARK = "#475569";
@@ -25,6 +26,7 @@ export function LaborMarketDetailView() {
   const colorScheme = useColorScheme() ?? "light";
   const semantic = getSemanticColors(colorScheme);
   const theme = Colors[colorScheme];
+  const interactive = useThemeInteractive();
   const isDark = colorScheme === "dark";
   const chartMuted = isDark ? CHART_GRAY_DARK : CHART_GRAY_LIGHT;
   const green = ECONOMY_DASHBOARD_POSITIVE_GREEN;
@@ -52,7 +54,7 @@ export function LaborMarketDetailView() {
               return (
                 <View key={m} style={styles.barCol}>
                   {isLast ? (
-                    <ThemedText style={[styles.barCallout, { color: Brand.primary }]}>216k</ThemedText>
+                    <ThemedText style={[styles.barCallout, { color: interactive.primary }]}>216k</ThemedText>
                   ) : (
                     <View style={{ height: 16 }} />
                   )}
@@ -62,7 +64,7 @@ export function LaborMarketDetailView() {
                         styles.barFill,
                         {
                           height: Math.max(10, Math.round(h * 88)),
-                          backgroundColor: isLast ? Brand.primary : chartMuted,
+                          backgroundColor: isLast ? interactive.primary : chartMuted,
                         },
                       ]}
                     />
@@ -91,7 +93,7 @@ export function LaborMarketDetailView() {
         <ThemedText style={[styles.cardKicker, { color: semantic.mutedText }]}>PARTICIPATION RATE</ThemedText>
         <View style={styles.inlineMetricRow}>
           <ThemedText style={[styles.midMetric, { color: theme.text }]}>62.5%</ThemedText>
-          <ThemedText style={[styles.deltaNeg, { color: Brand.danger }]}>-0.3%</ThemedText>
+          <ThemedText style={[styles.deltaNeg, { color: interactive.danger }]}>-0.3%</ThemedText>
         </View>
         <View style={[styles.cardDivider, { backgroundColor: semantic.hairline }]} />
         <ThemedText style={[styles.footerNote, { color: semantic.mutedText }]}>
@@ -109,10 +111,10 @@ export function LaborMarketDetailView() {
             accessibilityLabel="Export CSV"
             style={({ pressed }) => [
               styles.exportBtn,
-              { borderColor: Brand.primary, opacity: pressed ? 0.75 : 1 },
+              { borderColor: interactive.primary, opacity: pressed ? 0.75 : 1 },
             ]}
           >
-            <ThemedText style={[styles.exportBtnText, { color: Brand.primary }]}>EXPORT CSV</ThemedText>
+            <ThemedText style={[styles.exportBtnText, { color: interactive.primary }]}>EXPORT CSV</ThemedText>
           </Pressable>
         </View>
         <View style={[styles.tableRule, { backgroundColor: semantic.hairline }]} />
@@ -134,7 +136,7 @@ export function LaborMarketDetailView() {
                 styles.td,
                 styles.tdNum,
                 row.deltaPositive === true && { color: green },
-                row.deltaPositive === false && { color: Brand.danger },
+                row.deltaPositive === false && { color: interactive.danger },
                 row.deltaPositive === null && { color: semantic.mutedText },
               ]}
             >
@@ -145,7 +147,7 @@ export function LaborMarketDetailView() {
                 styles.td,
                 styles.tdNum,
                 row.growthPositive === true && { color: green },
-                row.growthPositive === false && { color: Brand.danger },
+                row.growthPositive === false && { color: interactive.danger },
                 row.growthPositive === null && { color: semantic.mutedText },
               ]}
             >
@@ -158,7 +160,7 @@ export function LaborMarketDetailView() {
                     styles.distFill,
                     {
                       width: `${Math.round(row.barFill * 100)}%`,
-                      backgroundColor: row.barNegative ? Brand.danger : green,
+                      backgroundColor: row.barNegative ? interactive.danger : green,
                     },
                   ]}
                 />

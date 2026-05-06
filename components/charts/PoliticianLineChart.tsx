@@ -16,7 +16,9 @@ export default function PoliticianLineChart() {
     backgroundGradientTo: isDark ? Brand.slate : Brand.paper,
     decimalPlaces: 0,
     color: (opacity = 1) =>
-      `rgba(${BrandRgb.teal[0]}, ${BrandRgb.teal[1]}, ${BrandRgb.teal[2]}, ${opacity})`,
+      isDark
+        ? `rgba(${BrandRgb.darkPrimary[0]}, ${BrandRgb.darkPrimary[1]}, ${BrandRgb.darkPrimary[2]}, ${opacity})`
+        : `rgba(${BrandRgb.teal[0]}, ${BrandRgb.teal[1]}, ${BrandRgb.teal[2]}, ${opacity})`,
     labelColor: (opacity = 1) =>
       isDark
         ? `rgba(${BrandRgb.offWhite[0]}, ${BrandRgb.offWhite[1]}, ${BrandRgb.offWhite[2]}, ${0.35 + 0.45 * opacity})`
@@ -24,7 +26,7 @@ export default function PoliticianLineChart() {
     propsForDots: {
       r: '4',
       strokeWidth: '2',
-      stroke: isDark ? Brand.white : Brand.primary,
+      stroke: isDark ? Brand.darkPrimary : Brand.primary,
     },
     propsForBackgroundLines: {
       stroke: isDark ? Brand.steel : Brand.border,

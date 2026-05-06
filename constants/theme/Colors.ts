@@ -1,6 +1,7 @@
 /**
  * Hypatia Precision — Material-style tokens (YAML reference).
  * `Brand` legacy keys preserve older imports (e.g. `springGreen` → primary).
+ * Dark surfaces & roles match Hypatia Precision YAML (background, containers, primary #b8c3ff, etc.).
  */
 
 export const Palette = {
@@ -27,9 +28,34 @@ export const Palette = {
   dangerSoft: '#ffdad6',
   info: '#006780',
   infoSoft: '#b7eaff',
-  darkCanvas: '#1a1b23',
-  darkElevated: '#2f3039',
-  darkSurfaceHigh: '#3a3b47',
+
+  /** Dark — YAML `background` / `surface` (level 0 canvas). */
+  darkCanvas: '#11131b',
+  /** YAML `surface-container-low` — subtle fills below card tier. */
+  darkSurfaceContainerLow: '#1a1b23',
+  /** YAML `surface-container` — level 1 cards. */
+  darkSurfaceContainer: '#1e1f27',
+  /** YAML `surface-container-high` — level 2 (drawer, popovers). */
+  darkSurfaceContainerHigh: '#282932',
+  /** YAML `surface-container-highest` / `surface-variant`. */
+  darkSurfaceContainerHighest: '#33343d',
+  darkSurfaceBright: '#373942',
+  darkSurfaceLowest: '#0c0e16',
+  darkOnSurface: '#e2e1ed',
+  darkOnSurfaceVariant: '#c4c5d7',
+  darkOutline: '#8e90a0',
+  darkOutlineVariant: '#444655',
+  /** YAML `primary` / `surface-tint` on dark. */
+  darkPrimary: '#b8c3ff',
+  darkOnPrimary: '#002388',
+  /** YAML `inverse-primary` — solid fills (CTAs) on dark. */
+  darkInversePrimary: '#294fdb',
+  darkSecondary: '#60d4fb',
+  darkOnSecondary: '#003543',
+  darkTertiary: '#ffb68e',
+  darkOnTertiary: '#532200',
+  darkError: '#ffb4ab',
+  darkOnError: '#690005',
 } as const;
 
 /** Legacy names mapped to Precision tokens */
@@ -37,9 +63,9 @@ export const Brand = {
   ...Palette,
   onyx: Palette.darkCanvas,
   deepNavy: Palette.darkCanvas,
-  charcoal: Palette.darkElevated,
-  slate: Palette.darkElevated,
-  darkSlateGrey: Palette.darkElevated,
+  charcoal: Palette.darkSurfaceContainer,
+  slate: Palette.darkSurfaceContainer,
+  darkSlateGrey: Palette.darkSurfaceContainer,
   slateBlue: Palette.muted,
   slateGrey: Palette.muted,
   steel: Palette.outline,
@@ -51,6 +77,9 @@ export const Brand = {
   teal: Palette.primary,
   /** Positive / economy accents — historically coral */
   coral: Palette.success,
+  /** Level-1 dark card (alias). */
+  darkElevated: Palette.darkSurfaceContainer,
+  darkSurfaceHigh: Palette.darkSurfaceContainerHigh,
 } as const;
 
 /** RGB tuples for charts and overlays. */
@@ -62,23 +91,25 @@ export const BrandRgb = {
   primary: [38, 77, 217] as const,
   success: [29, 111, 82] as const,
   danger: [186, 26, 26] as const,
-  darkCanvas: [26, 27, 35] as const,
-  darkElevated: [47, 48, 57] as const,
+  darkCanvas: [17, 19, 27] as const,
+  darkSurfaceContainer: [30, 31, 39] as const,
+  darkSurfaceContainerHigh: [40, 41, 50] as const,
+  darkPrimary: [184, 195, 255] as const,
   /** Legacy aliases */
-  onyx: [26, 27, 35] as const,
+  darkElevated: [30, 31, 39] as const,
+  onyx: [17, 19, 27] as const,
   lavender: [251, 248, 255] as const,
   offWhite: [251, 248, 255] as const,
-  charcoal: [47, 48, 57] as const,
+  charcoal: [30, 31, 39] as const,
   teal: [38, 77, 217] as const,
   springGreen: [38, 77, 217] as const,
   slateGrey: [68, 70, 85] as const,
   slateBlue: [68, 70, 85] as const,
-  deepNavy: [26, 27, 35] as const,
+  deepNavy: [17, 19, 27] as const,
 } as const;
 
 const tintLight = Palette.primary;
-/** Inverse primary — interactive accent on dark surfaces (DESIGN.md). */
-const tintDark = '#b8c3ff';
+const tintDark = Brand.darkPrimary;
 
 export const Colors = {
   light: {
@@ -90,11 +121,65 @@ export const Colors = {
     tabIconSelected: tintLight,
   },
   dark: {
-    text: '#f1effb',
+    text: Brand.darkOnSurface,
     background: Brand.darkCanvas,
     tint: tintDark,
-    icon: 'rgba(241,239,251,0.55)',
-    tabIconDefault: 'rgba(241,239,251,0.45)',
+    icon: 'rgba(196, 197, 215, 0.55)',
+    tabIconDefault: 'rgba(196, 197, 215, 0.45)',
     tabIconSelected: tintDark,
   },
 };
+
+/** Theme-aware accents (YAML dark roles vs light palette). */
+export type ThemeInteractive = {
+  primary: string;
+  primarySoft: string;
+  /** Solid primary control fill (inverse primary on dark). */
+  primaryFill: string;
+  /** Text/icon on `primaryFill`. */
+  onPrimaryFill: string;
+  secondary: string;
+  secondarySoft: string;
+  tertiary: string;
+  tertiarySoft: string;
+  info: string;
+  infoSoft: string;
+  danger: string;
+  dangerSoft: string;
+  warningSoft: string;
+};
+
+export function getThemeInteractive(colorScheme: 'light' | 'dark'): ThemeInteractive {
+  if (colorScheme === 'dark') {
+    return {
+      primary: Brand.darkPrimary,
+      primarySoft: 'rgba(184, 195, 255, 0.14)',
+      primaryFill: Brand.darkInversePrimary,
+      onPrimaryFill: Brand.white,
+      secondary: Brand.darkSecondary,
+      secondarySoft: 'rgba(96, 212, 251, 0.14)',
+      tertiary: Brand.darkTertiary,
+      tertiarySoft: 'rgba(255, 182, 142, 0.14)',
+      info: Brand.darkSecondary,
+      infoSoft: 'rgba(96, 212, 251, 0.14)',
+      danger: Brand.darkError,
+      dangerSoft: 'rgba(255, 180, 171, 0.14)',
+      warningSoft: 'rgba(255, 182, 142, 0.14)',
+    };
+  }
+  return {
+    primary: Brand.primary,
+    primarySoft: Brand.primarySoft,
+    primaryFill: Brand.primary,
+    onPrimaryFill: Brand.white,
+    secondary: Brand.secondary,
+    secondarySoft: Brand.secondarySoft,
+    tertiary: Brand.tertiary,
+    tertiarySoft: Brand.tertiarySoft,
+    info: Brand.info,
+    infoSoft: Brand.infoSoft,
+    danger: Brand.danger,
+    dangerSoft: Brand.dangerSoft,
+    warningSoft: Brand.warningSoft,
+  };
+}

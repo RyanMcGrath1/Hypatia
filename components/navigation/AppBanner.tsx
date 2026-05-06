@@ -18,7 +18,7 @@ import { ThemedText } from "@/components/theme/ThemedText";
 import { ThemedView } from "@/components/theme/ThemedView";
 import { AppRoutes } from "@/constants/app/routes";
 import { Brand, Colors } from "@/constants/theme/Colors";
-import { getSemanticColors } from "@/constants/theme/ThemeTokens";
+import { Radius, getSemanticColors } from "@/constants/theme/ThemeTokens";
 import { useColorScheme } from "@/hooks/useColorScheme";
 
 type MenuItem = {
@@ -52,13 +52,7 @@ export function AppBanner() {
   const colorScheme = useColorScheme() ?? "light";
   const theme = Colors[colorScheme];
   const semantic = getSemanticColors(colorScheme);
-  const bannerLogo = useMemo(
-    () =>
-      colorScheme === "light"
-        ? require("@/assets/images/hypatia-logo-lightmode.png")
-        : require("@/assets/images/hypatia-logo-darkmode.png"),
-    [colorScheme],
-  );
+  const bannerLogo = useMemo(() => require("@/assets/images/hypatia-logo-mark.png"), []);
   const panelAnim = useRef(new Animated.Value(0)).current;
   const panelColors = useMemo(
     () => ({
@@ -244,11 +238,10 @@ export function AppBanner() {
                       style={[
                         styles.panelItemButton,
                         {
-                          borderColor: isActive ? theme.tint : "transparent",
+                          borderLeftColor: isActive ? theme.tint : "transparent",
+                          borderLeftWidth: isActive ? 3 : 0,
                           backgroundColor: isActive
-                            ? colorScheme === "dark"
-                              ? "rgba(42, 157, 143, 0.22)"
-                              : "rgba(42, 157, 143, 0.12)"
+                            ? semantic.sidePanelItemActiveBackground
                             : "transparent",
                         },
                       ]}
@@ -359,8 +352,8 @@ const styles = StyleSheet.create({
   },
   panelItemButton: {
     minHeight: 44,
-    borderRadius: 10,
-    borderWidth: 1,
+    borderRadius: Radius.md,
+    borderWidth: 0,
     paddingHorizontal: 10,
     flexDirection: "row",
     alignItems: "center",

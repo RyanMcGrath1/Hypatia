@@ -8,6 +8,7 @@ import { Brand, Colors } from "@/constants/theme/Colors";
 import { Radius, Spacing, getSemanticColors } from "@/constants/theme/ThemeTokens";
 import { Fonts } from "@/constants/theme/Typography";
 import { useColorScheme } from "@/hooks/useColorScheme";
+import { useThemeInteractive } from "@/hooks/useThemeInteractive";
 import { getPoliticianDetailLayout } from "@/lib/politician/politicianDetailLayout";
 import type { PoliticianProfile } from "@/lib/politician/types";
 
@@ -22,6 +23,7 @@ export function PoliticianDetailScreenBody({ profile }: PoliticianDetailScreenBo
   const colorScheme = useColorScheme() ?? "light";
   const theme = Colors[colorScheme];
   const semantic = getSemanticColors(colorScheme);
+  const interactive = useThemeInteractive();
   const layout = useMemo(() => getPoliticianDetailLayout(profile), [profile]);
   const isDark = colorScheme === "dark";
 
@@ -60,9 +62,9 @@ export function PoliticianDetailScreenBody({ profile }: PoliticianDetailScreenBo
           {layout.committees.map((c) => (
             <View
               key={c}
-              style={[styles.committeePill, { backgroundColor: Brand.primarySoft }]}
+              style={[styles.committeePill, { backgroundColor: interactive.primarySoft }]}
             >
-              <ThemedText style={[styles.committeePillText, { color: Brand.primary }]} numberOfLines={2}>
+              <ThemedText style={[styles.committeePillText, { color: interactive.primary }]} numberOfLines={2}>
                 {c}
               </ThemedText>
             </View>
@@ -75,13 +77,13 @@ export function PoliticianDetailScreenBody({ profile }: PoliticianDetailScreenBo
         label="Public Sentiment"
         value={layout.publicSentiment.value}
         subtext={layout.publicSentiment.deltaLabel}
-        icon={<Ionicons name="bar-chart" size={22} color={Brand.primary} />}
+        icon={<Ionicons name="bar-chart" size={22} color={interactive.primary} />}
         textColor={theme.text}
         semantic={semantic}
       >
         <View style={[styles.sparkRow, { opacity: 0.85 }]}>
           {[12, 18, 14, 22, 20, 24].map((h, i) => (
-            <View key={i} style={[styles.sparkBar, { height: h, backgroundColor: Brand.primary }]} />
+            <View key={i} style={[styles.sparkBar, { height: h, backgroundColor: interactive.primary }]} />
           ))}
         </View>
       </MetricCard>
@@ -91,7 +93,7 @@ export function PoliticianDetailScreenBody({ profile }: PoliticianDetailScreenBo
         label="Voting Attendance"
         value={layout.votingAttendance.value}
         subtext={layout.votingAttendance.subtext}
-        icon={<Ionicons name="person" size={22} color={Brand.primary} />}
+        icon={<Ionicons name="person" size={22} color={interactive.primary} />}
         textColor={theme.text}
         semantic={semantic}
       >
@@ -101,7 +103,7 @@ export function PoliticianDetailScreenBody({ profile }: PoliticianDetailScreenBo
               styles.progressFill,
               {
                 width: `${Math.round(layout.votingAttendance.progress * 100)}%`,
-                backgroundColor: Brand.secondary,
+                backgroundColor: interactive.secondary,
               },
             ]}
           />
@@ -113,7 +115,7 @@ export function PoliticianDetailScreenBody({ profile }: PoliticianDetailScreenBo
         label="Impact Score"
         value={layout.impactScore.value}
         subtext={layout.impactScore.subtext}
-        icon={<Ionicons name="flash" size={22} color={Brand.tertiary} />}
+        icon={<Ionicons name="flash" size={22} color={interactive.tertiary} />}
         textColor={theme.text}
         semantic={semantic}
       >
@@ -136,7 +138,7 @@ export function PoliticianDetailScreenBody({ profile }: PoliticianDetailScreenBo
       <View style={cardStyle}>
         <View style={styles.sectionTitleRow}>
           <ThemedText style={[styles.sectionTitle, { color: theme.text }]}>Financial Overview</ThemedText>
-          <Ionicons name="eye-outline" size={22} color={Brand.primary} />
+          <Ionicons name="eye-outline" size={22} color={interactive.primary} />
         </View>
         <ThemedText style={[styles.finCycle, { color: semantic.mutedText }]}>
           Total Raised ({layout.financial.cycleLabel})
@@ -170,8 +172,8 @@ export function PoliticianDetailScreenBody({ profile }: PoliticianDetailScreenBo
         </View>
       </View>
 
-      <View style={[styles.aiBox, { backgroundColor: Brand.primary }]}>
-        <Ionicons name="sparkles" size={24} color={Brand.white} />
+      <View style={[styles.aiBox, { backgroundColor: interactive.primaryFill }]}>
+        <Ionicons name="sparkles" size={24} color={interactive.onPrimaryFill} />
         <View style={styles.alertTextCol}>
           <ThemedText style={styles.alertTitle}>AI Insights</ThemedText>
           <ThemedText style={styles.alertBody}>{layout.aiInsights.body}</ThemedText>
@@ -181,11 +183,11 @@ export function PoliticianDetailScreenBody({ profile }: PoliticianDetailScreenBo
       <View style={cardStyle}>
         <View style={styles.sectionTitleRow}>
           <View style={styles.votingTitleLeft}>
-            <Ionicons name="document-text-outline" size={22} color={Brand.primary} />
+            <Ionicons name="document-text-outline" size={22} color={interactive.primary} />
             <ThemedText style={[styles.sectionTitle, { color: theme.text }]}>Recent Voting Record</ThemedText>
           </View>
           <Pressable hitSlop={8}>
-            <ThemedText style={[styles.viewAll, { color: Brand.primary }]}>View All</ThemedText>
+            <ThemedText style={[styles.viewAll, { color: interactive.primary }]}>View All</ThemedText>
           </Pressable>
         </View>
         {layout.votingRecord.map((item, index) => (
@@ -208,14 +210,14 @@ export function PoliticianDetailScreenBody({ profile }: PoliticianDetailScreenBo
                 style={[
                   styles.voteBadge,
                   item.vote === "yea"
-                    ? { backgroundColor: Brand.secondarySoft }
-                    : { backgroundColor: Brand.dangerSoft },
+                    ? { backgroundColor: interactive.secondarySoft }
+                    : { backgroundColor: interactive.dangerSoft },
                 ]}
               >
                 <ThemedText
                   style={[
                     styles.voteBadgeText,
-                    item.vote === "yea" ? { color: Brand.secondary } : { color: Brand.danger },
+                    item.vote === "yea" ? { color: interactive.secondary } : { color: interactive.danger },
                   ]}
                 >
                   {item.vote === "yea" ? "YEA" : "NAY"}
@@ -226,7 +228,7 @@ export function PoliticianDetailScreenBody({ profile }: PoliticianDetailScreenBo
             <ThemedText type="defaultSemiBold" style={[styles.billTitle, { color: theme.text }]}>
               {item.billTitle}
             </ThemedText>
-            <ThemedText style={[styles.aiSummaryLabel, { color: Brand.primary }]}>AI Summary</ThemedText>
+            <ThemedText style={[styles.aiSummaryLabel, { color: interactive.primary }]}>AI Summary</ThemedText>
             <ThemedText style={[styles.aiSummaryBody, { color: semantic.mutedText }]}>{item.aiSummary}</ThemedText>
           </View>
         ))}

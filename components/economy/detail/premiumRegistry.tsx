@@ -1,5 +1,6 @@
 import type { ComponentType } from "react";
 
+import { InflationDetailView } from "@/components/economy/detail/inflation/InflationDetailView";
 import { LaborMarketDetailView } from "@/components/economy/detail/labor/LaborMarketDetailView";
 import {
   type EconomyPremiumDetailId,
@@ -8,6 +9,7 @@ import {
 
 const ECONOMY_PREMIUM_DETAIL_SCREENS: Record<EconomyPremiumDetailId, ComponentType> = {
   labor: LaborMarketDetailView,
+  inflation: InflationDetailView,
 };
 
 /**
