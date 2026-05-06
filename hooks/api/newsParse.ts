@@ -10,8 +10,14 @@ export type TopHeadlineItem = {
   url: string | null;
   /** Hero/thumbnail URL when the API provides one */
   imageUrl: string | null;
+  /** Publisher/source name when present */
+  source: string | null;
+  /** Published timestamp/date string when present */
+  published: string | null;
   /** Single line for source / date when present */
   meta: string | null;
+  /** Topic/category label when provided by upstream payload */
+  category: string | null;
 };
 
 export type TopHeadlinesPageResult = {
@@ -70,6 +76,10 @@ export function parseTopHeadlinesResponse(payload: unknown): TopHeadlineItem[] {
     }
     const published =
       pickString(obj, ['published_at', 'publishedAt', 'published', 'date', 'time']);
+    let category = pickString(obj, ['category', 'topic', 'section', 'news_desk']);
+    if (!category && obj.category && typeof obj.category === 'object') {
+      category = pickString(obj.category as Record<string, unknown>, ['name', 'label', 'title']);
+    }
 
     let imageUrl = pickString(obj, [
       'urlToImage',
@@ -95,7 +105,7 @@ export function parseTopHeadlinesResponse(payload: unknown): TopHeadlineItem[] {
       meta = published;
     }
 
-    out.push({ title, description, url, imageUrl, meta });
+    out.push({ title, description, url, imageUrl, source, published, meta, category });
   }
 
   return out;

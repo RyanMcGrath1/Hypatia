@@ -1,4 +1,4 @@
-import { useCallback, useMemo } from "react";
+import { useCallback, useMemo, useState } from "react";
 import {
   ActivityIndicator,
   FlatList,
@@ -89,6 +89,8 @@ export default function HomeScreen() {
 
   const colorScheme = useColorScheme() ?? "light";
   const semantic = getSemanticColors(colorScheme);
+  const [topicAnchorY, setTopicAnchorY] = useState(0);
+  const [stickyTopicsVisible, setStickyTopicsVisible] = useState(false);
 
   const openArticle = useCallback((url: string, title: string) => {
     router.push({
@@ -97,8 +99,103 @@ export default function HomeScreen() {
     });
   }, []);
 
+  const renderTopicCarousel = useCallback(
+    (sticky = false) => (
+      <View
+        style={[
+          styles.topicCarouselBleed,
+          sticky ? styles.topicCarouselStickyBleed : null,
+        ]}
+      >
+        <ScrollView
+          horizontal
+          showsHorizontalScrollIndicator={false}
+          contentContainerStyle={styles.topicCarouselContent}
+        >
+          {NEWS_TOPIC_OPTIONS.map((topic) => {
+            const selected = topic.id === selectedTopicId;
+            return (
+              <Pressable
+                key={`${sticky ? "sticky" : "header"}-${topic.id}`}
+                accessibilityRole="button"
+                accessibilityState={{ selected }}
+                accessibilityLabel={`${topic.label} headlines`}
+                onPress={() => setSelectedTopicId(topic.id)}
+                style={({ pressed }) => [
+                  styles.topicChip,
+                  {
+                    backgroundColor: selected
+                      ? semantic.accent
+                      : semantic.cardSubtleBackground,
+                    borderColor: selected
+                      ? semantic.accent
+                      : semantic.cardBorder,
+                    opacity: pressed ? 0.88 : 1,
+                  },
+                ]}
+              >
+                <View style={styles.topicChipRow}>
+                  <Ionicons
+                    name={NEWS_TOPIC_ICON_NAMES[topic.id]}
+                    size={15}
+                    color={selected ? Brand.paper : semantic.mutedText}
+                    accessible={false}
+                  />
+                  <ThemedText
+                    style={{
+                      fontFamily: selected ? Fonts.bodySemiBold : Fonts.bodyMedium,
+                      fontSize: 14,
+                      lineHeight: 18,
+                      color: selected ? Brand.paper : semantic.mutedText,
+                    }}
+                  >
+                    {topic.label}
+                  </ThemedText>
+                </View>
+              </Pressable>
+            );
+          })}
+        </ScrollView>
+      </View>
+    ),
+    [
+      selectedTopicId,
+      semantic.accent,
+      semantic.cardBorder,
+      semantic.cardSubtleBackground,
+      semantic.mutedText,
+      setSelectedTopicId,
+    ],
+  );
+
+  const onTopicAnchorLayout = useCallback(
+    (y: number) => {
+      setTopicAnchorY(y);
+    },
+    [],
+  );
+
+  const onListScroll = useCallback(
+    (offsetY: number) => {
+      if (topicAnchorY <= 0) {
+        return;
+      }
+      const nextVisible = offsetY >= topicAnchorY;
+      setStickyTopicsVisible((prev) => (prev === nextVisible ? prev : nextVisible));
+    },
+    [topicAnchorY],
+  );
+
   const renderHeadlineItem = useCallback(
-    ({ item, index }: { item: TopHeadlineItem; index: number }) => (
+    ({ item, index }: { item: TopHeadlineItem; index: number }) => {
+      const selectedTopicLabel =
+        NEWS_TOPIC_OPTIONS.find((topic) => topic.id === selectedTopicId)?.label ?? "General";
+      const categoryLabel =
+        item.category?.trim() && item.category.trim().length > 0
+          ? item.category.trim()
+          : selectedTopicLabel;
+
+      return (
       <Pressable
         accessibilityRole={item.url ? "button" : "none"}
         accessibilityHint={item.url ? "Opens full article" : undefined}
@@ -117,11 +214,37 @@ export default function HomeScreen() {
               : styles.headlineCard
           }
         >
-          <ThemedText type="subtitle">{item.title}</ThemedText>
-          {item.meta ? (
-            <ThemedText style={[styles.meta, { color: semantic.mutedText }]}>
-              {item.meta}
+          <View style={[styles.categoryStamp, { backgroundColor: semantic.cardSubtleBackground, borderColor: semantic.cardBorder }]}>
+            <ThemedText
+              numberOfLines={1}
+              style={[styles.categoryStampText, { color: semantic.mutedText }]}
+            >
+              {categoryLabel}
             </ThemedText>
+          </View>
+          <ThemedText type="subtitle">{item.title}</ThemedText>
+          {item.source || item.published || item.meta ? (
+            <View style={styles.metaRow}>
+              {item.source ? (
+                <ThemedText style={[styles.meta, { color: semantic.accent }]}>
+                  {item.source}
+                </ThemedText>
+              ) : null}
+              {item.source && item.published ? (
+                <ThemedText style={[styles.meta, { color: semantic.mutedText }]}>
+                  {" · "}
+                </ThemedText>
+              ) : null}
+              {item.published ? (
+                <ThemedText style={[styles.meta, { color: "#CA8A04" }]}>
+                  {item.published}
+                </ThemedText>
+              ) : !item.source && item.meta ? (
+                <ThemedText style={[styles.meta, { color: "#CA8A04" }]}>
+                  {item.meta}
+                </ThemedText>
+              ) : null}
+            </View>
           ) : null}
           {item.imageUrl ? (
             <Image
@@ -145,9 +268,12 @@ export default function HomeScreen() {
           ) : null}
         </SectionCard>
       </Pressable>
-    ),
+      );
+    },
     [
       openArticle,
+      selectedTopicId,
+      semantic.accent,
       semantic.cardBackground,
       semantic.cardBorder,
       semantic.cardSubtleBackground,
@@ -168,58 +294,10 @@ export default function HomeScreen() {
           subtitleStyle={styles.headerSubtitle}
         />
 
-        <View style={styles.topicCarouselBleed}>
-          <ScrollView
-            horizontal
-            showsHorizontalScrollIndicator={false}
-            contentContainerStyle={styles.topicCarouselContent}
-          >
-            {NEWS_TOPIC_OPTIONS.map((topic) => {
-              const selected = topic.id === selectedTopicId;
-              return (
-                <Pressable
-                  key={topic.id}
-                  accessibilityRole="button"
-                  accessibilityState={{ selected }}
-                  accessibilityLabel={`${topic.label} headlines`}
-                  onPress={() => setSelectedTopicId(topic.id)}
-                  style={({ pressed }) => [
-                    styles.topicChip,
-                    {
-                      backgroundColor: selected
-                        ? semantic.accent
-                        : semantic.cardSubtleBackground,
-                      borderColor: selected
-                        ? semantic.accent
-                        : semantic.cardBorder,
-                      opacity: pressed ? 0.88 : 1,
-                    },
-                  ]}
-                >
-                  <View style={styles.topicChipRow}>
-                    <Ionicons
-                      name={NEWS_TOPIC_ICON_NAMES[topic.id]}
-                      size={15}
-                      color={selected ? Brand.paper : semantic.mutedText}
-                      accessible={false}
-                    />
-                    <ThemedText
-                      style={{
-                        fontFamily: selected
-                          ? Fonts.bodySemiBold
-                          : Fonts.bodyMedium,
-                        fontSize: 14,
-                        lineHeight: 18,
-                        color: selected ? Brand.paper : semantic.mutedText,
-                      }}
-                    >
-                      {topic.label}
-                    </ThemedText>
-                  </View>
-                </Pressable>
-              );
-            })}
-          </ScrollView>
+        <View
+          onLayout={(event) => onTopicAnchorLayout(event.nativeEvent.layout.y)}
+        >
+          {renderTopicCarousel(false)}
         </View>
 
         {isLoading && headlines.length === 0 ? (
@@ -268,11 +346,10 @@ export default function HomeScreen() {
       semantic.accent,
       semantic.cardBackground,
       semantic.cardBorder,
-      semantic.cardSubtleBackground,
       semantic.danger,
       semantic.mutedText,
-      selectedTopicId,
-      setSelectedTopicId,
+      onTopicAnchorLayout,
+      renderTopicCarousel,
     ],
   );
 
@@ -342,7 +419,14 @@ export default function HomeScreen() {
         onEndReached={onEndReached}
         onEndReachedThreshold={0.35}
         ItemSeparatorComponent={() => <View style={{ height: Spacing.md }} />}
+        onScroll={(event) => onListScroll(event.nativeEvent.contentOffset.y)}
+        scrollEventThrottle={16}
       />
+      {stickyTopicsVisible ? (
+        <View pointerEvents="box-none" style={styles.stickyTopicShell}>
+          {renderTopicCarousel(true)}
+        </View>
+      ) : null}
     </ThemedView>
   );
 }
@@ -378,6 +462,9 @@ const styles = StyleSheet.create({
     paddingHorizontal: Spacing.lg,
     paddingBottom: 2,
   },
+  topicCarouselStickyBleed: {
+    marginHorizontal: 0,
+  },
   topicChip: {
     paddingHorizontal: 15,
     paddingVertical: 9,
@@ -392,6 +479,24 @@ const styles = StyleSheet.create({
   headlineCard: {
     gap: Spacing.sm,
     overflow: "hidden",
+    position: "relative",
+  },
+  categoryStamp: {
+    position: "absolute",
+    right: 12,
+    top: 12,
+    borderWidth: 1,
+    borderRadius: 999,
+    paddingHorizontal: 8,
+    paddingVertical: 3,
+    maxWidth: "44%",
+    zIndex: 2,
+  },
+  categoryStampText: {
+    fontSize: 10,
+    fontWeight: "700",
+    letterSpacing: 0.3,
+    textTransform: "uppercase",
   },
   headlineCardFirst: {
     marginTop: 0,
@@ -403,6 +508,11 @@ const styles = StyleSheet.create({
   },
   copy: {
     lineHeight: 20,
+  },
+  metaRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    flexWrap: "wrap",
   },
   meta: {
     fontSize: 13,
@@ -429,5 +539,13 @@ const styles = StyleSheet.create({
   footerHint: {
     fontSize: 13,
     textAlign: "center",
+  },
+  stickyTopicShell: {
+    position: "absolute",
+    top: 0,
+    left: 0,
+    right: 0,
+    zIndex: 20,
+    paddingTop: 2,
   },
 });
