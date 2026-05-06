@@ -4,7 +4,6 @@ import { useEffect, useMemo, useState } from "react";
 import { Pressable, ScrollView, StyleSheet, View } from "react-native";
 import Svg, { Circle } from "react-native-svg";
 
-import SectorSparkline from "@/components/charts/SectorSparkline";
 import { StateNoticeCard } from "@/components/surfaces/StateNoticeCard";
 import { ThemedText } from "@/components/theme/ThemedText";
 import { ThemedView } from "@/components/theme/ThemedView";
@@ -15,7 +14,7 @@ import { Radius, Spacing, getSemanticColors } from "@/constants/theme/ThemeToken
 import { fetchEconomyOverview } from "@/hooks/api/flaskMainApi";
 import { getNewsApiNetworkErrorMessage } from "@/hooks/api/newsApi";
 import { useColorScheme } from "@/hooks/useColorScheme";
-import { getSectorCardDisplay } from "@/lib/economy/sectorOverviewMerge";
+import { getSectorCardDisplay, SECTOR_ID_TO_OVERVIEW_KEY } from "@/lib/economy/sectorOverviewMerge";
 import { formatOverviewAsOfDisplay, parseEconomyOverviewResponse, type EconomyOverviewApiResponse } from "@/lib/economy/economyOverviewTypes";
 
 type FeedRow = {
@@ -60,7 +59,7 @@ function trendVisual(trend: SectorTrend, isDark: boolean) {
   }
   return {
     icon: "arrow-right" as const,
-    color: isDark ? "#9CA3AF" : "#6B7280",
+    color: isDark ? "#FACC15" : "#CA8A04",
   };
 }
 
@@ -68,6 +67,38 @@ function sentimentLabel(score: number) {
   if (score >= 70) return "High";
   if (score >= 45) return "Moderate";
   return "Low";
+}
+
+function normalizeBars(values: number[]) {
+  if (values.length === 0) {
+    return [];
+  }
+  const min = Math.min(...values);
+  const max = Math.max(...values);
+  const range = max - min;
+  if (range === 0) {
+    return values.map(() => 0.55);
+  }
+  return values.map((value) => {
+    const normalized = (value - min) / range;
+    // Keep bars visible even for lower points.
+    return 0.28 + normalized * 0.72;
+  });
+}
+
+function getTrendFromSeries(values: number[], fallback: SectorTrend): SectorTrend {
+  if (values.length < 2) {
+    return fallback;
+  }
+  const first = values[0]!;
+  const last = values[values.length - 1]!;
+  if (last > first) {
+    return "up";
+  }
+  if (last < first) {
+    return "down";
+  }
+  return "flat";
 }
 
 export default function EconomyDashboardScreen() {
@@ -120,18 +151,27 @@ export default function EconomyDashboardScreen() {
     };
   }, []);
 
+  // Build the high-level feed card model from base sector config + optional API overlay.
   const feedRows = useMemo<FeedRow[]>(() => {
     return FEED_IDS.map((id) => US_ECONOMIC_SECTORS.find((sector) => sector.id === id))
       .filter((sector): sector is (typeof US_ECONOMIC_SECTORS)[number] => sector != null)
       .map((sector) => {
+        // getSectorCardDisplay merges sector defaults with live economyOverview values.
         const display = getSectorCardDisplay(sector, economyOverview);
+        const sectionKey = SECTOR_ID_TO_OVERVIEW_KEY[sector.id];
+        const observations = sectionKey ? economyOverview?.sections?.[sectionKey]?.observations : undefined;
+        const apiHistory =
+          Array.isArray(observations) && observations.length > 0
+            ? [...observations].sort((a, b) => a.date.localeCompare(b.date)).map((o) => o.value)
+            : null;
+        const history = apiHistory ?? display.history;
         return {
           id: sector.id,
           title: display.title.toUpperCase(),
           subtitle: display.headlineLabel,
           value: display.headlineValue,
-          trend: sector.trend,
-          history: display.history,
+          trend: getTrendFromSeries(history, sector.trend),
+          history,
         };
       });
   }, [economyOverview]);
@@ -161,6 +201,7 @@ export default function EconomyDashboardScreen() {
   return (
     <ThemedView style={styles.screen}>
       <ScrollView contentContainerStyle={styles.scrollContent} showsVerticalScrollIndicator={false}>
+        {/* 1) Top strip: compact title + as-of timestamp */}
         <View style={styles.topHeader}>
           <ThemedText type="defaultSemiBold" style={styles.pageTitle}>
             ECONOSTAT US
@@ -168,6 +209,7 @@ export default function EconomyDashboardScreen() {
           <ThemedText style={[styles.pageMeta, { color: semantic.mutedText }]}>UPDATED {displayAsOf}</ThemedText>
         </View>
 
+        {/* 2) Hero card: sentiment ring, score copy, and three summary stats */}
         <View
           style={[
             styles.heroCard,
@@ -184,7 +226,7 @@ export default function EconomyDashboardScreen() {
                 cx={70}
                 cy={70}
                 r={ringRadius}
-                stroke={theme.tint}
+                stroke={isDark ? "#4ADE80" : "#16A34A"}
                 strokeWidth={10}
                 fill="none"
                 strokeDasharray={ringCircumference}
@@ -211,19 +253,26 @@ export default function EconomyDashboardScreen() {
           <View style={styles.heroStatsRow}>
             <View style={[styles.heroStat, { borderColor: semantic.cardBorder }]}>
               <ThemedText style={[styles.heroStatLabel, { color: semantic.mutedText }]}>TREND</ThemedText>
-              <ThemedText style={styles.heroStatValue}>{sentimentLabel(sentimentScore)}</ThemedText>
+              <ThemedText style={[styles.heroStatValue, { color: isDark ? "#4ADE80" : "#15803D" }]}>
+                {sentimentLabel(sentimentScore)}
+              </ThemedText>
             </View>
             <View style={[styles.heroStat, { borderColor: semantic.cardBorder }]}>
               <ThemedText style={[styles.heroStatLabel, { color: semantic.mutedText }]}>VOLATILITY</ThemedText>
-              <ThemedText style={styles.heroStatValue}>{sentimentDelta.toFixed(1)}%</ThemedText>
+              <ThemedText style={[styles.heroStatValue, { color: isDark ? "#FACC15" : "#A16207" }]}>
+                {sentimentDelta.toFixed(1)}%
+              </ThemedText>
             </View>
             <View style={[styles.heroStat, { borderColor: semantic.cardBorder }]}>
               <ThemedText style={[styles.heroStatLabel, { color: semantic.mutedText }]}>STABILITY</ThemedText>
-              <ThemedText style={styles.heroStatValue}>{sentimentStability.toFixed(1)}</ThemedText>
+              <ThemedText style={[styles.heroStatValue, { color: isDark ? "#60A5FA" : "#1D4ED8" }]}>
+                {sentimentStability.toFixed(1)}
+              </ThemedText>
             </View>
           </View>
         </View>
 
+        {/* 3) Async state notices for economy overview fetch */}
         {isEconomyOverviewLoading && (
           <StateNoticeCard
             title="Loading"
@@ -244,9 +293,11 @@ export default function EconomyDashboardScreen() {
           />
         )}
 
+        {/* 4) High-level indicator feed: tap any card to open sector detail */}
         <View style={styles.feed}>
           {feedRows.map((row) => {
             const trend = trendVisual(row.trend, isDark);
+            const bars = normalizeBars(row.history);
             return (
               <Pressable
                 key={row.id}
@@ -271,23 +322,57 @@ export default function EconomyDashboardScreen() {
                   <ThemedText style={[styles.feedTitle, { color: semantic.mutedText }]}>
                     {row.title}
                   </ThemedText>
-                  <Feather name="chevron-right" size={14} color={semantic.mutedText} />
+                  <Feather name={trend.icon} size={14} color={trend.color} />
                 </View>
-                <View style={styles.feedValueRow}>
-                  <ThemedText style={styles.feedValue}>{row.value}</ThemedText>
-                  <View style={styles.feedTrend}>
-                    <Feather name={trend.icon} size={12} color={trend.color} />
-                    <ThemedText style={[styles.feedTrendText, { color: trend.color }]}>{row.subtitle}</ThemedText>
-                  </View>
+                <View style={[styles.feedHeaderDivider, { backgroundColor: semantic.cardBorder }]} />
+                <ThemedText style={styles.feedValue}>{row.value}</ThemedText>
+                <View style={styles.feedTrend}>
+                  <View style={[styles.statusDot, { backgroundColor: trend.color }]} />
+                  <ThemedText style={[styles.feedTrendText, { color: trend.color }]}>
+                    {row.trend === "up" ? "STRENGTHENING" : row.trend === "down" ? "WEAKENING" : "STABLE"}
+                  </ThemedText>
                 </View>
                 <View style={styles.sparklineRow}>
-                  <SectorSparkline values={row.history} strokeColor={theme.tint} width={96} height={28} />
+                  <View style={styles.miniBarsRow}>
+                    {bars.map((heightPct, index) => (
+                      <View
+                        key={`${row.id}-${index}`}
+                        style={[
+                          styles.miniBar,
+                          {
+                            height: 22 * heightPct,
+                            backgroundColor:
+                              index === bars.length - 1
+                                ? trend.color
+                                : isDark
+                                  ? "#334155"
+                                  : "#E5E7EB",
+                          },
+                        ]}
+                      />
+                    ))}
+                  </View>
+                </View>
+                <View
+                  style={[
+                    styles.cardCtaRow,
+                    {
+                      borderTopColor: semantic.cardBorder,
+                      backgroundColor: semantic.cardSubtleBackground,
+                    },
+                  ]}
+                >
+                  <ThemedText style={[styles.cardCtaText, { color: theme.tint }]}>
+                    Explore detailed analysis
+                  </ThemedText>
+                  <Feather name="chevron-right" size={14} color={theme.tint} />
                 </View>
               </Pressable>
             );
           })}
         </View>
 
+        {/* 5) Narrative section: latest developments snapshot */}
         <View
           style={[
             styles.infoCard,
@@ -311,6 +396,7 @@ export default function EconomyDashboardScreen() {
           ))}
         </View>
 
+        {/* 6) Operational section: monitoring checklist signals */}
         <View
           style={[
             styles.infoCard,
@@ -422,43 +508,79 @@ const styles = StyleSheet.create({
   feedCard: {
     borderWidth: 1,
     borderRadius: Radius.md,
-    paddingVertical: 10,
-    paddingHorizontal: 12,
+    paddingTop: 10,
+    overflow: "hidden",
   },
   feedHeader: {
     flexDirection: "row",
     justifyContent: "space-between",
     alignItems: "center",
+    paddingHorizontal: 12,
   },
   feedTitle: {
-    fontSize: 9,
+    fontSize: 10,
+    fontWeight: "700",
     letterSpacing: 0.4,
   },
-  feedValueRow: {
-    marginTop: 4,
-    flexDirection: "row",
-    justifyContent: "space-between",
-    alignItems: "flex-end",
+  feedHeaderDivider: {
+    marginTop: 8,
+    marginHorizontal: 12,
+    height: StyleSheet.hairlineWidth,
   },
   feedValue: {
+    marginTop: 6,
+    paddingHorizontal: 12,
     fontSize: 34,
     fontWeight: "800",
     lineHeight: 38,
     letterSpacing: -0.4,
   },
   feedTrend: {
+    marginTop: 2,
+    paddingHorizontal: 12,
     flexDirection: "row",
     alignItems: "center",
-    maxWidth: "54%",
     gap: 4,
+  },
+  statusDot: {
+    width: 5,
+    height: 5,
+    borderRadius: 5,
   },
   feedTrendText: {
     fontSize: 10,
     fontWeight: "600",
   },
   sparklineRow: {
-    marginTop: 6,
+    marginTop: 8,
+    paddingHorizontal: 12,
+    alignItems: "stretch",
+    marginBottom: 8,
+  },
+  miniBarsRow: {
+    width: "100%",
+    height: 24,
+    flexDirection: "row",
     alignItems: "flex-end",
+    gap: 2,
+  },
+  miniBar: {
+    flex: 1,
+    borderRadius: 2,
+    minHeight: 6,
+  },
+  cardCtaRow: {
+    borderTopWidth: 1,
+    minHeight: 44,
+    paddingHorizontal: 14,
+    paddingVertical: 8,
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
+  },
+  cardCtaText: {
+    fontSize: 13,
+    fontWeight: "600",
   },
   infoCard: {
     borderWidth: 1,
