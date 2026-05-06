@@ -9,7 +9,7 @@ import {
 } from "react-native";
 import Svg, { Circle, Defs, LinearGradient, Stop } from "react-native-svg";
 
-import { BrandRgb, Colors } from "@/constants/theme/Colors";
+import { BrandRgb, Colors, Palette } from "@/constants/theme/Colors";
 import {
   getSemanticColors,
   Radius,
@@ -39,10 +39,10 @@ type EconomicPulseChartProps = {
   onBreakdownPress?: (item: BreakdownItem) => void;
 };
 
-/** Traffic-light only; everything else uses Hypatia tokens. */
-const SCORE_BAD = "#ef4444";
-const SCORE_MID = "#f59e0b";
-const SCORE_GOOD = "#10b981";
+/** Traffic-light aligned with dashboard status hues. */
+const SCORE_BAD = Palette.danger;
+const SCORE_MID = Palette.warning;
+const SCORE_GOOD = Palette.success;
 
 const STROKE_WIDTH = 34;
 const MAX_GAUGE_PX = 280;

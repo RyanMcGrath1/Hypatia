@@ -11,7 +11,8 @@ import Animated, {
 } from "react-native-reanimated";
 
 import { ThemedText } from "@/components/theme/ThemedText";
-import { Brand } from "@/constants/theme/Colors";
+import { getSemanticColors } from "@/constants/theme/ThemeTokens";
+import { useColorScheme } from "@/hooks/useColorScheme";
 import type { PoliticianProfile } from "@/lib/politician/types";
 
 const TICKER_TILE_W = 168;
@@ -36,6 +37,9 @@ export function PoliticianShowcaseCarousel({
   borderColor,
   tileBackground,
 }: PoliticianShowcaseCarouselProps) {
+  const colorScheme = useColorScheme() ?? "light";
+  const semantic = getSemanticColors(colorScheme);
+  const stripBackground = semantic.cardSubtleBackground;
   const { width: windowWidth } = useWindowDimensions();
   const trackWidth = Math.max(0, windowWidth - 32);
   const translateX = useSharedValue(0);
@@ -82,7 +86,10 @@ export function PoliticianShowcaseCarousel({
         Featured
       </ThemedText>
       <View
-        style={[styles.tickerClip, { width: trackWidth, borderColor }]}
+        style={[
+          styles.tickerClip,
+          { width: trackWidth, borderColor, backgroundColor: stripBackground },
+        ]}
       >
         <Animated.View
           style={[
@@ -106,7 +113,12 @@ export function PoliticianShowcaseCarousel({
                   },
                 ]}
               >
-                <View style={styles.tickerImageShell}>
+                <View
+                  style={[
+                    styles.tickerImageShell,
+                    { backgroundColor: stripBackground },
+                  ]}
+                >
                   <Image
                     source={{ uri: profile.photoUrl }}
                     style={styles.tickerImageFill}
@@ -152,7 +164,6 @@ const styles = StyleSheet.create({
     borderRadius: 16,
     borderWidth: 1,
     overflow: "hidden",
-    backgroundColor: Brand.slate,
     paddingVertical: 10,
   },
   tickerRow: {
@@ -174,7 +185,6 @@ const styles = StyleSheet.create({
     height: TICKER_IMAGE_H,
     position: "relative",
     overflow: "hidden",
-    backgroundColor: Brand.slate,
   },
   tickerImageFill: {
     ...StyleSheet.absoluteFillObject,

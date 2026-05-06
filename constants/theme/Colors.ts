@@ -1,63 +1,91 @@
 /**
- * Hypatia palette — Onyx, Dark Slate Grey, Slate Grey, Lavender, Spring Green.
- * Legacy keys (`deepNavy`, `slateBlue`, …) keep existing imports working.
+ * Dashboard-inspired palette (reference: soft gray canvas, white cards, primary blue).
+ * Legacy `Brand` keys keep older imports working (e.g. `springGreen` → primary accent).
  */
+
 export const Palette = {
-  onyx: "#00120b",
-  darkSlateGrey: "#35605a",
-  slateGrey: "#6b818c",
-  lavender: "#d8e4ff",
-  springGreen: "#31e981",
+  canvas: "#F4F7F9",
+  white: "#FFFFFF",
+  ink: "#333333",
+  muted: "#828282",
+  border: "#E0E0E0",
+  divider: "#F2F2F2",
+  primary: "#4A6CF7",
+  primarySoft: "#E8EEFF",
+  success: "#6FCF97",
+  successSoft: "#E3F7EB",
+  warning: "#F2C94C",
+  warningSoft: "#FFF8E5",
+  danger: "#EB5757",
+  dangerSoft: "#FFEAEA",
+  info: "#56CCF2",
+  infoSoft: "#E5F7FD",
+  darkCanvas: "#1a1d26",
+  darkElevated: "#242832",
 } as const;
 
+/** Legacy names mapped to dashboard tokens */
 export const Brand = {
   ...Palette,
-  deepNavy: Palette.onyx,
-  slateBlue: Palette.slateGrey,
-  offWhite: Palette.lavender,
-  /** Legacy — secondary dark (charts); primary text uses `ink` / `onyx`. */
-  charcoal: Palette.darkSlateGrey,
-  teal: Palette.springGreen,
-  paper: Palette.lavender,
-  steel: Palette.slateGrey,
-  ink: Palette.onyx,
-  slate: Palette.darkSlateGrey,
-  coral: Palette.springGreen,
+  onyx: Palette.darkCanvas,
+  deepNavy: Palette.darkCanvas,
+  charcoal: Palette.darkElevated,
+  slate: Palette.darkElevated,
+  darkSlateGrey: Palette.darkElevated,
+  slateBlue: Palette.muted,
+  slateGrey: Palette.muted,
+  steel: Palette.muted,
+  offWhite: Palette.canvas,
+  paper: Palette.white,
+  lavender: Palette.canvas,
+  /** Primary accent (tabs, CTAs, links) — historically “spring green”. */
+  springGreen: Palette.primary,
+  teal: Palette.primary,
+  /** Positive / economy accents — historically coral */
+  coral: Palette.success,
 } as const;
 
-/** RGB tuples for chart kit / overlays that need `rgba(...)`. */
+/** RGB tuples for charts and overlays. */
 export const BrandRgb = {
-  onyx: [0, 18, 11] as const,
-  darkSlateGrey: [53, 96, 90] as const,
-  slateGrey: [107, 129, 140] as const,
-  lavender: [216, 228, 255] as const,
-  springGreen: [49, 233, 129] as const,
-  /** Legacy — same channels as palette names above */
-  offWhite: [216, 228, 255] as const,
-  teal: [49, 233, 129] as const,
-  charcoal: [0, 18, 11] as const,
-  slateBlue: [107, 129, 140] as const,
-  deepNavy: [0, 18, 11] as const,
+  canvas: [244, 247, 249] as const,
+  white: [255, 255, 255] as const,
+  ink: [51, 51, 51] as const,
+  muted: [130, 130, 130] as const,
+  primary: [74, 108, 247] as const,
+  success: [111, 207, 151] as const,
+  danger: [235, 87, 87] as const,
+  darkCanvas: [26, 29, 38] as const,
+  darkElevated: [36, 40, 50] as const,
+  /** Legacy aliases */
+  onyx: [26, 29, 38] as const,
+  lavender: [244, 247, 249] as const,
+  offWhite: [244, 247, 249] as const,
+  charcoal: [36, 40, 50] as const,
+  teal: [74, 108, 247] as const,
+  springGreen: [74, 108, 247] as const,
+  slateGrey: [130, 130, 130] as const,
+  slateBlue: [130, 130, 130] as const,
+  deepNavy: [26, 29, 38] as const,
 } as const;
 
-const tintLight = Brand.springGreen;
-const tintDark = Brand.springGreen;
+const tintLight = Palette.primary;
+const tintDark = Palette.primary;
 
 export const Colors = {
   light: {
     text: Brand.ink,
-    background: Brand.lavender,
+    background: Brand.canvas,
     tint: tintLight,
-    icon: Brand.steel,
-    tabIconDefault: Brand.steel,
+    icon: Brand.muted,
+    tabIconDefault: Brand.muted,
     tabIconSelected: tintLight,
   },
   dark: {
-    text: Brand.lavender,
-    background: Brand.onyx,
+    text: "#E8EAED",
+    background: Brand.darkCanvas,
     tint: tintDark,
-    icon: "rgba(216,228,255,0.55)",
-    tabIconDefault: "rgba(216,228,255,0.45)",
-    tabIconSelected: tintDark,
+    icon: "rgba(232,234,237,0.55)",
+    tabIconDefault: "rgba(232,234,237,0.45)",
+    tabIconSelected: "#8EA4FB",
   },
 };

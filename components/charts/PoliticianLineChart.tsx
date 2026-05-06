@@ -24,10 +24,10 @@ export default function PoliticianLineChart() {
     propsForDots: {
       r: '4',
       strokeWidth: '2',
-      stroke: isDark ? Brand.ink : Brand.paper,
+      stroke: isDark ? Brand.white : Brand.primary,
     },
     propsForBackgroundLines: {
-      stroke: isDark ? Brand.steel : Brand.slate,
+      stroke: isDark ? Brand.steel : Brand.border,
       strokeDasharray: '',
     },
   };
