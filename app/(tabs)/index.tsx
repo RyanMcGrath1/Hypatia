@@ -1,4 +1,4 @@
-import { useCallback, useMemo, useState } from "react";
+import { useCallback, useMemo } from "react";
 import {
   ActivityIndicator,
   FlatList,
@@ -107,8 +107,6 @@ export default function HomeScreen() {
 
   const colorScheme = useColorScheme() ?? "light";
   const semantic = getSemanticColors(colorScheme);
-  const [topicAnchorY, setTopicAnchorY] = useState(0);
-  const [stickyTopicsVisible, setStickyTopicsVisible] = useState(false);
 
   const openArticle = useCallback((url: string, title: string) => {
     router.push({
@@ -116,93 +114,6 @@ export default function HomeScreen() {
       params: { url, title },
     });
   }, []);
-
-  const renderTopicCarousel = useCallback(
-    (sticky = false) => (
-      <View
-        style={[
-          styles.topicCarouselBleed,
-          sticky ? styles.topicCarouselStickyBleed : null,
-        ]}
-      >
-        <ScrollView
-          horizontal
-          showsHorizontalScrollIndicator={false}
-          contentContainerStyle={styles.topicCarouselContent}
-        >
-          {NEWS_TOPIC_OPTIONS.map((topic) => {
-            const selected = topic.id === selectedTopicId;
-            return (
-              <Pressable
-                key={`${sticky ? "sticky" : "header"}-${topic.id}`}
-                accessibilityRole="button"
-                accessibilityState={{ selected }}
-                accessibilityLabel={`${topic.label} headlines`}
-                onPress={() => setSelectedTopicId(topic.id)}
-                style={({ pressed }) => [
-                  styles.topicChip,
-                  {
-                    backgroundColor: selected
-                      ? semantic.accent
-                      : semantic.cardSubtleBackground,
-                    borderColor: selected
-                      ? semantic.accent
-                      : semantic.cardBorder,
-                    opacity: pressed ? 0.88 : 1,
-                  },
-                ]}
-              >
-                <View style={styles.topicChipRow}>
-                  <Ionicons
-                    name={NEWS_TOPIC_ICON_NAMES[topic.id]}
-                    size={15}
-                    color={selected ? Brand.paper : semantic.mutedText}
-                    accessible={false}
-                  />
-                  <ThemedText
-                    style={{
-                      fontFamily: selected ? Fonts.bodySemiBold : Fonts.bodyMedium,
-                      fontSize: 14,
-                      lineHeight: 18,
-                      color: selected ? Brand.paper : semantic.mutedText,
-                    }}
-                  >
-                    {topic.label}
-                  </ThemedText>
-                </View>
-              </Pressable>
-            );
-          })}
-        </ScrollView>
-      </View>
-    ),
-    [
-      selectedTopicId,
-      semantic.accent,
-      semantic.cardBorder,
-      semantic.cardSubtleBackground,
-      semantic.mutedText,
-      setSelectedTopicId,
-    ],
-  );
-
-  const onTopicAnchorLayout = useCallback(
-    (y: number) => {
-      setTopicAnchorY(y);
-    },
-    [],
-  );
-
-  const onListScroll = useCallback(
-    (offsetY: number) => {
-      if (topicAnchorY <= 0) {
-        return;
-      }
-      const nextVisible = offsetY >= topicAnchorY;
-      setStickyTopicsVisible((prev) => (prev === nextVisible ? prev : nextVisible));
-    },
-    [topicAnchorY],
-  );
 
   const renderHeadlineItem = useCallback(
     ({ item, index }: { item: TopHeadlineItem; index: number }) => {
@@ -315,10 +226,58 @@ export default function HomeScreen() {
           subtitleStyle={styles.headerSubtitle}
         />
 
-        <View
-          onLayout={(event) => onTopicAnchorLayout(event.nativeEvent.layout.y)}
-        >
-          {renderTopicCarousel(false)}
+        <View style={styles.topicCarouselBleed}>
+          <ScrollView
+            horizontal
+            showsHorizontalScrollIndicator={false}
+            contentContainerStyle={styles.topicCarouselContent}
+          >
+            {NEWS_TOPIC_OPTIONS.map((topic) => {
+              const selected = topic.id === selectedTopicId;
+              return (
+                <Pressable
+                  key={topic.id}
+                  accessibilityRole="button"
+                  accessibilityState={{ selected }}
+                  accessibilityLabel={`${topic.label} headlines`}
+                  onPress={() => setSelectedTopicId(topic.id)}
+                  style={({ pressed }) => [
+                    styles.topicChip,
+                    {
+                      backgroundColor: selected
+                        ? semantic.accent
+                        : semantic.cardSubtleBackground,
+                      borderColor: selected
+                        ? semantic.accent
+                        : semantic.cardBorder,
+                      opacity: pressed ? 0.88 : 1,
+                    },
+                  ]}
+                >
+                  <View style={styles.topicChipRow}>
+                    <Ionicons
+                      name={NEWS_TOPIC_ICON_NAMES[topic.id]}
+                      size={15}
+                      color={selected ? Brand.paper : semantic.mutedText}
+                      accessible={false}
+                    />
+                    <ThemedText
+                      style={{
+                        fontFamily: selected
+                          ? Fonts.bodySemiBold
+                          : Fonts.bodyMedium,
+                        fontSize: 14,
+                        lineHeight: 18,
+                        color: selected ? Brand.paper : semantic.mutedText,
+                      }}
+                    >
+                      {topic.label}
+                    </ThemedText>
+                  </View>
+                </Pressable>
+              );
+            })}
+          </ScrollView>
         </View>
 
         {isLoading && headlines.length === 0 ? (
@@ -367,10 +326,11 @@ export default function HomeScreen() {
       semantic.accent,
       semantic.cardBackground,
       semantic.cardBorder,
+      semantic.cardSubtleBackground,
       semantic.danger,
       semantic.mutedText,
-      onTopicAnchorLayout,
-      renderTopicCarousel,
+      selectedTopicId,
+      setSelectedTopicId,
     ],
   );
 
@@ -440,14 +400,7 @@ export default function HomeScreen() {
         onEndReached={onEndReached}
         onEndReachedThreshold={0.35}
         ItemSeparatorComponent={() => <View style={{ height: Spacing.md }} />}
-        onScroll={(event) => onListScroll(event.nativeEvent.contentOffset.y)}
-        scrollEventThrottle={16}
       />
-      {stickyTopicsVisible ? (
-        <View pointerEvents="box-none" style={styles.stickyTopicShell}>
-          {renderTopicCarousel(true)}
-        </View>
-      ) : null}
     </ThemedView>
   );
 }
@@ -482,9 +435,6 @@ const styles = StyleSheet.create({
     gap: Spacing.sm,
     paddingHorizontal: Spacing.lg,
     paddingBottom: 2,
-  },
-  topicCarouselStickyBleed: {
-    marginHorizontal: 0,
   },
   topicChip: {
     paddingHorizontal: 15,
@@ -560,13 +510,5 @@ const styles = StyleSheet.create({
   footerHint: {
     fontSize: 13,
     textAlign: "center",
-  },
-  stickyTopicShell: {
-    position: "absolute",
-    top: 0,
-    left: 0,
-    right: 0,
-    zIndex: 20,
-    paddingTop: 2,
   },
 });
