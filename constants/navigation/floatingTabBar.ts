@@ -1,12 +1,14 @@
-/** Layout for the floating bottom tab bar (inset pill). */
+/** Layout for the bottom tab bar (docked to screen bottom + safe area inset). */
 export const FLOATING_TAB_BAR = {
-  height: 62,
-  borderRadius: 31,
+  /** Tab row height (icons + labels), excluding home-indicator padding. */
+  contentHeight: 54,
+  /** Rounded top corners only (bar is flush to bottom of screen). */
+  topCornerRadius: 16,
   /**
-   * Horizontal padding added on top of `useSafeAreaInsets().left` / `.right`.
-   * Keeps the bar off curved corners, notches, and narrow portrait edges.
+   * Horizontal inset from screen edges (0 = full-width docked bar).
+   * Previously used for a floating pill; keep 0 for edge-to-edge.
    */
-  horizontalGutter: 40,
-  /** Extra gap above the home indicator / system nav bar (added to safe-area bottom). */
-  bottomOffset: 12,
+  horizontalGutter: 0,
+  /** Extra lift above the bottom safe area (0 = bar flush to screen bottom). */
+  bottomOffset: 0,
 } as const;

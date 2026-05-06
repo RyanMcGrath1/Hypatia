@@ -27,7 +27,8 @@ export default function FloatingTabBarBackground() {
 const styles = StyleSheet.create({
   container: {
     ...StyleSheet.absoluteFillObject,
-    borderRadius: FLOATING_TAB_BAR.borderRadius,
+    borderTopLeftRadius: FLOATING_TAB_BAR.topCornerRadius,
+    borderTopRightRadius: FLOATING_TAB_BAR.topCornerRadius,
     overflow: "hidden",
   },
 });
