@@ -14,11 +14,13 @@ import {
 } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 
+import { AppBrandBar } from "@/components/layout/AppBrandBar";
 import { PoliticianProfileDetail } from "@/components/politician/PoliticianProfileDetail";
 import { StateNoticeCard } from "@/components/surfaces/StateNoticeCard";
 import { ThemedText } from "@/components/theme/ThemedText";
 import { ThemedView } from "@/components/theme/ThemedView";
 import { Brand, Colors } from "@/constants/theme/Colors";
+import { TAB_SCREEN_CONTENT_INSETS } from "@/constants/navigation/tabScreenContentInsets";
 import { Radius, Spacing, getSemanticColors } from "@/constants/theme/ThemeTokens";
 import { Fonts } from "@/constants/theme/Typography";
 import { FEC_CANDIDATES_MIN_QUERY_LENGTH } from "@/hooks/api/fecCandidatesApi";
@@ -164,22 +166,12 @@ export default function PoliticianScreen() {
           keyboardDismissMode={Platform.OS === "ios" ? "interactive" : "on-drag"}
           contentContainerStyle={[
             styles.scrollContent,
-            {
-              // Root `SafeAreaView` already applies top inset; small gap under `AppBanner` only.
-              paddingTop: Spacing.xs,
-              paddingBottom: insets.bottom + 112,
-            },
+            TAB_SCREEN_CONTENT_INSETS,
+            { paddingBottom: insets.bottom + 112 },
           ]}
           showsVerticalScrollIndicator={false}
         >
-          <View style={styles.topBar}>
-            <View style={[styles.headerIconWrap, { backgroundColor: interactive.primarySoft }]}>
-              <Ionicons name="business" size={20} color={interactive.primary} />
-            </View>
-            <ThemedText style={[styles.brandTitle, { color: interactive.primary }]}>
-              HYPATIA
-            </ThemedText>
-          </View>
+          <AppBrandBar icon="people" />
 
           <View
             style={[
@@ -650,26 +642,7 @@ const styles = StyleSheet.create({
   screen: { flex: 1 },
   flex: { flex: 1 },
   scrollContent: {
-    paddingHorizontal: Spacing.lg,
     gap: Spacing.md,
-  },
-  topBar: {
-    flexDirection: "row",
-    alignItems: "center",
-    gap: 10,
-    marginBottom: 0,
-  },
-  headerIconWrap: {
-    width: 36,
-    height: 36,
-    borderRadius: 10,
-    alignItems: "center",
-    justifyContent: "center",
-  },
-  brandTitle: {
-    fontSize: 15,
-    fontFamily: Fonts.bodyBold,
-    letterSpacing: 0.8,
   },
   searchShell: {
     flexDirection: "row",

@@ -11,10 +11,12 @@ import {
 } from "react-native";
 import Svg, { Circle, Defs, LinearGradient, Stop } from "react-native-svg";
 
+import { AppBrandBar } from "@/components/layout/AppBrandBar";
 import { StateNoticeCard } from "@/components/surfaces/StateNoticeCard";
 import { ThemedText } from "@/components/theme/ThemedText";
 import { ThemedView } from "@/components/theme/ThemedView";
 import { AppRoutes } from "@/constants/app/routes";
+import { TAB_SCREEN_CONTENT_INSETS } from "@/constants/navigation/tabScreenContentInsets";
 import {
   US_ECONOMIC_SECTORS,
   type SectorTrend,
@@ -323,11 +325,9 @@ export default function EconomyDashboardScreen() {
         contentContainerStyle={styles.scrollContent}
         showsVerticalScrollIndicator={false}
       >
-        {/* 1) Top strip: compact title + as-of timestamp */}
+        {/* 1) App brand + as-of timestamp (matches politician tab) */}
         <View style={styles.topHeader}>
-          <ThemedText type="defaultSemiBold" style={styles.pageTitle}>
-            ECONOSTAT US
-          </ThemedText>
+          <AppBrandBar icon="bar-chart" />
           <ThemedText style={[styles.pageMeta, { color: semantic.mutedText }]}>
             UPDATED {displayAsOf}
           </ThemedText>
@@ -598,8 +598,7 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   scrollContent: {
-    paddingHorizontal: Spacing.md,
-    paddingTop: Spacing.sm,
+    ...TAB_SCREEN_CONTENT_INSETS,
     paddingBottom: 120,
     gap: Spacing.sm,
   },
@@ -607,11 +606,7 @@ const styles = StyleSheet.create({
     flexDirection: "row",
     alignItems: "center",
     justifyContent: "space-between",
-    paddingHorizontal: 2,
-  },
-  pageTitle: {
-    fontSize: 12,
-    letterSpacing: 0.5,
+    gap: Spacing.sm,
   },
   pageMeta: {
     fontSize: 10,

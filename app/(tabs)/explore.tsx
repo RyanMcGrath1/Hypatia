@@ -11,9 +11,11 @@ import {
 } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 
+import { AppBrandBar } from "@/components/layout/AppBrandBar";
 import { ThemedText } from "@/components/theme/ThemedText";
 import { ThemedView } from "@/components/theme/ThemedView";
 import { Brand, Colors } from "@/constants/theme/Colors";
+import { TAB_SCREEN_CONTENT_INSETS } from "@/constants/navigation/tabScreenContentInsets";
 import { Radius, Spacing, getSemanticColors } from "@/constants/theme/ThemeTokens";
 import { Fonts } from "@/constants/theme/Typography";
 import { useColorScheme } from "@/hooks/useColorScheme";
@@ -78,25 +80,13 @@ export default function ExploreScreen() {
       <ScrollView
         contentContainerStyle={[
           styles.scroll,
-          {
-            // Root `SafeAreaView` already applies top inset; only add a small gap under `AppBanner`.
-            paddingTop: Spacing.xs,
-            paddingBottom: insets.bottom + FLOATING_TAB_CLEARANCE,
-          },
+          TAB_SCREEN_CONTENT_INSETS,
+          { paddingBottom: insets.bottom + FLOATING_TAB_CLEARANCE },
         ]}
         keyboardShouldPersistTaps="handled"
         showsVerticalScrollIndicator={false}
       >
-        <View style={styles.topBar}>
-          <View style={styles.brandRow}>
-            <View style={[styles.brandIconWrap, { backgroundColor: interactive.primarySoft }]}>
-              <Ionicons name="bar-chart" size={18} color={interactive.primary} />
-            </View>
-            <ThemedText style={[styles.brandTitle, { color: interactive.primary }]}>
-              Hypatia
-            </ThemedText>
-          </View>
-        </View>
+        <AppBrandBar icon="search" />
 
         <View
           style={[
@@ -316,30 +306,7 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   scroll: {
-    paddingHorizontal: Spacing.lg,
     gap: Spacing.md,
-  },
-  topBar: {
-    flexDirection: "row",
-    alignItems: "center",
-    marginBottom: 0,
-  },
-  brandRow: {
-    flexDirection: "row",
-    alignItems: "center",
-    gap: 8,
-  },
-  brandIconWrap: {
-    width: 32,
-    height: 32,
-    borderRadius: 8,
-    alignItems: "center",
-    justifyContent: "center",
-  },
-  brandTitle: {
-    fontSize: 18,
-    fontFamily: Fonts.bodySemiBold,
-    letterSpacing: -0.3,
   },
   searchShell: {
     flexDirection: "row",

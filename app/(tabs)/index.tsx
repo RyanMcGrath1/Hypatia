@@ -13,6 +13,7 @@ import Ionicons from "@expo/vector-icons/Ionicons";
 import { Image } from "expo-image";
 import { router } from "expo-router";
 
+import { AppBrandBar } from "@/components/layout/AppBrandBar";
 import { ScreenHeader } from "@/components/layout/ScreenHeader";
 import { EmptyState } from "@/components/surfaces/EmptyState";
 import { SectionCard } from "@/components/surfaces/SectionCard";
@@ -21,6 +22,7 @@ import { ThemedText } from "@/components/theme/ThemedText";
 import { ThemedView } from "@/components/theme/ThemedView";
 import { NEWS_TOPIC_ICON_NAMES } from "@/constants/app/newsTopicIcons";
 import { AppRoutes } from "@/constants/app/routes";
+import { TAB_SCREEN_CONTENT_INSETS } from "@/constants/navigation/tabScreenContentInsets";
 import { Brand } from "@/constants/theme/Colors";
 import {
   Radius,
@@ -234,6 +236,7 @@ export default function HomeScreen() {
   const listHeader = useMemo(
     () => (
       <View style={styles.listHeader}>
+        <AppBrandBar icon="newspaper" />
         <ScreenHeader
           title={getTimeOfDayGreeting()}
           subtitle={`${new Date().toLocaleDateString("en-US", {
@@ -431,8 +434,7 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   listContent: {
-    paddingHorizontal: Spacing.lg,
-    paddingTop: Spacing.md,
+    ...TAB_SCREEN_CONTENT_INSETS,
     paddingBottom: 112,
     flexGrow: 1,
   },
