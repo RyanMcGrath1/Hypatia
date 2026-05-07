@@ -148,6 +148,24 @@ export const US_ECONOMIC_SECTORS: EconomicSector[] = [
     updatedAt: 'Apr 2026',
     history: [99, 99.3, 99.8, 100.2, 101, 101.8],
   },
+  {
+    id: 'markets',
+    title: 'Markets',
+    headlineLabel: 'S&P 500',
+    headlineValue: '5,137.08',
+    trend: 'up',
+    trendLabel: 'Equities firm as yields ease',
+    summary: 'Risk assets are bid with curve dynamics and calendar catalysts in focus.',
+    interpretation:
+      'Cross-asset moves reflect growth optimism tempered by policy and inflation data.',
+    metrics: [
+      { label: 'US 10Y Yield', value: '4.22%', note: 'Intra-day benchmark' },
+      { label: 'VIX', value: '13.8', note: 'Implied volatility' },
+      { label: 'DXY', value: '104.1', note: 'Trade-weighted dollar' },
+    ],
+    updatedAt: 'Apr 2026',
+    history: [100, 100.4, 100.9, 101.2, 101.6, 102.1],
+  },
 ];
 
 export const ECONOMIC_PULSE_MONTH_LABELS = ['Nov', 'Dec', 'Jan', 'Feb', 'Mar', 'Apr'];

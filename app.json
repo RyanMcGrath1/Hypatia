@@ -4,7 +4,7 @@
     "slug": "hypatia",
     "version": "1.0.0",
     "orientation": "portrait",
-    "icon": "./assets/images/hypatia-logo.png",
+    "icon": "./assets/images/light-logo.png",
     "scheme": "hypatia",
     "userInterfaceStyle": "automatic",
     "newArchEnabled": true,
@@ -18,7 +18,7 @@
     },
     "android": {
       "adaptiveIcon": {
-        "foregroundImage": "./assets/images/hypatia-logo.png",
+        "foregroundImage": "./assets/images/light-logo.png",
         "backgroundColor": "#fbf8ff"
       },
       "edgeToEdgeEnabled": true,
@@ -27,15 +27,15 @@
     "web": {
       "bundler": "metro",
       "output": "static",
-      "favicon": "./assets/images/hypatia-logo.png"
+      "favicon": "./assets/images/light-logo.png"
     },
     "plugins": [
       "expo-router",
       [
         "expo-splash-screen",
         {
-          "image": "./assets/images/hypatia-logo.png",
-          "imageWidth": 200,
+          "image": "./assets/images/light-logo.png",
+          "imageWidth": 260,
           "resizeMode": "contain",
           "backgroundColor": "#fbf8ff"
         }

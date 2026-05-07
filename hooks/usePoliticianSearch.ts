@@ -1,15 +1,21 @@
 import { router } from "expo-router";
-import { useCallback, useMemo, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { Keyboard } from "react-native";
 
 import { AppRoutes } from "@/constants/app/routes";
 import {
-  findPoliticianProfile,
-  MOCK_POLITICIANS,
-} from "@/lib/politician/mockProfileSearch";
+  FEC_CANDIDATES_MIN_QUERY_LENGTH,
+  FecCandidatesApiError,
+  fetchFecCandidates,
+  getFecCandidatesNetworkErrorMessage,
+} from "@/hooks/api/fecCandidatesApi";
+import { findPoliticianProfile } from "@/lib/politician/mockProfileSearch";
+import { mapFecCandidatesToSuggestions } from "@/lib/politician/fecSearchSuggestion";
+import type { PoliticianSearchSuggestion } from "@/lib/politician/fecSearchSuggestion";
 import type { PoliticianProfile } from "@/lib/politician/types";
 
 const SEARCH_DELAY_MS = 420;
+const SUGGEST_DEBOUNCE_MS = 320;
 
 export function usePoliticianSearch() {
   const [input, setInput] = useState("");
@@ -20,8 +26,14 @@ export function usePoliticianSearch() {
   const [selectedProfile, setSelectedProfile] =
     useState<PoliticianProfile | null>(null);
   const [recentSearches, setRecentSearches] = useState<string[]>([]);
+
+  const [suggestions, setSuggestions] = useState<PoliticianSearchSuggestion[]>([]);
+  const [suggestionsLoading, setSuggestionsLoading] = useState(false);
+  const [suggestionsError, setSuggestionsError] = useState<string | null>(null);
+
   const timeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const blurTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const suggestAbortRef = useRef<AbortController | null>(null);
 
   const runSearch = useCallback((rawQuery: string) => {
     const query = rawQuery.trim();
@@ -51,17 +63,60 @@ export function usePoliticianSearch() {
     runSearch(input);
   }, [input, runSearch]);
 
-  const suggestions = useMemo(() => {
-    const query = input.trim().toLowerCase();
-    if (!query) {
-      return [];
+  useEffect(() => {
+    const q = input.trim();
+    if (!q) {
+      setSuggestions([]);
+      setSuggestionsError(null);
+      setSuggestionsLoading(false);
+      return;
     }
 
-    return MOCK_POLITICIANS.filter((profile) =>
-      `${profile.name} ${profile.role} ${profile.location}`
-        .toLowerCase()
-        .includes(query),
-    ).slice(0, 5);
+    if (q.length < FEC_CANDIDATES_MIN_QUERY_LENGTH) {
+      setSuggestions([]);
+      setSuggestionsError(null);
+      setSuggestionsLoading(false);
+      return;
+    }
+
+    setSuggestionsLoading(true);
+    setSuggestionsError(null);
+
+    const debounceId = setTimeout(() => {
+      const controller = new AbortController();
+      suggestAbortRef.current = controller;
+
+      void (async () => {
+        try {
+          const data = await fetchFecCandidates({ q }, controller.signal);
+          setSuggestions(mapFecCandidatesToSuggestions(data.results));
+          setSuggestionsError(null);
+        } catch (err) {
+          if (err instanceof Error && err.name === "AbortError") {
+            return;
+          }
+          setSuggestions([]);
+          if (err instanceof FecCandidatesApiError) {
+            setSuggestionsError(err.message);
+          } else if (err instanceof Error && err.message.startsWith("Network error")) {
+            setSuggestionsError(getFecCandidatesNetworkErrorMessage());
+          } else {
+            setSuggestionsError(
+              err instanceof Error ? err.message : "Could not load candidates.",
+            );
+          }
+        } finally {
+          if (!controller.signal.aborted) {
+            setSuggestionsLoading(false);
+          }
+        }
+      })();
+    }, SUGGEST_DEBOUNCE_MS);
+
+    return () => {
+      clearTimeout(debounceId);
+      suggestAbortRef.current?.abort();
+    };
   }, [input]);
 
   const handleSelectSuggestion = useCallback((name: string) => {
@@ -117,6 +172,8 @@ export function usePoliticianSearch() {
     runSearch,
     submitSearch,
     suggestions,
+    suggestionsLoading,
+    suggestionsError,
     handleSelectSuggestion,
     statusCopy,
   };

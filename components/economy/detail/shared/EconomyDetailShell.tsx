@@ -29,6 +29,8 @@ type EconomyDetailShellProps = {
    * `sectorInline` — one row: icon + title + UPDATED (inflation-style).
    */
   headerLayout?: EconomyDetailHeaderLayout;
+  /** Feather icon in the inline header chip (only when `headerLayout` is `sectorInline`). */
+  inlineHeaderIcon?: keyof typeof Feather.glyphMap;
 };
 
 /**
@@ -40,6 +42,7 @@ export function EconomyDetailShell({
   children,
   showLiveFeed = true,
   headerLayout = "hypatia",
+  inlineHeaderIcon = "bar-chart-2",
 }: EconomyDetailShellProps) {
   const router = useRouter();
   const insets = useSafeAreaInsets();
@@ -74,7 +77,7 @@ export function EconomyDetailShell({
         {headerLayout === "sectorInline" ? (
           <View style={styles.inlineHeaderRow}>
             <View style={[styles.inlineHeaderIcon, { backgroundColor: interactive.primarySoft }]}>
-              <Feather name="bar-chart-2" size={20} color={interactive.primary} />
+              <Feather name={inlineHeaderIcon} size={20} color={interactive.primary} />
             </View>
             <ThemedText style={[styles.inlinePageTitle, { color: theme.text }]} numberOfLines={2}>
               {pageTitle}

@@ -26,7 +26,7 @@ type FeedRow = {
   history: number[];
 };
 
-const FEED_IDS = ["labor", "inflation", "consumer", "gdp"];
+const FEED_IDS = ["labor", "inflation", "markets", "gdp"];
 const sentimentScore = 74;
 const sentimentDelta = 2.4;
 const sentimentStability = 68.2;

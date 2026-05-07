@@ -21,6 +21,7 @@ import { ThemedView } from "@/components/theme/ThemedView";
 import { Brand, Colors } from "@/constants/theme/Colors";
 import { Radius, Spacing, getSemanticColors } from "@/constants/theme/ThemeTokens";
 import { Fonts } from "@/constants/theme/Typography";
+import { FEC_CANDIDATES_MIN_QUERY_LENGTH } from "@/hooks/api/fecCandidatesApi";
 import { usePoliticianSearch } from "@/hooks/usePoliticianSearch";
 import { useColorScheme } from "@/hooks/useColorScheme";
 import { useThemeColor } from "@/hooks/useThemeColor";
@@ -122,6 +123,8 @@ export default function PoliticianScreen() {
     runSearch,
     submitSearch,
     suggestions,
+    suggestionsLoading,
+    suggestionsError,
     handleSelectSuggestion,
     statusCopy,
   } = usePoliticianSearch();
@@ -213,7 +216,7 @@ export default function PoliticianScreen() {
             ) : null}
           </View>
 
-          {isInputFocused && suggestions.length > 0 ? (
+          {isInputFocused && input.trim().length > 0 ? (
             <View
               style={[
                 styles.suggestionsList,
@@ -223,23 +226,84 @@ export default function PoliticianScreen() {
                 },
               ]}
             >
-              {suggestions.map((profile) => (
-                <Pressable
-                  key={profile.name}
-                  style={({ pressed }) => [
-                    styles.suggestionItem,
-                    {
-                      backgroundColor: pressed ? palette.badgeBackground : "transparent",
-                    },
-                  ]}
-                  onPress={() => handleSelectSuggestion(profile.name)}
-                >
-                  <ThemedText type="defaultSemiBold">{profile.name}</ThemedText>
-                  <ThemedText style={[styles.suggestionMeta, { color: theme.icon }]}>
-                    {profile.role}
+              {input.trim().length < FEC_CANDIDATES_MIN_QUERY_LENGTH ? (
+                <View style={styles.minQueryHint}>
+                  <View
+                    style={[
+                      styles.minQueryHintIconWrap,
+                      { backgroundColor: interactive.primarySoft },
+                    ]}
+                  >
+                    <Ionicons name="text-outline" size={22} color={interactive.primary} />
+                  </View>
+                  <View style={styles.minQueryHintTextCol}>
+                    <ThemedText type="defaultSemiBold" style={styles.minQueryHintTitle}>
+                      Minimum {FEC_CANDIDATES_MIN_QUERY_LENGTH} characters
+                    </ThemedText>
+                    <ThemedText style={[styles.minQueryHintBody, { color: semantic.mutedText }]}>
+                      Keep typing. Federal candidate lookup runs only after you’ve entered at least{" "}
+                      {FEC_CANDIDATES_MIN_QUERY_LENGTH} characters.
+                    </ThemedText>
+                    <View style={styles.minQueryProgressRow}>
+                      {Array.from({ length: FEC_CANDIDATES_MIN_QUERY_LENGTH }, (_, i) => {
+                        const filled = i < input.trim().length;
+                        return (
+                          <View
+                            key={i}
+                            style={[
+                              styles.minQueryProgressSegment,
+                              {
+                                backgroundColor: filled ? interactive.primary : semantic.hairline,
+                              },
+                            ]}
+                          />
+                        );
+                      })}
+                    </View>
+                    <ThemedText style={[styles.minQueryCounter, { color: semantic.mutedText }]}>
+                      {Math.min(input.trim().length, FEC_CANDIDATES_MIN_QUERY_LENGTH)} of{" "}
+                      {FEC_CANDIDATES_MIN_QUERY_LENGTH} characters
+                    </ThemedText>
+                  </View>
+                </View>
+              ) : suggestionsLoading ? (
+                <View style={styles.suggestionsStatusRow}>
+                  <ActivityIndicator color={theme.tint} />
+                  <ThemedText style={[styles.suggestionsStatusText, { color: semantic.mutedText }]}>
+                    Searching FEC records…
                   </ThemedText>
-                </Pressable>
-              ))}
+                </View>
+              ) : suggestionsError ? (
+                <View style={styles.suggestionsStatusRow}>
+                  <ThemedText style={[styles.suggestionsErrorText, { color: semantic.danger }]}>
+                    {suggestionsError}
+                  </ThemedText>
+                </View>
+              ) : suggestions.length > 0 ? (
+                suggestions.map((item) => (
+                  <Pressable
+                    key={item.id}
+                    style={({ pressed }) => [
+                      styles.suggestionItem,
+                      {
+                        backgroundColor: pressed ? palette.badgeBackground : "transparent",
+                      },
+                    ]}
+                    onPress={() => handleSelectSuggestion(item.name)}
+                  >
+                    <ThemedText type="defaultSemiBold">{item.name}</ThemedText>
+                    <ThemedText style={[styles.suggestionMeta, { color: theme.icon }]} numberOfLines={2}>
+                      {item.subtitle}
+                    </ThemedText>
+                  </Pressable>
+                ))
+              ) : (
+                <View style={styles.suggestionsStatusRow}>
+                  <ThemedText style={[styles.suggestionsStatusText, { color: semantic.mutedText }]}>
+                    No candidates match that search.
+                  </ThemedText>
+                </View>
+              )}
             </View>
           ) : null}
 
@@ -628,6 +692,49 @@ const styles = StyleSheet.create({
     overflow: "hidden",
     marginTop: -4,
   },
+  minQueryHint: {
+    flexDirection: "row",
+    alignItems: "flex-start",
+    gap: Spacing.sm,
+    paddingHorizontal: 12,
+    paddingVertical: 14,
+  },
+  minQueryHintIconWrap: {
+    width: 44,
+    height: 44,
+    borderRadius: 12,
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  minQueryHintTextCol: {
+    flex: 1,
+    gap: 6,
+  },
+  minQueryHintTitle: {
+    fontSize: 14,
+    letterSpacing: -0.1,
+  },
+  minQueryHintBody: {
+    fontSize: 12,
+    lineHeight: 17,
+    fontFamily: Fonts.body,
+  },
+  minQueryProgressRow: {
+    flexDirection: "row",
+    gap: 6,
+    marginTop: 4,
+  },
+  minQueryProgressSegment: {
+    flex: 1,
+    height: 5,
+    borderRadius: 3,
+  },
+  minQueryCounter: {
+    fontSize: 11,
+    fontFamily: Fonts.bodySemiBold,
+    letterSpacing: 0.2,
+    marginTop: 2,
+  },
   suggestionItem: {
     paddingHorizontal: 12,
     minHeight: 44,
@@ -639,6 +746,24 @@ const styles = StyleSheet.create({
   suggestionMeta: {
     fontSize: 12,
     marginTop: 2,
+  },
+  suggestionsStatusRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 10,
+    paddingHorizontal: 12,
+    paddingVertical: 14,
+  },
+  suggestionsStatusText: {
+    fontSize: 13,
+    fontFamily: Fonts.body,
+    flex: 1,
+  },
+  suggestionsErrorText: {
+    fontSize: 13,
+    fontFamily: Fonts.body,
+    flex: 1,
+    lineHeight: 18,
   },
   filterChipsRow: {
     flexDirection: "row",
