@@ -1,5 +1,6 @@
 import type { ComponentType } from "react";
 
+import { GdpGrowthDetailView } from "@/components/economy/detail/gdp/GdpGrowthDetailView";
 import { InflationDetailView } from "@/components/economy/detail/inflation/InflationDetailView";
 import { LaborMarketDetailView } from "@/components/economy/detail/labor/LaborMarketDetailView";
 import { MarketReactionDetailView } from "@/components/economy/detail/markets/MarketReactionDetailView";
@@ -12,6 +13,7 @@ const ECONOMY_PREMIUM_DETAIL_SCREENS: Record<EconomyPremiumDetailId, ComponentTy
   labor: LaborMarketDetailView,
   inflation: InflationDetailView,
   markets: MarketReactionDetailView,
+  gdp: GdpGrowthDetailView,
 };
 
 /**

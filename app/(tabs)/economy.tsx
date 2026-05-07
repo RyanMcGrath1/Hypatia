@@ -1,21 +1,43 @@
 import Feather from "@expo/vector-icons/Feather";
 import { useRouter } from "expo-router";
-import { useEffect, useMemo, useState } from "react";
-import { Pressable, ScrollView, StyleSheet, View } from "react-native";
-import Svg, { Circle } from "react-native-svg";
+import { useEffect, useMemo, useRef, useState } from "react";
+import {
+  Animated,
+  Easing,
+  Pressable,
+  ScrollView,
+  StyleSheet,
+  View,
+} from "react-native";
+import Svg, { Circle, Defs, LinearGradient, Stop } from "react-native-svg";
 
 import { StateNoticeCard } from "@/components/surfaces/StateNoticeCard";
 import { ThemedText } from "@/components/theme/ThemedText";
 import { ThemedView } from "@/components/theme/ThemedView";
 import { AppRoutes } from "@/constants/app/routes";
-import { US_ECONOMIC_SECTORS, type SectorTrend } from "@/constants/data/usEconomicData";
+import {
+  US_ECONOMIC_SECTORS,
+  type SectorTrend,
+} from "@/constants/data/usEconomicData";
 import { Colors } from "@/constants/theme/Colors";
-import { Radius, Spacing, getSemanticColors } from "@/constants/theme/ThemeTokens";
+import {
+  getSemanticColors,
+  Radius,
+  Spacing,
+} from "@/constants/theme/ThemeTokens";
+import { Fonts } from "@/constants/theme/Typography";
 import { fetchEconomyOverview } from "@/hooks/api/flaskMainApi";
 import { getNewsApiNetworkErrorMessage } from "@/hooks/api/newsApi";
 import { useColorScheme } from "@/hooks/useColorScheme";
-import { getSectorCardDisplay, SECTOR_ID_TO_OVERVIEW_KEY } from "@/lib/economy/sectorOverviewMerge";
-import { formatOverviewAsOfDisplay, parseEconomyOverviewResponse, type EconomyOverviewApiResponse } from "@/lib/economy/economyOverviewTypes";
+import {
+  formatOverviewAsOfDisplay,
+  parseEconomyOverviewResponse,
+  type EconomyOverviewApiResponse,
+} from "@/lib/economy/economyOverviewTypes";
+import {
+  getSectorCardDisplay,
+  SECTOR_ID_TO_OVERVIEW_KEY,
+} from "@/lib/economy/sectorOverviewMerge";
 
 type FeedRow = {
   id: string;
@@ -43,6 +65,91 @@ const MONITORING = [
   "Inflation expectations",
   "Bank credit conditions",
 ];
+
+const AnimatedCircle = Animated.createAnimatedComponent(Circle);
+
+type SentimentGaugeProps = {
+  score: number;
+  isDark: boolean;
+  mutedTextColor: string;
+};
+
+function SentimentGauge({ score, isDark, mutedTextColor }: SentimentGaugeProps) {
+  const gaugeProgress = useRef(new Animated.Value(0)).current;
+  const clampedScore = Math.max(0, Math.min(100, score));
+  const size = 190;
+  const center = size / 2;
+  const radius = 66;
+  const strokeWidth = 15;
+  const circumference = 2 * Math.PI * radius;
+  const trackColor = isDark ? "rgba(184, 195, 255, 0.16)" : "#f3f2fe";
+
+  useEffect(() => {
+    gaugeProgress.setValue(0);
+    Animated.timing(gaugeProgress, {
+      toValue: clampedScore / 100,
+      duration: 1300,
+      easing: Easing.out(Easing.cubic),
+      useNativeDriver: false,
+    }).start();
+  }, [clampedScore, gaugeProgress]);
+
+  const strokeDashoffset = gaugeProgress.interpolate({
+    inputRange: [0, 1],
+    outputRange: [circumference, 0],
+  });
+
+  return (
+    <View style={styles.gaugeRoot}>
+      <View style={styles.gaugeGlow}>
+        <Svg width={size} height={size}>
+          <Defs>
+            <LinearGradient id="sentimentGaugeGradient" x1="0%" y1="0%" x2="100%" y2="0%">
+              <Stop offset="0%" stopColor="#4A6CF7" />
+              <Stop offset="100%" stopColor="#2e7d32" />
+            </LinearGradient>
+          </Defs>
+          <Circle
+            cx={center}
+            cy={center}
+            r={radius}
+            stroke={trackColor}
+            strokeWidth={strokeWidth}
+            fill="none"
+            strokeLinecap="round"
+            rotation="-90"
+            originX={center}
+            originY={center}
+          />
+          <AnimatedCircle
+            cx={center}
+            cy={center}
+            r={radius}
+            stroke="url(#sentimentGaugeGradient)"
+            strokeWidth={strokeWidth}
+            fill="none"
+            strokeDasharray={circumference}
+            strokeDashoffset={strokeDashoffset}
+            strokeLinecap="round"
+            rotation="-90"
+            originX={center}
+            originY={center}
+          />
+        </Svg>
+      </View>
+      <View style={styles.gaugeCenter}>
+        <ThemedText style={styles.gaugeScore}>{Math.round(clampedScore)}</ThemedText>
+        <View style={styles.gaugeStatusRow}>
+          <ThemedText style={styles.gaugeStatus}>OPTIMAL</ThemedText>
+          <Feather name="trending-up" size={12} color="#2e7d32" />
+        </View>
+        <ThemedText style={[styles.gaugeSubtleLabel, { color: mutedTextColor }]}>
+          ANNUAL AVG
+        </ThemedText>
+      </View>
+    </View>
+  );
+}
 
 function trendVisual(trend: SectorTrend, isDark: boolean) {
   if (trend === "up") {
@@ -86,7 +193,10 @@ function normalizeBars(values: number[]) {
   });
 }
 
-function getTrendFromSeries(values: number[], fallback: SectorTrend): SectorTrend {
+function getTrendFromSeries(
+  values: number[],
+  fallback: SectorTrend,
+): SectorTrend {
   if (values.length < 2) {
     return fallback;
   }
@@ -108,9 +218,13 @@ export default function EconomyDashboardScreen() {
   const theme = Colors[colorScheme];
   const semantic = getSemanticColors(colorScheme);
 
-  const [economyOverview, setEconomyOverview] = useState<EconomyOverviewApiResponse | null>(null);
-  const [isEconomyOverviewLoading, setIsEconomyOverviewLoading] = useState(true);
-  const [economyOverviewError, setEconomyOverviewError] = useState<string | null>(null);
+  const [economyOverview, setEconomyOverview] =
+    useState<EconomyOverviewApiResponse | null>(null);
+  const [isEconomyOverviewLoading, setIsEconomyOverviewLoading] =
+    useState(true);
+  const [economyOverviewError, setEconomyOverviewError] = useState<
+    string | null
+  >(null);
 
   useEffect(() => {
     const controller = new AbortController();
@@ -153,16 +267,25 @@ export default function EconomyDashboardScreen() {
 
   // Build the high-level feed card model from base sector config + optional API overlay.
   const feedRows = useMemo<FeedRow[]>(() => {
-    return FEED_IDS.map((id) => US_ECONOMIC_SECTORS.find((sector) => sector.id === id))
-      .filter((sector): sector is (typeof US_ECONOMIC_SECTORS)[number] => sector != null)
+    return FEED_IDS.map((id) =>
+      US_ECONOMIC_SECTORS.find((sector) => sector.id === id),
+    )
+      .filter(
+        (sector): sector is (typeof US_ECONOMIC_SECTORS)[number] =>
+          sector != null,
+      )
       .map((sector) => {
         // getSectorCardDisplay merges sector defaults with live economyOverview values.
         const display = getSectorCardDisplay(sector, economyOverview);
         const sectionKey = SECTOR_ID_TO_OVERVIEW_KEY[sector.id];
-        const observations = sectionKey ? economyOverview?.sections?.[sectionKey]?.observations : undefined;
+        const observations = sectionKey
+          ? economyOverview?.sections?.[sectionKey]?.observations
+          : undefined;
         const apiHistory =
           Array.isArray(observations) && observations.length > 0
-            ? [...observations].sort((a, b) => a.date.localeCompare(b.date)).map((o) => o.value)
+            ? [...observations]
+                .sort((a, b) => a.date.localeCompare(b.date))
+                .map((o) => o.value)
             : null;
         const history = apiHistory ?? display.history;
         return {
@@ -194,19 +317,20 @@ export default function EconomyDashboardScreen() {
     return overviewAsOf;
   }, [economyOverview, overviewAsOf]);
 
-  const ringRadius = 54;
-  const ringCircumference = 2 * Math.PI * ringRadius;
-  const ringProgress = ringCircumference * (1 - sentimentScore / 100);
-
   return (
     <ThemedView style={styles.screen}>
-      <ScrollView contentContainerStyle={styles.scrollContent} showsVerticalScrollIndicator={false}>
+      <ScrollView
+        contentContainerStyle={styles.scrollContent}
+        showsVerticalScrollIndicator={false}
+      >
         {/* 1) Top strip: compact title + as-of timestamp */}
         <View style={styles.topHeader}>
           <ThemedText type="defaultSemiBold" style={styles.pageTitle}>
             ECONOSTAT US
           </ThemedText>
-          <ThemedText style={[styles.pageMeta, { color: semantic.mutedText }]}>UPDATED {displayAsOf}</ThemedText>
+          <ThemedText style={[styles.pageMeta, { color: semantic.mutedText }]}>
+            UPDATED {displayAsOf}
+          </ThemedText>
         </View>
 
         {/* 2) Hero card: sentiment ring, score copy, and three summary stats */}
@@ -219,53 +343,71 @@ export default function EconomyDashboardScreen() {
             },
           ]}
         >
-          <View style={styles.ringWrap}>
-            <Svg width={140} height={140}>
-              <Circle cx={70} cy={70} r={ringRadius} stroke={isDark ? "#334155" : "#D1D5DB"} strokeWidth={10} fill="none" />
-              <Circle
-                cx={70}
-                cy={70}
-                r={ringRadius}
-                stroke={isDark ? "#4ADE80" : "#16A34A"}
-                strokeWidth={10}
-                fill="none"
-                strokeDasharray={ringCircumference}
-                strokeDashoffset={ringProgress}
-                strokeLinecap="round"
-                rotation="-90"
-                originX={70}
-                originY={70}
-              />
-            </Svg>
-            <View style={styles.ringCenter}>
-              <ThemedText style={styles.heroScore}>{sentimentScore}</ThemedText>
-              <ThemedText style={[styles.heroScoreLabel, { color: semantic.mutedText }]}>POINTS</ThemedText>
-            </View>
-          </View>
+          <SentimentGauge
+            score={sentimentScore}
+            isDark={isDark}
+            mutedTextColor={semantic.mutedText}
+          />
 
           <ThemedText type="defaultSemiBold" style={styles.heroTitle}>
             Economic Sentiment Index
           </ThemedText>
-          <ThemedText style={[styles.heroDescription, { color: semantic.mutedText }]}>
-            Aggregate trend score across broad macro conditions and labor momentum.
+          <ThemedText
+            style={[styles.heroDescription, { color: semantic.mutedText }]}
+          >
+            Aggregate trend score across broad macro conditions and labor
+            momentum.
           </ThemedText>
 
           <View style={styles.heroStatsRow}>
-            <View style={[styles.heroStat, { borderColor: semantic.cardBorder }]}>
-              <ThemedText style={[styles.heroStatLabel, { color: semantic.mutedText }]}>TREND</ThemedText>
-              <ThemedText style={[styles.heroStatValue, { color: isDark ? "#4ADE80" : "#15803D" }]}>
+            <View
+              style={[styles.heroStat, { borderColor: semantic.cardBorder }]}
+            >
+              <ThemedText
+                style={[styles.heroStatLabel, { color: semantic.mutedText }]}
+              >
+                TREND
+              </ThemedText>
+              <ThemedText
+                style={[
+                  styles.heroStatValue,
+                  { color: isDark ? "#4ADE80" : "#15803D" },
+                ]}
+              >
                 {sentimentLabel(sentimentScore)}
               </ThemedText>
             </View>
-            <View style={[styles.heroStat, { borderColor: semantic.cardBorder }]}>
-              <ThemedText style={[styles.heroStatLabel, { color: semantic.mutedText }]}>VOLATILITY</ThemedText>
-              <ThemedText style={[styles.heroStatValue, { color: isDark ? "#FACC15" : "#A16207" }]}>
+            <View
+              style={[styles.heroStat, { borderColor: semantic.cardBorder }]}
+            >
+              <ThemedText
+                style={[styles.heroStatLabel, { color: semantic.mutedText }]}
+              >
+                VOLATILITY
+              </ThemedText>
+              <ThemedText
+                style={[
+                  styles.heroStatValue,
+                  { color: isDark ? "#FACC15" : "#A16207" },
+                ]}
+              >
                 {sentimentDelta.toFixed(1)}%
               </ThemedText>
             </View>
-            <View style={[styles.heroStat, { borderColor: semantic.cardBorder }]}>
-              <ThemedText style={[styles.heroStatLabel, { color: semantic.mutedText }]}>STABILITY</ThemedText>
-              <ThemedText style={[styles.heroStatValue, { color: isDark ? "#60A5FA" : "#1D4ED8" }]}>
+            <View
+              style={[styles.heroStat, { borderColor: semantic.cardBorder }]}
+            >
+              <ThemedText
+                style={[styles.heroStatLabel, { color: semantic.mutedText }]}
+              >
+                STABILITY
+              </ThemedText>
+              <ThemedText
+                style={[
+                  styles.heroStatValue,
+                  { color: isDark ? "#60A5FA" : "#1D4ED8" },
+                ]}
+              >
                 {sentimentStability.toFixed(1)}
               </ThemedText>
             </View>
@@ -319,17 +461,32 @@ export default function EconomyDashboardScreen() {
                 }
               >
                 <View style={styles.feedHeader}>
-                  <ThemedText style={[styles.feedTitle, { color: semantic.mutedText }]}>
+                  <ThemedText
+                    style={[styles.feedTitle, { color: semantic.mutedText }]}
+                  >
                     {row.title}
                   </ThemedText>
                   <Feather name={trend.icon} size={14} color={trend.color} />
                 </View>
-                <View style={[styles.feedHeaderDivider, { backgroundColor: semantic.cardBorder }]} />
+                <View
+                  style={[
+                    styles.feedHeaderDivider,
+                    { backgroundColor: semantic.cardBorder },
+                  ]}
+                />
                 <ThemedText style={styles.feedValue}>{row.value}</ThemedText>
                 <View style={styles.feedTrend}>
-                  <View style={[styles.statusDot, { backgroundColor: trend.color }]} />
-                  <ThemedText style={[styles.feedTrendText, { color: trend.color }]}>
-                    {row.trend === "up" ? "STRENGTHENING" : row.trend === "down" ? "WEAKENING" : "STABLE"}
+                  <View
+                    style={[styles.statusDot, { backgroundColor: trend.color }]}
+                  />
+                  <ThemedText
+                    style={[styles.feedTrendText, { color: trend.color }]}
+                  >
+                    {row.trend === "up"
+                      ? "STRENGTHENING"
+                      : row.trend === "down"
+                        ? "WEAKENING"
+                        : "STABLE"}
                   </ThemedText>
                 </View>
                 <View style={styles.sparklineRow}>
@@ -362,7 +519,9 @@ export default function EconomyDashboardScreen() {
                     },
                   ]}
                 >
-                  <ThemedText style={[styles.cardCtaText, { color: theme.tint }]}>
+                  <ThemedText
+                    style={[styles.cardCtaText, { color: theme.tint }]}
+                  >
                     Explore detailed analysis
                   </ThemedText>
                   <Feather name="chevron-right" size={14} color={theme.tint} />
@@ -390,8 +549,14 @@ export default function EconomyDashboardScreen() {
           </View>
           {DEVELOPMENTS.map((item) => (
             <View key={item} style={styles.bulletRow}>
-              <View style={[styles.bulletDot, { backgroundColor: theme.tint }]} />
-              <ThemedText style={[styles.bulletText, { color: semantic.mutedText }]}>{item}</ThemedText>
+              <View
+                style={[styles.bulletDot, { backgroundColor: theme.tint }]}
+              />
+              <ThemedText
+                style={[styles.bulletText, { color: semantic.mutedText }]}
+              >
+                {item}
+              </ThemedText>
             </View>
           ))}
         </View>
@@ -415,7 +580,11 @@ export default function EconomyDashboardScreen() {
           {MONITORING.map((item) => (
             <View key={item} style={styles.monitorRow}>
               <Feather name="activity" size={12} color={semantic.mutedText} />
-              <ThemedText style={[styles.monitorText, { color: semantic.mutedText }]}>{item}</ThemedText>
+              <ThemedText
+                style={[styles.monitorText, { color: semantic.mutedText }]}
+              >
+                {item}
+              </ThemedText>
             </View>
           ))}
         </View>
@@ -454,6 +623,47 @@ const styles = StyleSheet.create({
     padding: Spacing.md,
     alignItems: "center",
     gap: Spacing.xs,
+  },
+  gaugeRoot: {
+    width: "68%",
+    alignItems: "center",
+    justifyContent: "center",
+    alignSelf: "center",
+  },
+  gaugeGlow: {
+    shadowColor: "#4A6CF7",
+    shadowOffset: { width: 0, height: 0 },
+    shadowOpacity: 0.35,
+    shadowRadius: 4,
+    elevation: 3,
+  },
+  gaugeCenter: {
+    position: "absolute",
+    alignItems: "center",
+  },
+  gaugeScore: {
+    fontFamily: Fonts.displayBold,
+    fontSize: 50,
+    lineHeight: 54,
+    letterSpacing: -0.6,
+  },
+  gaugeStatusRow: {
+    marginTop: 2,
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 4,
+  },
+  gaugeStatus: {
+    fontFamily: Fonts.bodyMedium,
+    fontSize: 12,
+    letterSpacing: 1.2,
+    color: "#2e7d32",
+  },
+  gaugeSubtleLabel: {
+    marginTop: 2,
+    fontFamily: Fonts.bodyMedium,
+    fontSize: 10,
+    letterSpacing: 0.4,
   },
   ringWrap: {
     justifyContent: "center",

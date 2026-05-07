@@ -118,7 +118,8 @@ export default function HomeScreen() {
   const renderHeadlineItem = useCallback(
     ({ item, index }: { item: TopHeadlineItem; index: number }) => {
       const selectedTopicLabel =
-        NEWS_TOPIC_OPTIONS.find((topic) => topic.id === selectedTopicId)?.label ?? "General";
+        NEWS_TOPIC_OPTIONS.find((topic) => topic.id === selectedTopicId)
+          ?.label ?? "General";
       const categoryLabel =
         item.category?.trim() && item.category.trim().length > 0
           ? item.category.trim()
@@ -128,78 +129,95 @@ export default function HomeScreen() {
         : null;
 
       return (
-      <Pressable
-        accessibilityRole={item.url ? "button" : "none"}
-        accessibilityHint={item.url ? "Opens full article" : undefined}
-        disabled={!item.url}
-        style={({ pressed }) => ({
-          opacity: item.url ? (pressed ? 0.88 : 1) : 1,
-        })}
-        onPress={() => item.url && openArticle(item.url, item.title)}
-      >
-        <SectionCard
-          backgroundColor={semantic.cardBackground}
-          borderColor={semantic.cardBorder}
-          style={
-            index === 0
-              ? { ...styles.headlineCard, ...styles.headlineCardFirst }
-              : styles.headlineCard
-          }
+        <Pressable
+          accessibilityRole={item.url ? "button" : "none"}
+          accessibilityHint={item.url ? "Opens full article" : undefined}
+          disabled={!item.url}
+          style={({ pressed }) => ({
+            opacity: item.url ? (pressed ? 0.88 : 1) : 1,
+          })}
+          onPress={() => item.url && openArticle(item.url, item.title)}
         >
-          <View style={[styles.categoryStamp, { backgroundColor: semantic.cardSubtleBackground, borderColor: semantic.cardBorder }]}>
-            <ThemedText
-              numberOfLines={1}
-              style={[styles.categoryStampText, { color: semantic.mutedText }]}
-            >
-              {categoryLabel}
-            </ThemedText>
-          </View>
-          <ThemedText type="subtitle">{item.title}</ThemedText>
-          {item.source || item.published || item.meta ? (
-            <View style={styles.metaRow}>
-              {item.source ? (
-                <ThemedText style={[styles.meta, { color: semantic.accent }]}>
-                  {item.source}
-                </ThemedText>
-              ) : null}
-              {item.source && publishedLabel ? (
-                <ThemedText style={[styles.meta, { color: semantic.mutedText }]}>
-                  {" · "}
-                </ThemedText>
-              ) : null}
-              {publishedLabel ? (
-                <ThemedText style={[styles.meta, { color: semantic.mutedText }]}>
-                  {publishedLabel}
-                </ThemedText>
-              ) : !item.source && item.meta ? (
-                <ThemedText style={[styles.meta, { color: semantic.mutedText }]}>
-                  {item.meta}
-                </ThemedText>
-              ) : null}
-            </View>
-          ) : null}
-          {item.imageUrl ? (
-            <Image
-              accessible={false}
-              source={{ uri: item.imageUrl }}
+          <SectionCard
+            backgroundColor={semantic.cardBackground}
+            borderColor={semantic.cardBorder}
+            style={
+              index === 0
+                ? { ...styles.headlineCard, ...styles.headlineCardFirst }
+                : styles.headlineCard
+            }
+          >
+            <View
               style={[
-                styles.headlineImage,
-                { backgroundColor: semantic.cardSubtleBackground },
+                styles.categoryStamp,
+                {
+                  backgroundColor: semantic.cardSubtleBackground,
+                  borderColor: semantic.cardBorder,
+                },
               ]}
-              contentFit="cover"
-              transition={200}
-            />
-          ) : null}
-          {item.description ? (
-            <ThemedText style={[styles.copy, { color: semantic.mutedText }]}>
-              {truncateHeadlineDescription(
-                item.description,
-                HEADLINE_CARD_DESCRIPTION_MAX_CHARS,
-              )}
-            </ThemedText>
-          ) : null}
-        </SectionCard>
-      </Pressable>
+            >
+              <ThemedText
+                numberOfLines={1}
+                style={[
+                  styles.categoryStampText,
+                  { color: semantic.mutedText },
+                ]}
+              >
+                {categoryLabel}
+              </ThemedText>
+            </View>
+            <ThemedText type="subtitle">{item.title}</ThemedText>
+            {item.source || item.published || item.meta ? (
+              <View style={styles.metaRow}>
+                {item.source ? (
+                  <ThemedText style={[styles.meta, { color: semantic.accent }]}>
+                    {item.source}
+                  </ThemedText>
+                ) : null}
+                {item.source && publishedLabel ? (
+                  <ThemedText
+                    style={[styles.meta, { color: semantic.mutedText }]}
+                  >
+                    {" · "}
+                  </ThemedText>
+                ) : null}
+                {publishedLabel ? (
+                  <ThemedText
+                    style={[styles.meta, { color: semantic.mutedText }]}
+                  >
+                    {publishedLabel}
+                  </ThemedText>
+                ) : !item.source && item.meta ? (
+                  <ThemedText
+                    style={[styles.meta, { color: semantic.mutedText }]}
+                  >
+                    {item.meta}
+                  </ThemedText>
+                ) : null}
+              </View>
+            ) : null}
+            {item.imageUrl ? (
+              <Image
+                accessible={false}
+                source={{ uri: item.imageUrl }}
+                style={[
+                  styles.headlineImage,
+                  { backgroundColor: semantic.cardSubtleBackground },
+                ]}
+                contentFit="cover"
+                transition={200}
+              />
+            ) : null}
+            {item.description ? (
+              <ThemedText style={[styles.copy, { color: semantic.mutedText }]}>
+                {truncateHeadlineDescription(
+                  item.description,
+                  HEADLINE_CARD_DESCRIPTION_MAX_CHARS,
+                )}
+              </ThemedText>
+            ) : null}
+          </SectionCard>
+        </Pressable>
       );
     },
     [

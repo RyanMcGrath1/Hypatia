@@ -2,7 +2,7 @@
  * Economy tiles that use a full dashboard layout (custom header, no stack title).
  * Add ids here when a new `detail/<id>/` screen is implemented.
  */
-export const ECONOMY_PREMIUM_DETAIL_IDS = ["labor", "inflation", "markets"] as const;
+export const ECONOMY_PREMIUM_DETAIL_IDS = ["labor", "inflation", "markets", "gdp"] as const;
 
 export type EconomyPremiumDetailId = (typeof ECONOMY_PREMIUM_DETAIL_IDS)[number];
 
