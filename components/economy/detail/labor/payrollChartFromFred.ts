@@ -22,11 +22,11 @@ export type PayrollBarPoint = {
   label: string;
   /** FRED observation_date (YYYY-MM-DD) for this month slot. */
   observationDate: string;
-  /** Level in thousands when FRED has data; null for placeholder months (YTD). */
+  /** PAYEMS monthly delta in thousands when FRED has data; null for placeholder months (YTD). */
   levelThousands: number | null;
-  /** Change vs the prior calendar month when **both** months have data; else null. */
+  /** Same as `levelThousands`, kept for existing UI wiring. */
   momVsPriorThousands: number | null;
-  /** 0–1 for bar height multiplier; 0 when no observation. */
+  /** 0–1 for bar height multiplier; 0 when no month-over-month delta is available. */
   relativeHeight: number;
   /** False when this month has no PAYEMS print in range (YTD skeleton). */
   hasObservation: boolean;
@@ -215,62 +215,63 @@ export function buildPayrollYearToDateChartWithSkeleton(
   observations: FredObservationRow[],
 ): PayrollChartFromFred {
   const pairs = collectSortedValidPayemsPairs(observations);
-  const byDate = new Map<string, number>();
+  const byMonth = new Map<string, { date: string; value: number }>();
   for (const p of pairs) {
     if (p.date < `${calendarYear}-01-01` || p.date > `${calendarYear}-12-31`) {
       continue;
     }
     const v = parseObservationNumber(p.row.value);
     if (v != null) {
-      byDate.set(p.date, v);
+      // Normalize to YYYY-MM so feeds that use non-01 day-of-month still map into the month slot.
+      byMonth.set(p.date.slice(0, 7), { date: p.date, value: v });
     }
   }
 
-  const slots: { date: string; value: number | null }[] = [];
+  const slots: { date: string; sourceDate: string; value: number | null }[] = [];
   for (let m = 1; m <= 12; m++) {
     const date = `${calendarYear}-${String(m).padStart(2, "0")}-01`;
-    slots.push({ date, value: byDate.get(date) ?? null });
+    const resolved = byMonth.get(date.slice(0, 7));
+    slots.push({ date, sourceDate: resolved?.date ?? date, value: resolved?.value ?? null });
   }
 
-  const populated = slots.filter((s): s is { date: string; value: number } => s.value != null);
+  const populated = slots.filter(
+    (s): s is { date: string; sourceDate: string; value: number } =>
+      s.value != null,
+  );
 
   let monthOverMonthThousands: number | null = null;
   let latestObservationDate = "";
   let periodLabel = `PERIOD ${calendarYear}`;
   if (populated.length >= 1) {
     const latestObs = populated[populated.length - 1]!;
-    latestObservationDate = latestObs.date;
-    periodLabel = formatPeriodBanner(latestObs.date);
-    const priorObs = populated.length >= 2 ? populated[populated.length - 2]! : null;
-    monthOverMonthThousands =
-      priorObs != null ? latestObs.value - priorObs.value : null;
+    latestObservationDate = latestObs.sourceDate;
+    periodLabel = formatPeriodBanner(latestObs.sourceDate);
+    monthOverMonthThousands = latestObs.value;
   }
   const momLabel =
     monthOverMonthThousands != null ? formatMomThousands(monthOverMonthThousands) : null;
   const heroMetric = momLabel ?? "—";
 
-  const values = populated.map((s) => s.value);
-  const min = values.length ? Math.min(...values) : 0;
-  const max = values.length ? Math.max(...values) : 1;
-  const range = max - min;
+  const deltasForScale: number[] = [];
+  for (const slot of slots) {
+    if (slot.value != null) {
+      deltasForScale.push(Math.abs(slot.value));
+    }
+  }
+  const maxAbsDelta = deltasForScale.length > 0 ? Math.max(...deltasForScale) : 0;
 
   const bars: PayrollBarPoint[] = slots.map((slot, i) => {
     const hasObservation = slot.value != null;
     const val = slot.value;
+    const momVsPrior: number | null = hasObservation && val != null ? val : null;
     let relativeHeight = 0;
-    if (hasObservation && val != null) {
-      relativeHeight = range === 0 ? 0.55 : 0.28 + ((val - min) / range) * 0.72;
-    }
-    let momVsPrior: number | null = null;
-    if (hasObservation && val != null && i > 0) {
-      const prev = slots[i - 1]!.value;
-      if (prev != null) {
-        momVsPrior = val - prev;
-      }
+    if (momVsPrior != null) {
+      const magnitude = Math.abs(momVsPrior);
+      relativeHeight = maxAbsDelta === 0 ? 0.55 : 0.28 + (magnitude / maxAbsDelta) * 0.72;
     }
     return {
       label: formatMonthShort(slot.date),
-      observationDate: slot.date,
+      observationDate: slot.sourceDate,
       levelThousands: val,
       momVsPriorThousands: momVsPrior,
       relativeHeight,
@@ -368,9 +369,7 @@ export function buildPayrollChartFromFredObservations(
   }
 
   const latestObs = pairs[pairs.length - 1]!;
-  const priorObs = pairs.length >= 2 ? pairs[pairs.length - 2]! : null;
-  const monthOverMonthThousands =
-    priorObs != null ? latestObs.value - priorObs.value : null;
+  const monthOverMonthThousands = latestObs.value;
   const momLabel =
     monthOverMonthThousands != null
       ? formatMomThousands(monthOverMonthThousands)
@@ -381,17 +380,18 @@ export function buildPayrollChartFromFredObservations(
   const latestObservationDate = latestObs.date;
 
   const slice = pairs.slice(-Math.max(barCount, 1));
-  const values = slice.map((p) => p.value);
-  const min = Math.min(...values);
-  const max = Math.max(...values);
-  const range = max - min;
+  const deltasForScale: number[] = [];
+  for (const point of slice) {
+    deltasForScale.push(Math.abs(point.value));
+  }
+  const maxAbsDelta = deltasForScale.length > 0 ? Math.max(...deltasForScale) : 0;
 
-  const bars: PayrollBarPoint[] = slice.map((p, i) => {
+  const bars: PayrollBarPoint[] = slice.map((p) => {
+    const momVsPriorThousands = p.value;
     const normalized =
-      range === 0 ? 0.55 : 0.28 + ((p.value - min) / range) * 0.72;
-    const prevInSlice = i > 0 ? slice[i - 1]! : null;
-    const momVsPriorThousands =
-      prevInSlice != null ? p.value - prevInSlice.value : null;
+      maxAbsDelta === 0
+        ? 0.55
+        : 0.28 + (Math.abs(momVsPriorThousands) / maxAbsDelta) * 0.72;
     return {
       label: formatMonthShort(p.date),
       observationDate: p.date,

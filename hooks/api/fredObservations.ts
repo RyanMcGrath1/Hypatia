@@ -1,6 +1,6 @@
 /**
- * Hypatia backend proxy for FRED series observations (`FRED_API_KEY` stays server-side).
- * GET `{newsApiBase}/api/economy/fred/observations?...`
+ * Hypatia backend proxy for PAYEMS monthly deltas (`FRED_API_KEY` stays server-side).
+ * GET `{newsApiBase}/api/economy/fred/series/PAYEMS/delta?...`
  *
  * Base URL matches {@link fetchEconomyOverview} / news stack so Expo web dev can use the Metro proxy.
  */
@@ -31,7 +31,6 @@ export type FredObservationsResponse = {
 };
 
 export type GetFredObservationsParams = {
-  seriesId: string;
   /** When omitted, FRED uses its default window; pair with `sortOrder: 'desc'` and `limit` for newest rows. */
   observationStart?: string;
   /** Default 60 on server if omitted; positive integer, capped at 10000 server-side. */
@@ -99,7 +98,7 @@ function parseErrorMessage(body: unknown): { message: string; hint?: string } {
 function statusFallbackMessage(status: number): string {
   switch (status) {
     case 400:
-      return "Invalid request (missing series_id or invalid limit).";
+      return "Invalid request (invalid limit).";
     case 502:
       return "Invalid response from FRED API.";
     case 503:
@@ -127,15 +126,13 @@ function validateFredObservationsPayload(raw: unknown): FredObservationsResponse
 }
 
 /**
- * GET `/api/economy/fred/observations` — query string only, never sends `api_key`.
+ * GET `/api/economy/fred/series/PAYEMS/delta` — query string only, never sends `api_key`.
  */
 export async function getFredObservations(
   params: GetFredObservationsParams,
   signal?: AbortSignal,
 ): Promise<FredObservationsResponse> {
-  const searchParams: Record<string, string> = {
-    series_id: params.seriesId.trim(),
-  };
+  const searchParams: Record<string, string> = {};
   if (params.observationStart?.trim()) {
     searchParams.observation_start = params.observationStart.trim();
   }
@@ -173,7 +170,7 @@ export async function getFredObservations(
 
   const base = getNewsApiBaseUrl().replace(/\/$/, "");
   const qs = new URLSearchParams(searchParams).toString();
-  const url = `${base}/api/economy/fred/observations?${qs}`;
+  const url = `${base}/api/economy/fred/series/PAYEMS/delta?${qs}`;
 
   let response: Response;
   try {
