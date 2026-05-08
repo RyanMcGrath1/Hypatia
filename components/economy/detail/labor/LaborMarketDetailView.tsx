@@ -1,6 +1,7 @@
 import Feather from "@expo/vector-icons/Feather";
 import { useEffect, useMemo, useState } from "react";
-import { ActivityIndicator, Platform, Pressable, StyleSheet, View } from "react-native";
+import { ActivityIndicator, Modal, Platform, Pressable, ScrollView, StyleSheet, View } from "react-native";
+import { useSafeAreaInsets } from "react-native-safe-area-context";
 
 import { EconomyCard } from "@/components/economy/detail/shared/EconomyCard";
 import {
@@ -14,12 +15,22 @@ import { Fonts } from "@/constants/theme/Typography";
 import { LABOR_EMPLOYMENT_BY_SECTOR } from "@/components/economy/detail/labor/laborDetailData";
 import {
   buildPayrollChartFromFredObservations,
+  buildPayrollYearToDateChartWithSkeleton,
+  filterPayemsObservationsByRangeKey,
   formatPayemsLevelMillionsShort,
   formatPayemsMomDeltaShort,
+  PAYROLL_CHART_RANGE_PRESETS,
+  resolvePayrollLastFullCalendarYear,
+  resolvePayrollYtdCalendarYear,
+  type PayrollBarPoint,
+  type PayrollChartFromFred,
+  type PayrollChartRangeKey,
+  type PayrollChartRangePreset,
 } from "@/components/economy/detail/labor/payrollChartFromFred";
 import {
   FredObservationsError,
   getFredObservations,
+  type FredObservationRow,
 } from "@/hooks/api/fredObservations";
 import { useColorScheme } from "@/hooks/useColorScheme";
 import { useThemeInteractive } from "@/hooks/useThemeInteractive";
@@ -32,22 +43,10 @@ const PAYROLL_BAR_TRACK_PX = 88;
 /** Gap between top of bar fill and callout label (px). */
 const PAYROLL_CALLOUT_GAP_PX = 4;
 
-const PAYEMS_FETCH_LIMIT = 60;
-const PAYROLL_CHART_BAR_COUNT = 7;
-/**
- * How far back `observation_start` should sit for PAYEMS.
- * Must not be “first day of the current month”: that month often has **no** FRED point yet
- * (monthly series + release lag), so FRED returns zero rows and the chart shows empty.
- */
-const PAYEMS_CHART_LOOKBACK_MONTHS = 14;
-
-/** First day of the month `monthsAgo` calendar months before `now` (`YYYY-MM-01`, local). */
-function observationStartFirstDayOfMonthMonthsAgo(now: Date, monthsAgo: number): string {
-  const d = new Date(now.getFullYear(), now.getMonth() - monthsAgo, 1);
-  const y = d.getFullYear();
-  const m = d.getMonth() + 1;
-  return `${y}-${String(m).padStart(2, "0")}-01`;
-}
+/** Latest N PAYEMS prints (`sort_order=desc` on FRED); enough for multi-year UI ranges. */
+const PAYEMS_FETCH_LIMIT = 72;
+/** Render bars in a horizontal scroller when there are more than this many months. */
+const PAYROLL_BAR_SCROLL_THRESHOLD = 14;
 
 function payemsBarPeriodLabel(iso: string): string {
   const d = new Date(`${iso.trim()}T12:00:00`);
@@ -64,7 +63,28 @@ function isAbortError(e: unknown): boolean {
   return typeof DOMException !== "undefined" && e instanceof DOMException && e.name === "AbortError";
 }
 
+function payrollRangeOptionCaption(p: PayrollChartRangePreset): string {
+  if (p.mode === "ytd") {
+    return "Calendar year through latest print (empty months shown)";
+  }
+  if (p.mode === "last_full_year") {
+    return "January–December of prior full calendar year (empty months shown)";
+  }
+  return `Trailing ${p.months} months`;
+}
+
+function payrollRangeOptionA11y(p: PayrollChartRangePreset): string {
+  if (p.mode === "ytd") {
+    return "Year to date";
+  }
+  if (p.mode === "last_full_year") {
+    return "Prior full calendar year";
+  }
+  return `Last ${p.label}`;
+}
+
 export function LaborMarketDetailView() {
+  const insets = useSafeAreaInsets();
   const colorScheme = useColorScheme() ?? "light";
   const semantic = getSemanticColors(colorScheme);
   const theme = Colors[colorScheme];
@@ -77,17 +97,49 @@ export function LaborMarketDetailView() {
 
   const [payrollLoading, setPayrollLoading] = useState(true);
   const [payrollError, setPayrollError] = useState<string | null>(null);
-  const [payrollChart, setPayrollChart] = useState<
-    ReturnType<typeof buildPayrollChartFromFredObservations>
-  >(null);
+  const [payrollObservationsRaw, setPayrollObservationsRaw] = useState<FredObservationRow[]>([]);
+  const [chartRangeKey, setChartRangeKey] = useState<PayrollChartRangeKey>("ytd");
   const [selectedBarIndex, setSelectedBarIndex] = useState<number | null>(null);
+  const [rangeFilterOpen, setRangeFilterOpen] = useState(false);
+
+  const payrollChart = useMemo(() => {
+    if (payrollObservationsRaw.length === 0) {
+      return null;
+    }
+    if (chartRangeKey === "ytd") {
+      const year = resolvePayrollYtdCalendarYear(payrollObservationsRaw, new Date());
+      if (year == null) {
+        return null;
+      }
+      return buildPayrollYearToDateChartWithSkeleton(year, payrollObservationsRaw);
+    }
+    if (chartRangeKey === "py") {
+      const year = resolvePayrollLastFullCalendarYear(payrollObservationsRaw, new Date());
+      if (year == null) {
+        return null;
+      }
+      return buildPayrollYearToDateChartWithSkeleton(year, payrollObservationsRaw);
+    }
+    const filtered = filterPayemsObservationsByRangeKey(
+      payrollObservationsRaw,
+      chartRangeKey,
+    );
+    if (filtered.length === 0) {
+      return null;
+    }
+    return buildPayrollChartFromFredObservations(filtered, filtered.length);
+  }, [payrollObservationsRaw, chartRangeKey]);
 
   useEffect(() => {
-    if (payrollChart?.bars?.length) {
-      setSelectedBarIndex(payrollChart.bars.length - 1);
-    } else {
+    if (!payrollChart?.bars?.length) {
       setSelectedBarIndex(null);
+      return;
     }
+    const withData = payrollChart.bars
+      .map((b, i) => (b.hasObservation ? i : -1))
+      .filter((i) => i >= 0);
+    const lastIdx = withData.length > 0 ? withData[withData.length - 1]! : null;
+    setSelectedBarIndex(lastIdx);
   }, [payrollChart]);
 
   useEffect(() => {
@@ -101,20 +153,17 @@ export function LaborMarketDetailView() {
         const data = await getFredObservations(
           {
             seriesId: "PAYEMS",
-            observationStart: observationStartFirstDayOfMonthMonthsAgo(
-              new Date(),
-              PAYEMS_CHART_LOOKBACK_MONTHS,
-            ),
             limit: PAYEMS_FETCH_LIMIT,
+            sortOrder: "desc",
           },
           ac.signal,
         );
         if (cancelled) {
           return;
         }
-        const obs = data.observations ?? [];
-        const chart = buildPayrollChartFromFredObservations(obs, PAYROLL_CHART_BAR_COUNT);
-        setPayrollChart(chart);
+        // FRED returns newest-first; rest of payroll helpers expect oldest-first.
+        const obs = [...(data.observations ?? [])].reverse();
+        setPayrollObservationsRaw(obs);
       } catch (e) {
         if (cancelled || isAbortError(e)) {
           return;
@@ -125,7 +174,7 @@ export function LaborMarketDetailView() {
           const msg = e instanceof Error ? e.message : String(e);
           setPayrollError(msg);
         }
-        setPayrollChart(null);
+        setPayrollObservationsRaw([]);
       } finally {
         if (!cancelled) {
           setPayrollLoading(false);
@@ -166,10 +215,104 @@ export function LaborMarketDetailView() {
               label: "Unchanged vs prior month",
             };
 
+  const activeRangePreset =
+    PAYROLL_CHART_RANGE_PRESETS.find((p) => p.key === chartRangeKey) ??
+    PAYROLL_CHART_RANGE_PRESETS.find((p) => p.key === "1y")!;
   const selectedBar =
     payrollChart != null && selectedBarIndex != null
       ? payrollChart.bars[selectedBarIndex]
       : undefined;
+
+  function renderPayrollBar(
+    chart: PayrollChartFromFred,
+    bar: PayrollBarPoint,
+    i: number,
+    useScrollLayout: boolean,
+  ) {
+    const ytdNonDataMonth = chartRangeKey === "ytd" && !bar.hasObservation;
+    const isSelected = i === selectedBarIndex && !ytdNonDataMonth;
+    const hasBar = bar.hasObservation && bar.levelThousands != null;
+    const fillPx = hasBar
+      ? Math.max(10, Math.round(bar.relativeHeight * PAYROLL_BAR_TRACK_PX))
+      : 0;
+    const isLatestInPayload =
+      hasBar &&
+      chart.latestObservationDate.length > 0 &&
+      bar.observationDate === chart.latestObservationDate;
+    const level = bar.levelThousands;
+    const barCalloutPrimary = !hasBar
+      ? "—"
+      : isLatestInPayload && bar.momVsPriorThousands != null
+        ? formatPayemsMomDeltaShort(bar.momVsPriorThousands)
+        : formatPayemsLevelMillionsShort(level!);
+    return (
+      <Pressable
+        key={`${bar.observationDate}-${i}`}
+        disabled={ytdNonDataMonth}
+        accessibilityRole="button"
+        accessibilityState={{ disabled: ytdNonDataMonth }}
+        accessibilityHint={
+          ytdNonDataMonth
+            ? "This month has no payroll print in year-to-date view."
+            : "Shows payroll level and change vs the prior month in this chart."
+        }
+        accessibilityLabel={
+          ytdNonDataMonth
+            ? `${payemsBarPeriodLabel(bar.observationDate)}, no payroll data, not selectable`
+            : !hasBar
+              ? `${payemsBarPeriodLabel(bar.observationDate)}, no payroll data yet`
+              : isLatestInPayload && bar.momVsPriorThousands != null
+                ? `${payemsBarPeriodLabel(bar.observationDate)}, month over month change ${formatPayemsMomDeltaShort(bar.momVsPriorThousands)} thousand`
+                : `${payemsBarPeriodLabel(bar.observationDate)}, ${formatPayemsLevelMillionsShort(level!)} million jobs`
+        }
+        onPress={() => setSelectedBarIndex(i)}
+        style={({ pressed }) => [
+          useScrollLayout ? styles.barColScroll : styles.barCol,
+          Platform.OS === "web"
+            ? ({ cursor: ytdNonDataMonth ? "auto" : "pointer" } as const)
+            : null,
+          { opacity: pressed && !ytdNonDataMonth ? 0.88 : 1 },
+        ]}
+      >
+        <View style={styles.barTrack}>
+          {isSelected ? (
+            <View
+              pointerEvents="none"
+              style={[
+                styles.barCalloutAnchor,
+                { bottom: Math.max(fillPx + PAYROLL_CALLOUT_GAP_PX, PAYROLL_CALLOUT_GAP_PX) },
+              ]}
+            >
+              <ThemedText
+                style={[styles.barCallout, { color: interactive.primary }]}
+                numberOfLines={2}
+                adjustsFontSizeToFit
+                minimumFontScale={0.65}
+              >
+                {barCalloutPrimary}
+              </ThemedText>
+            </View>
+          ) : null}
+          {hasBar ? (
+            <View
+              style={[
+                styles.barFill,
+                {
+                  height: fillPx,
+                  backgroundColor: isSelected ? interactive.primary : chartMuted,
+                },
+              ]}
+            />
+          ) : null}
+        </View>
+        <ThemedText
+          style={[styles.monthLabel, { color: isSelected ? theme.text : semantic.mutedText }]}
+        >
+          {bar.label}
+        </ThemedText>
+      </Pressable>
+    );
+  }
 
   return (
     <EconomyDetailShell pageTitle="LABOR MARKET">
@@ -207,6 +350,29 @@ export function LaborMarketDetailView() {
             {payrollError}
           </ThemedText>
         ) : null}
+        {!payrollLoading && payrollObservationsRaw.length > 0 ? (
+          <View style={styles.chartFilterRow}>
+            <Pressable
+              accessibilityRole="button"
+              accessibilityLabel={`Open chart time range. Current ${activeRangePreset.label}.`}
+              onPress={() => setRangeFilterOpen(true)}
+              style={({ pressed }) => [
+                styles.rangeFilterButton,
+                {
+                  borderColor: semantic.hairline,
+                  backgroundColor: semantic.cardSubtleBackground,
+                  opacity: pressed ? 0.88 : 1,
+                },
+              ]}
+            >
+              <Feather name="filter" size={14} color={interactive.primary} />
+              <ThemedText style={[styles.rangeFilterButtonLabel, { color: theme.text }]}>
+                {activeRangePreset.label}
+              </ThemedText>
+              <Feather name="chevron-down" size={14} color={semantic.mutedText} />
+            </Pressable>
+          </View>
+        ) : null}
         <View style={styles.chartArea}>
           {payrollLoading ? (
             <View style={styles.chartLoading}>
@@ -215,99 +381,140 @@ export function LaborMarketDetailView() {
           ) : payrollChart?.bars?.length ? (
             <>
               <View style={[styles.dottedRule, { borderColor: semantic.hairline }]} />
-              <View style={styles.barsRow}>
-                {payrollChart.bars.map((bar, i) => {
-                  const isSelected = i === selectedBarIndex;
-                  const h = bar.relativeHeight;
-                  const fillPx = Math.max(10, Math.round(h * PAYROLL_BAR_TRACK_PX));
-                  const isLatestInPayload = bar.observationDate === payrollChart.latestObservationDate;
-                  const barCalloutPrimary =
-                    isLatestInPayload && bar.momVsPriorThousands != null
-                      ? formatPayemsMomDeltaShort(bar.momVsPriorThousands)
-                      : formatPayemsLevelMillionsShort(bar.levelThousands);
-                  return (
-                    <Pressable
-                      key={`${bar.observationDate}-${i}`}
-                      accessibilityRole="button"
-                      accessibilityHint="Shows payroll level and change vs the prior month in this chart."
-                      accessibilityLabel={
-                        isLatestInPayload && bar.momVsPriorThousands != null
-                          ? `${payemsBarPeriodLabel(bar.observationDate)}, month over month change ${formatPayemsMomDeltaShort(bar.momVsPriorThousands)} thousand`
-                          : `${payemsBarPeriodLabel(bar.observationDate)}, ${formatPayemsLevelMillionsShort(bar.levelThousands)} million jobs`
-                      }
-                      onPress={() => setSelectedBarIndex(i)}
-                      style={({ pressed }) => [
-                        styles.barCol,
-                        Platform.OS === "web" ? ({ cursor: "pointer" } as const) : null,
-                        { opacity: pressed ? 0.88 : 1 },
-                      ]}
-                    >
-                      <View style={styles.barTrack}>
-                        {isSelected ? (
-                          <View
-                            pointerEvents="none"
-                            style={[
-                              styles.barCalloutAnchor,
-                              { bottom: fillPx + PAYROLL_CALLOUT_GAP_PX },
-                            ]}
-                          >
-                            <ThemedText
-                              style={[styles.barCallout, { color: interactive.primary }]}
-                              numberOfLines={2}
-                              adjustsFontSizeToFit
-                              minimumFontScale={0.65}
-                            >
-                              {barCalloutPrimary}
-                            </ThemedText>
-                          </View>
-                        ) : null}
-                        <View
-                          style={[
-                            styles.barFill,
-                            {
-                              height: fillPx,
-                              backgroundColor: isSelected ? interactive.primary : chartMuted,
-                            },
-                          ]}
-                        />
-                      </View>
-                      <ThemedText
-                        style={[
-                          styles.monthLabel,
-                          { color: isSelected ? theme.text : semantic.mutedText },
-                        ]}
-                      >
-                        {bar.label}
-                      </ThemedText>
-                    </Pressable>
-                  );
-                })}
-              </View>
+              {payrollChart.bars.length > PAYROLL_BAR_SCROLL_THRESHOLD ? (
+                <ScrollView
+                  horizontal
+                  nestedScrollEnabled
+                  showsHorizontalScrollIndicator={payrollChart.bars.length > 20}
+                  style={styles.barsScrollView}
+                  contentContainerStyle={styles.barsScrollContent}
+                >
+                  {payrollChart.bars.map((bar, i) =>
+                    renderPayrollBar(payrollChart, bar, i, true),
+                  )}
+                </ScrollView>
+              ) : (
+                <View style={styles.barsRow}>
+                  {payrollChart.bars.map((bar, i) =>
+                    renderPayrollBar(payrollChart, bar, i, false),
+                  )}
+                </View>
+              )}
               {selectedBar != null ? (
                 <View style={styles.chartDetail}>
-                  <ThemedText style={[styles.chartDetailPrimary, { color: theme.text }]}>
-                    {payemsBarPeriodLabel(selectedBar.observationDate)} ·{" "}
-                    {formatPayemsLevelMillionsShort(selectedBar.levelThousands)} jobs
-                  </ThemedText>
-                  {selectedBar.momVsPriorThousands != null ? (
-                    <ThemedText style={[styles.chartDetailSecondary, { color: semantic.mutedText }]}>
-                      vs prior month (this window):{" "}
-                      {formatPayemsMomDeltaShort(selectedBar.momVsPriorThousands)} thousand
-                    </ThemedText>
+                  {selectedBar.hasObservation && selectedBar.levelThousands != null ? (
+                    <>
+                      <ThemedText style={[styles.chartDetailPrimary, { color: theme.text }]}>
+                        {payemsBarPeriodLabel(selectedBar.observationDate)} ·{" "}
+                        {formatPayemsLevelMillionsShort(selectedBar.levelThousands)} jobs
+                      </ThemedText>
+                      {selectedBar.momVsPriorThousands != null ? (
+                        <ThemedText
+                          style={[styles.chartDetailSecondary, { color: semantic.mutedText }]}
+                        >
+                          vs prior month (this window):{" "}
+                          {formatPayemsMomDeltaShort(selectedBar.momVsPriorThousands)} thousand
+                        </ThemedText>
+                      ) : (
+                        <ThemedText
+                          style={[styles.chartDetailSecondary, { color: semantic.mutedText }]}
+                        >
+                          No prior month with data to compare (gap or first month of year).
+                        </ThemedText>
+                      )}
+                    </>
                   ) : (
-                    <ThemedText style={[styles.chartDetailSecondary, { color: semantic.mutedText }]}>
-                      First month in this chart — no prior bar to compare.
-                    </ThemedText>
+                    <>
+                      <ThemedText style={[styles.chartDetailPrimary, { color: theme.text }]}>
+                        {payemsBarPeriodLabel(selectedBar.observationDate)}
+                      </ThemedText>
+                      <ThemedText style={[styles.chartDetailSecondary, { color: semantic.mutedText }]}>
+                        No payroll data for this month yet — placeholder in the year timeline.
+                      </ThemedText>
+                    </>
                   )}
                 </View>
               ) : null}
             </>
           ) : (
             <ThemedText style={[styles.payrollEmpty, { color: semantic.mutedText }]}>
-              No payroll observations available for this range.
+              {payrollObservationsRaw.length === 0
+                ? "No payroll observations available."
+                : "No payroll data in this time range."}
             </ThemedText>
           )}
         </View>
+        <Modal
+          visible={rangeFilterOpen}
+          transparent
+          animationType="slide"
+          onRequestClose={() => setRangeFilterOpen(false)}
+        >
+          <View style={styles.rangeModalRoot} pointerEvents="box-none">
+            <Pressable
+              accessibilityRole="button"
+              accessibilityLabel="Dismiss time range picker"
+              style={styles.rangeModalScrim}
+              onPress={() => setRangeFilterOpen(false)}
+            />
+            <View
+              style={[
+                styles.rangeModalSheet,
+                {
+                  paddingBottom: insets.bottom + Spacing.md,
+                  backgroundColor: semantic.cardBackground,
+                  borderTopColor: semantic.hairline,
+                },
+              ]}
+            >
+              <ThemedText style={[styles.rangeModalTitle, { color: theme.text }]}>
+                Chart time range
+              </ThemedText>
+              {PAYROLL_CHART_RANGE_PRESETS.map((p) => {
+                const active = chartRangeKey === p.key;
+                return (
+                  <Pressable
+                    key={p.key}
+                    accessibilityRole="button"
+                    accessibilityState={{ selected: active }}
+                    accessibilityLabel={payrollRangeOptionA11y(p)}
+                    onPress={() => {
+                      setChartRangeKey(p.key);
+                      setRangeFilterOpen(false);
+                    }}
+                    style={({ pressed }) => [
+                      styles.rangeModalOption,
+                      {
+                        borderColor: semantic.hairline,
+                        backgroundColor: active ? interactive.primarySoft : "transparent",
+                        opacity: pressed ? 0.9 : 1,
+                      },
+                    ]}
+                  >
+                    <View style={styles.rangeModalOptionTextCol}>
+                      <ThemedText
+                        style={[
+                          styles.rangeModalOptionLabel,
+                          { color: active ? interactive.primary : theme.text },
+                        ]}
+                      >
+                        {p.label}
+                      </ThemedText>
+                      <ThemedText
+                        style={[styles.rangeModalOptionCaption, { color: semantic.mutedText }]}
+                      >
+                        {payrollRangeOptionCaption(p)}
+                      </ThemedText>
+                    </View>
+                    {active ? (
+                      <Feather name="check" size={18} color={interactive.primary} />
+                    ) : null}
+                  </Pressable>
+                );
+              })}
+            </View>
+          </View>
+        </Modal>
       </EconomyCard>
 
       <EconomyCard>
@@ -477,6 +684,74 @@ const styles = StyleSheet.create({
     alignSelf: "stretch",
     flexShrink: 1,
   },
+  chartFilterRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    marginBottom: Spacing.sm,
+  },
+  rangeFilterButton: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 8,
+    paddingHorizontal: 12,
+    paddingVertical: 8,
+    borderRadius: Radius.sm,
+    borderWidth: 1,
+    alignSelf: "flex-start",
+  },
+  rangeFilterButtonLabel: {
+    fontSize: 12,
+    fontFamily: Fonts.bodyBold,
+    letterSpacing: 0.3,
+  },
+  rangeModalRoot: {
+    flex: 1,
+    justifyContent: "flex-end",
+  },
+  rangeModalScrim: {
+    ...StyleSheet.absoluteFillObject,
+    backgroundColor: "rgba(0,0,0,0.45)",
+  },
+  rangeModalSheet: {
+    borderTopLeftRadius: Radius.md,
+    borderTopRightRadius: Radius.md,
+    borderTopWidth: StyleSheet.hairlineWidth,
+    paddingHorizontal: Spacing.md,
+    paddingTop: Spacing.md,
+    maxHeight: "55%",
+  },
+  rangeModalTitle: {
+    fontSize: 13,
+    fontFamily: Fonts.bodyBold,
+    letterSpacing: 0.4,
+    marginBottom: Spacing.sm,
+    textTransform: "uppercase",
+  },
+  rangeModalOption: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
+    gap: Spacing.sm,
+    paddingVertical: 12,
+    paddingHorizontal: 12,
+    borderRadius: Radius.sm,
+    borderWidth: 1,
+    marginBottom: 8,
+  },
+  rangeModalOptionTextCol: {
+    flex: 1,
+    minWidth: 0,
+  },
+  rangeModalOptionLabel: {
+    fontSize: 15,
+    fontFamily: Fonts.bodyBold,
+  },
+  rangeModalOptionCaption: {
+    fontSize: 12,
+    fontFamily: Fonts.body,
+    marginTop: 2,
+    lineHeight: 16,
+  },
   payrollEmpty: {
     fontSize: 13,
     fontFamily: Fonts.body,
@@ -500,10 +775,30 @@ const styles = StyleSheet.create({
     paddingTop: 28,
     overflow: "visible",
   },
+  barsScrollView: {
+    flexGrow: 0,
+    overflow: "visible",
+    minHeight: 120,
+  },
+  barsScrollContent: {
+    flexDirection: "row",
+    alignItems: "flex-end",
+    gap: 4,
+    paddingTop: 28,
+    minHeight: 120,
+    paddingRight: Spacing.sm,
+  },
   barCol: {
     flex: 1,
     alignItems: "center",
     minWidth: 0,
+    overflow: "visible",
+  },
+  barColScroll: {
+    width: 36,
+    minWidth: 36,
+    maxWidth: 36,
+    alignItems: "center",
     overflow: "visible",
   },
   barCallout: {

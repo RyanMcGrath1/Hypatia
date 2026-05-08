@@ -32,7 +32,8 @@ export type FredObservationsResponse = {
 
 export type GetFredObservationsParams = {
   seriesId: string;
-  observationStart: string;
+  /** When omitted, FRED uses its default window; pair with `sortOrder: 'desc'` and `limit` for newest rows. */
+  observationStart?: string;
   /** Default 60 on server if omitted; positive integer, capped at 10000 server-side. */
   limit?: number;
   observationEnd?: string;
@@ -98,7 +99,7 @@ function parseErrorMessage(body: unknown): { message: string; hint?: string } {
 function statusFallbackMessage(status: number): string {
   switch (status) {
     case 400:
-      return "Invalid request (missing series_id or observation_start, or invalid limit).";
+      return "Invalid request (missing series_id or invalid limit).";
     case 502:
       return "Invalid response from FRED API.";
     case 503:
@@ -134,8 +135,10 @@ export async function getFredObservations(
 ): Promise<FredObservationsResponse> {
   const searchParams: Record<string, string> = {
     series_id: params.seriesId.trim(),
-    observation_start: params.observationStart.trim(),
   };
+  if (params.observationStart?.trim()) {
+    searchParams.observation_start = params.observationStart.trim();
+  }
 
   if (params.limit != null) {
     searchParams.limit = String(Math.floor(params.limit));
