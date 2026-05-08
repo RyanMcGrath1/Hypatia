@@ -1,8 +1,3 @@
-export const LABOR_PAYROLL_MONTHS = ["JUN", "JUL", "AUG", "SEP", "OCT", "NOV", "DEC"] as const;
-
-/** Relative bar heights (last = December highlight). */
-export const LABOR_PAYROLL_RELATIVE = [0.42, 0.5, 0.46, 0.54, 0.58, 0.62, 1];
-
 export type LaborEmploymentSectorRow = {
   sector: string;
   delta: string;
