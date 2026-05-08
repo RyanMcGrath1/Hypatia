@@ -4,7 +4,7 @@
     "slug": "hypatia",
     "version": "1.0.0",
     "orientation": "portrait",
-    "icon": "./assets/images/light-logo.png",
+    "icon": "./assets/images/app-icon.png",
     "scheme": "hypatia",
     "userInterfaceStyle": "automatic",
     "newArchEnabled": true,
@@ -14,12 +14,13 @@
         "NSAppTransportSecurity": {
           "NSAllowsLocalNetworking": true
         }
-      }
+      },
+      "bundleIdentifier": "com.anonymous.hypatia"
     },
     "android": {
       "adaptiveIcon": {
-        "foregroundImage": "./assets/images/light-logo.png",
-        "backgroundColor": "#fbf8ff"
+        "foregroundImage": "./assets/images/app-icon.png",
+        "backgroundColor": "#ffffff"
       },
       "edgeToEdgeEnabled": true,
       "usesCleartextTraffic": true
@@ -27,17 +28,17 @@
     "web": {
       "bundler": "metro",
       "output": "static",
-      "favicon": "./assets/images/light-logo.png"
+      "favicon": "./assets/images/app-icon.png"
     },
     "plugins": [
       "expo-router",
       [
         "expo-splash-screen",
         {
-          "image": "./assets/images/light-logo.png",
+          "image": "./assets/images/app-icon.png",
           "imageWidth": 260,
           "resizeMode": "contain",
-          "backgroundColor": "#fbf8ff"
+          "backgroundColor": "#ffffff"
         }
       ]
     ],
