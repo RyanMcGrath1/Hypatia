@@ -4,6 +4,7 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import {
   Animated,
   Easing,
+  Platform,
   Pressable,
   ScrollView,
   StyleSheet,
@@ -34,10 +35,13 @@ import { getNewsApiNetworkErrorMessage } from "@/hooks/api/newsApi";
 import { useColorScheme } from "@/hooks/useColorScheme";
 import {
   formatOverviewAsOfDisplay,
+  isEconomySectionPayload,
   parseEconomyOverviewResponse,
   type EconomyOverviewApiResponse,
 } from "@/lib/economy/economyOverviewTypes";
 import {
+  formatObservationMonthYear,
+  formatOverviewMetricValue,
   getSectorCardDisplay,
   SECTOR_ID_TO_OVERVIEW_KEY,
 } from "@/lib/economy/sectorOverviewMerge";
@@ -49,9 +53,16 @@ type FeedRow = {
   value: string;
   trend: SectorTrend;
   history: number[];
+  /** ISO dates aligned with `history` when observations came from the API */
+  historyDates?: string[];
+  /** Section unit for formatting selected bar values */
+  valueUnit?: string;
+  /** True when this tile id maps to an overview `sections` key (still may have zero observations). */
+  overviewSectionBound: boolean;
 };
 
-const FEED_IDS = ["labor", "inflation", "markets", "gdp"];
+/** Matches `sections` keys from `GET /api/economy/overview` via {@link SECTOR_ID_TO_OVERVIEW_KEY}. */
+const FEED_IDS = ["labor", "inflation", "rates", "gdp"];
 const sentimentScore = 74;
 const sentimentDelta = 2.4;
 const sentimentStability = 68.2;
@@ -207,6 +218,29 @@ function normalizeBars(values: number[]) {
   });
 }
 
+function resolveFeedBarSelectionIndex(
+  rowId: string,
+  barCount: number,
+  map: Record<string, number>,
+): number {
+  if (barCount <= 0) return 0;
+  const stored = map[rowId];
+  if (typeof stored === "number" && stored >= 0 && stored < barCount) {
+    return stored;
+  }
+  return barCount - 1;
+}
+
+function formatFeedBarValue(raw: number, unit: string | undefined): string {
+  if (unit) {
+    return formatOverviewMetricValue(raw, unit);
+  }
+  return raw.toLocaleString("en-US", {
+    maximumFractionDigits: 3,
+    minimumFractionDigits: 0,
+  });
+}
+
 function getTrendFromSeries(
   values: number[],
   fallback: SectorTrend,
@@ -241,6 +275,9 @@ export default function EconomyDashboardScreen() {
   const [economyOverviewError, setEconomyOverviewError] = useState<
     string | null
   >(null);
+  const [selectedBarIndexBySector, setSelectedBarIndexBySector] = useState<
+    Record<string, number>
+  >({});
 
   useEffect(() => {
     const controller = new AbortController();
@@ -294,16 +331,20 @@ export default function EconomyDashboardScreen() {
         // getSectorCardDisplay merges sector defaults with live economyOverview values.
         const display = getSectorCardDisplay(sector, economyOverview);
         const sectionKey = SECTOR_ID_TO_OVERVIEW_KEY[sector.id];
-        const observations = sectionKey
-          ? economyOverview?.sections?.[sectionKey]?.observations
-          : undefined;
-        const apiHistory =
-          Array.isArray(observations) && observations.length > 0
-            ? [...observations]
-                .sort((a, b) => a.date.localeCompare(b.date))
-                .map((o) => o.value)
-            : null;
-        const history = apiHistory ?? display.history;
+        const rawSection =
+          sectionKey && economyOverview?.sections
+            ? economyOverview.sections[sectionKey]
+            : undefined;
+        const section = isEconomySectionPayload(rawSection) ? rawSection : undefined;
+        const sortedObs =
+          section && section.observations.length > 0
+            ? [...section.observations].sort((a, b) =>
+                a.date.localeCompare(b.date),
+              )
+            : [];
+        const history = sortedObs.map((o) => o.value);
+        const historyDates =
+          sortedObs.length > 0 ? sortedObs.map((o) => o.date) : undefined;
         return {
           id: sector.id,
           title: display.title.toUpperCase(),
@@ -311,6 +352,10 @@ export default function EconomyDashboardScreen() {
           value: display.headlineValue,
           trend: getTrendFromSeries(history, sector.trend),
           history,
+          historyDates,
+          valueUnit: section?.unit,
+          /** Dashboard tile has a `sections` key on the overview API (may still have zero observations). */
+          overviewSectionBound: Boolean(sectionKey),
         };
       });
   }, [economyOverview]);
@@ -453,83 +498,158 @@ export default function EconomyDashboardScreen() {
           {feedRows.map((row) => {
             const trend = trendVisual(row.trend, isDark);
             const bars = normalizeBars(row.history);
+            const selectedIdx = resolveFeedBarSelectionIndex(
+              row.id,
+              bars.length,
+              selectedBarIndexBySector,
+            );
+            const mutedBar = isDark ? "#334155" : "#E5E7EB";
+            const rawSelected = row.history[selectedIdx];
+            const openSectorDetail = () =>
+              router.push({
+                pathname: AppRoutes.economyDetail,
+                params: { sectorId: row.id },
+              });
+
             return (
-              <Pressable
+              <View
                 key={row.id}
-                accessibilityRole="button"
-                accessibilityLabel={`${row.title}, ${row.value}. Open details.`}
-                style={({ pressed }) => [
+                style={[
                   styles.feedCard,
                   {
                     backgroundColor: semantic.cardBackground,
                     borderColor: semantic.cardBorder,
-                    opacity: pressed ? 0.92 : 1,
                   },
                   semantic.cardShadow,
                 ]}
-                onPress={() =>
-                  router.push({
-                    pathname: AppRoutes.economyDetail,
-                    params: { sectorId: row.id },
-                  })
-                }
               >
-                <View style={styles.feedHeader}>
-                  <ThemedText
-                    style={[styles.feedTitle, { color: semantic.mutedText }]}
-                  >
-                    {row.title}
-                  </ThemedText>
-                  <Feather name={trend.icon} size={14} color={trend.color} />
-                </View>
-                <View
-                  style={[
-                    styles.feedHeaderDivider,
-                    { backgroundColor: semantic.cardBorder },
-                  ]}
-                />
-                <ThemedText style={styles.feedValue}>{row.value}</ThemedText>
-                <View style={styles.feedTrend}>
+                <Pressable
+                  accessibilityRole="button"
+                  accessibilityLabel={`${row.title}, ${row.value}. Open details.`}
+                  onPress={openSectorDetail}
+                  style={({ pressed }) => [{ opacity: pressed ? 0.92 : 1 }]}
+                >
+                  <View style={styles.feedHeader}>
+                    <ThemedText
+                      style={[styles.feedTitle, { color: semantic.mutedText }]}
+                    >
+                      {row.title}
+                    </ThemedText>
+                    <Feather name={trend.icon} size={14} color={trend.color} />
+                  </View>
                   <View
-                    style={[styles.statusDot, { backgroundColor: trend.color }]}
+                    style={[
+                      styles.feedHeaderDivider,
+                      { backgroundColor: semantic.cardBorder },
+                    ]}
                   />
-                  <ThemedText
-                    style={[styles.feedTrendText, { color: trend.color }]}
-                  >
-                    {row.trend === "up"
-                      ? "STRENGTHENING"
-                      : row.trend === "down"
-                        ? "WEAKENING"
-                        : "STABLE"}
-                  </ThemedText>
-                </View>
+                  <ThemedText style={styles.feedValue}>{row.value}</ThemedText>
+                  <View style={styles.feedTrend}>
+                    <View
+                      style={[styles.statusDot, { backgroundColor: trend.color }]}
+                    />
+                    <ThemedText
+                      style={[styles.feedTrendText, { color: trend.color }]}
+                    >
+                      {row.trend === "up"
+                        ? "STRENGTHENING"
+                        : row.trend === "down"
+                          ? "WEAKENING"
+                          : "STABLE"}
+                    </ThemedText>
+                  </View>
+                </Pressable>
+
                 <View style={styles.sparklineRow}>
                   <View style={styles.miniBarsRow}>
-                    {bars.map((heightPct, index) => (
-                      <View
-                        key={`${row.id}-${index}`}
-                        style={[
-                          styles.miniBar,
-                          {
-                            height: 22 * heightPct,
-                            backgroundColor:
-                              index === bars.length - 1
-                                ? trend.color
-                                : isDark
-                                  ? "#334155"
-                                  : "#E5E7EB",
-                          },
-                        ]}
-                      />
-                    ))}
+                    {bars.map((heightPct, index) => {
+                      const selected = index === selectedIdx;
+                      const iso = row.historyDates?.[index];
+                      const dateHint = iso
+                        ? formatObservationMonthYear(iso)
+                        : `Point ${index + 1}`;
+                      return (
+                        <Pressable
+                          key={`${row.id}-${index}`}
+                          accessibilityRole="button"
+                          accessibilityLabel={`${row.title}: ${dateHint}, ${formatFeedBarValue(row.history[index] ?? 0, row.valueUnit)}`}
+                          accessibilityState={{ selected }}
+                          hitSlop={{ top: 10, bottom: 6, left: 3, right: 3 }}
+                          onPress={() =>
+                            setSelectedBarIndexBySector((prev) => ({
+                              ...prev,
+                              [row.id]: index,
+                            }))
+                          }
+                          style={styles.miniBarHit}
+                        >
+                          <View
+                            style={[
+                              styles.miniBar,
+                              {
+                                height: 22 * heightPct,
+                                backgroundColor: selected
+                                  ? trend.color
+                                  : mutedBar,
+                                opacity: selected ? 1 : 0.78,
+                              },
+                              selected &&
+                                Platform.select({
+                                  ios: {
+                                    shadowColor: trend.color,
+                                    shadowOffset: { width: 0, height: 0 },
+                                    shadowOpacity: 0.4,
+                                    shadowRadius: 3,
+                                  },
+                                  android: { elevation: 2 },
+                                  default: {},
+                                }),
+                            ]}
+                          />
+                        </Pressable>
+                      );
+                    })}
                   </View>
+                  {bars.length > 0 && rawSelected !== undefined ? (
+                    <ThemedText
+                      style={[
+                        styles.barSelectionMeta,
+                        { color: semantic.mutedText },
+                      ]}
+                      accessibilityLiveRegion="polite"
+                    >
+                      {row.historyDates?.[selectedIdx]
+                        ? `${formatObservationMonthYear(row.historyDates[selectedIdx])} · `
+                        : null}
+                      {formatFeedBarValue(rawSelected, row.valueUnit)}
+                    </ThemedText>
+                  ) : null}
+                  {bars.length === 0 &&
+                  !isEconomyOverviewLoading &&
+                  economyOverview !== null ? (
+                    <ThemedText
+                      style={[
+                        styles.barChartEmptyHint,
+                        { color: semantic.mutedText },
+                      ]}
+                    >
+                      {!row.overviewSectionBound
+                        ? "Overview API has no mapped series for this tile yet."
+                        : "No observations returned for this series."}
+                    </ThemedText>
+                  ) : null}
                 </View>
-                <View
-                  style={[
+
+                <Pressable
+                  accessibilityRole="button"
+                  accessibilityLabel={`Explore detailed analysis for ${row.title}`}
+                  onPress={openSectorDetail}
+                  style={({ pressed }) => [
                     styles.cardCtaRow,
                     {
                       borderTopColor: semantic.cardBorder,
                       backgroundColor: semantic.cardSubtleBackground,
+                      opacity: pressed ? 0.92 : 1,
                     },
                   ]}
                 >
@@ -539,8 +659,8 @@ export default function EconomyDashboardScreen() {
                     Explore detailed analysis
                   </ThemedText>
                   <Feather name="chevron-right" size={14} color={theme.tint} />
-                </View>
-              </Pressable>
+                </Pressable>
+              </View>
             );
           })}
         </View>
@@ -779,15 +899,32 @@ const styles = StyleSheet.create({
   },
   miniBarsRow: {
     width: "100%",
-    height: 24,
+    minHeight: 28,
     flexDirection: "row",
     alignItems: "flex-end",
     gap: 2,
   },
-  miniBar: {
+  miniBarHit: {
     flex: 1,
+    justifyContent: "flex-end",
+    minHeight: 28,
+  },
+  miniBar: {
+    width: "100%",
     borderRadius: 2,
     minHeight: 6,
+  },
+  barSelectionMeta: {
+    marginTop: 6,
+    fontSize: 11,
+    lineHeight: 15,
+    fontFamily: Fonts.bodyMedium,
+  },
+  barChartEmptyHint: {
+    marginTop: 4,
+    fontSize: 11,
+    lineHeight: 15,
+    fontFamily: Fonts.bodyMedium,
   },
   cardCtaRow: {
     borderTopWidth: 1,

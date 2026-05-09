@@ -1,6 +1,6 @@
-import { Brand } from '@/constants/theme/Colors';
+import { Brand } from "@/constants/theme/Colors";
 
-export type SectorTrend = 'up' | 'down' | 'flat';
+export type SectorTrend = "up" | "down" | "flat";
 
 export type SectorMetric = {
   label: string;
@@ -41,134 +41,184 @@ export type EconomicSector = {
 
 export const US_ECONOMIC_SECTORS: EconomicSector[] = [
   {
-    id: 'inflation',
-    title: 'Inflation',
-    headlineLabel: 'CPI (YoY)',
-    headlineValue: '3.2%',
-    trend: 'down',
-    trendLabel: 'Cooling from prior quarter',
-    summary: 'Price growth remains above target but is easing relative to last year.',
+    id: "inflation",
+    title: "Inflation",
+    headlineLabel: "CPI (YoY)",
+    headlineValue: "3.2%",
+    trend: "down",
+    trendLabel: "Cooling from prior quarter",
+    summary:
+      "Price growth remains above target but is easing relative to last year.",
     interpretation:
-      'Disinflation is progressing, though shelter and services costs are still sticky.',
+      "Disinflation is progressing, though shelter and services costs are still sticky.",
     metrics: [
-      { label: 'Core CPI', value: '3.5%', note: 'Ex-food and energy' },
-      { label: 'PCE Inflation', value: '2.8%', note: 'Fed preferred gauge' },
-      { label: 'Energy CPI', value: '-0.9%', note: 'Lower than last month' },
+      { label: "Core CPI", value: "3.5%", note: "Ex-food and energy" },
+      { label: "PCE Inflation", value: "2.8%", note: "Fed preferred gauge" },
+      { label: "Energy CPI", value: "-0.9%", note: "Lower than last month" },
     ],
-    updatedAt: 'Apr 2026',
+    updatedAt: "Apr 2026",
     history: [100, 101, 100, 99, 98, 97],
   },
   {
-    id: 'labor',
-    title: 'Labor Market',
-    headlineLabel: 'Unemployment Rate',
-    headlineValue: '4.0%',
-    trend: 'flat',
-    trendLabel: 'Stable labor conditions',
-    summary: 'Hiring continues at a moderate pace with resilient participation.',
+    id: "labor",
+    title: "Labor Market",
+    headlineLabel: "Unemployment Rate",
+    headlineValue: "4.0%",
+    trend: "flat",
+    trendLabel: "Stable labor conditions",
+    summary:
+      "Hiring continues at a moderate pace with resilient participation.",
     interpretation:
-      'Labor demand is softening from peak levels but remains historically healthy.',
+      "Labor demand is softening from peak levels but remains historically healthy.",
     metrics: [
-      { label: 'Nonfarm Payrolls', value: '+175K', note: 'Latest monthly change' },
-      { label: 'Labor Participation', value: '62.7%', note: 'Prime-age improving' },
-      { label: 'Avg Hourly Earnings', value: '+4.1%', note: 'Year-over-year' },
+      {
+        label: "Nonfarm Payrolls",
+        value: "+175K",
+        note: "Latest monthly change",
+      },
+      {
+        label: "Labor Participation",
+        value: "62.7%",
+        note: "Prime-age improving",
+      },
+      { label: "Avg Hourly Earnings", value: "+4.1%", note: "Year-over-year" },
     ],
-    updatedAt: 'Apr 2026',
+    updatedAt: "Apr 2026",
     history: [100, 100, 101, 101, 102, 102],
   },
   {
-    id: 'gdp',
-    title: 'GDP Growth',
-    headlineLabel: 'Real GDP (QoQ annualized)',
-    headlineValue: '2.1%',
-    trend: 'up',
-    trendLabel: 'Re-accelerating modestly',
-    summary: 'Output growth remains positive, supported by services and business spending.',
+    id: "gdp",
+    title: "GDP Growth",
+    headlineLabel: "Real GDP (QoQ annualized)",
+    headlineValue: "2.1%",
+    trend: "up",
+    trendLabel: "Re-accelerating modestly",
+    summary:
+      "Output growth remains positive, supported by services and business spending.",
     interpretation:
-      'The economy is expanding at a sustainable pace rather than overheating.',
+      "The economy is expanding at a sustainable pace rather than overheating.",
     metrics: [
-      { label: 'Consumer Contribution', value: '1.3pp', note: 'To quarterly growth' },
-      { label: 'Business Investment', value: '+3.0%', note: 'Equipment and software' },
-      { label: 'Net Exports', value: '-0.2pp', note: 'Drag on growth' },
+      {
+        label: "Consumer Contribution",
+        value: "1.3pp",
+        note: "To quarterly growth",
+      },
+      {
+        label: "Business Investment",
+        value: "+3.0%",
+        note: "Equipment and software",
+      },
+      { label: "Net Exports", value: "-0.2pp", note: "Drag on growth" },
     ],
-    updatedAt: 'Q1 2026',
+    updatedAt: "Q1 2026",
     history: [100, 99, 100, 101, 102, 103],
   },
   {
-    id: 'rates',
-    title: 'Interest Rates',
-    headlineLabel: 'Fed Funds Target',
-    headlineValue: '5.25% - 5.50%',
-    trend: 'flat',
-    trendLabel: 'Holding restrictive stance',
-    summary: 'Policy rates remain elevated while officials monitor inflation progress.',
+    id: "rates",
+    title: "Interest Rates",
+    headlineLabel: "Fed Funds Target",
+    headlineValue: "5.25% - 5.50%",
+    trend: "flat",
+    trendLabel: "Holding restrictive stance",
+    summary:
+      "Policy rates remain elevated while officials monitor inflation progress.",
     interpretation:
-      'Financial conditions are tight, and future moves depend on incoming data.',
+      "Financial conditions are tight, and future moves depend on incoming data.",
     metrics: [
-      { label: '10Y Treasury', value: '4.3%', note: 'Benchmark long rate' },
-      { label: '30Y Mortgage', value: '6.8%', note: 'Constrained affordability' },
-      { label: '2Y Treasury', value: '4.7%', note: 'Policy-sensitive yield' },
+      { label: "10Y Treasury", value: "4.3%", note: "Benchmark long rate" },
+      {
+        label: "30Y Mortgage",
+        value: "6.8%",
+        note: "Constrained affordability",
+      },
+      { label: "2Y Treasury", value: "4.7%", note: "Policy-sensitive yield" },
     ],
-    updatedAt: 'Apr 2026',
+    updatedAt: "Apr 2026",
     history: [100, 100, 100, 100, 100, 100],
   },
   {
-    id: 'housing',
-    title: 'Housing',
-    headlineLabel: 'Existing Home Sales',
-    headlineValue: '4.2M',
-    trend: 'down',
-    trendLabel: 'Soft transaction volume',
-    summary: 'Higher mortgage rates continue to suppress turnover in existing homes.',
+    id: "housing",
+    title: "Housing",
+    headlineLabel: "Existing Home Sales",
+    headlineValue: "4.2M",
+    trend: "down",
+    trendLabel: "Soft transaction volume",
+    summary:
+      "Higher mortgage rates continue to suppress turnover in existing homes.",
     interpretation:
-      'Inventory is gradually improving, but affordability remains the main constraint.',
+      "Inventory is gradually improving, but affordability remains the main constraint.",
     metrics: [
-      { label: 'Median Home Price', value: '$390K', note: 'Up 3.9% YoY' },
-      { label: 'Housing Starts', value: '1.45M', note: 'Annualized pace' },
-      { label: 'Months Supply', value: '3.3', note: 'Still below balanced market' },
+      { label: "Median Home Price", value: "$390K", note: "Up 3.9% YoY" },
+      { label: "Housing Starts", value: "1.45M", note: "Annualized pace" },
+      {
+        label: "Months Supply",
+        value: "3.3",
+        note: "Still below balanced market",
+      },
     ],
-    updatedAt: 'Mar 2026',
+    updatedAt: "Mar 2026",
     history: [102, 101.2, 100.5, 99.5, 98.5, 97.5],
   },
   {
-    id: 'consumer',
-    title: 'Consumer Spending',
-    headlineLabel: 'Real Consumption (MoM)',
-    headlineValue: '+0.3%',
-    trend: 'up',
-    trendLabel: 'Moderate household demand',
-    summary: 'Spending growth is positive, led by services and travel categories.',
+    id: "consumer",
+    title: "Consumer Spending",
+    headlineLabel: "Real Consumption (MoM)",
+    headlineValue: "+0.3%",
+    trend: "up",
+    trendLabel: "Moderate household demand",
+    summary:
+      "Spending growth is positive, led by services and travel categories.",
     interpretation:
-      'Households are still spending, though credit-sensitive categories are slowing.',
+      "Households are still spending, though credit-sensitive categories are slowing.",
     metrics: [
-      { label: 'Retail Sales', value: '+0.5%', note: 'Monthly headline change' },
-      { label: 'Personal Savings Rate', value: '4.2%', note: 'Below long-run average' },
-      { label: 'Consumer Sentiment', value: '74.8', note: 'Improved from prior month' },
+      {
+        label: "Retail Sales",
+        value: "+0.5%",
+        note: "Monthly headline change",
+      },
+      {
+        label: "Personal Savings Rate",
+        value: "4.2%",
+        note: "Below long-run average",
+      },
+      {
+        label: "Consumer Sentiment",
+        value: "74.8",
+        note: "Improved from prior month",
+      },
     ],
-    updatedAt: 'Apr 2026',
+    updatedAt: "Apr 2026",
     history: [99, 99.3, 99.8, 100.2, 101, 101.8],
   },
   {
-    id: 'markets',
-    title: 'Markets',
-    headlineLabel: 'S&P 500',
-    headlineValue: '5,137.08',
-    trend: 'up',
-    trendLabel: 'Equities firm as yields ease',
-    summary: 'Risk assets are bid with curve dynamics and calendar catalysts in focus.',
+    id: "markets",
+    title: "Markets",
+    headlineLabel: "S&P 500",
+    headlineValue: "5,137.08",
+    trend: "up",
+    trendLabel: "Equities firm as yields ease",
+    summary:
+      "Risk assets are bid with curve dynamics and calendar catalysts in focus.",
     interpretation:
-      'Cross-asset moves reflect growth optimism tempered by policy and inflation data.',
+      "Cross-asset moves reflect growth optimism tempered by policy and inflation data.",
     metrics: [
-      { label: 'US 10Y Yield', value: '4.22%', note: 'Intra-day benchmark' },
-      { label: 'VIX', value: '13.8', note: 'Implied volatility' },
-      { label: 'DXY', value: '104.1', note: 'Trade-weighted dollar' },
+      { label: "US 10Y Yield", value: "4.22%", note: "Intra-day benchmark" },
+      { label: "VIX", value: "13.8", note: "Implied volatility" },
+      { label: "DXY", value: "104.1", note: "Trade-weighted dollar" },
     ],
-    updatedAt: 'Apr 2026',
+    updatedAt: "Apr 2026",
     history: [100, 100.4, 100.9, 101.2, 101.6, 102.1],
   },
 ];
 
-export const ECONOMIC_PULSE_MONTH_LABELS = ['Nov', 'Dec', 'Jan', 'Feb', 'Mar', 'Apr'];
+export const ECONOMIC_PULSE_MONTH_LABELS = [
+  "Nov",
+  "Dec",
+  "Jan",
+  "Feb",
+  "Mar",
+  "Apr",
+];
 
 /**
  * Indexed trend lines (Nov = 100) for at-a-glance visual comparison.
@@ -177,35 +227,40 @@ export const ECONOMIC_PULSE_MONTH_LABELS = ['Nov', 'Dec', 'Jan', 'Feb', 'Mar', '
  */
 export const ECONOMIC_PULSE_SERIES: EconomicPulseSeries[] = [
   {
-    label: 'Inflation',
+    label: "Inflation",
     values: [100, 101, 100, 99, 98, 97],
     color: Brand.coral,
   },
   {
-    label: 'Labor',
+    label: "Labor",
     values: [100, 100, 101, 101, 102, 102],
     color: Brand.steel,
   },
   {
-    label: 'GDP',
+    label: "GDP",
     values: [100, 99, 100, 101, 102, 103],
     color: Brand.deepNavy,
   },
   {
-    label: 'Policy Rate',
+    label: "Policy Rate",
     values: [100, 100, 100, 100, 100, 100],
     color: Brand.charcoal,
   },
 ];
 
 export const ECONOMY_KPIS: EconomyKpi[] = [
-  { id: 'inflation', label: 'Inflation', value: '3.2%', context: 'CPI YoY' },
-  { id: 'jobs', label: 'Jobs', value: '+175K', context: 'Nonfarm payrolls' },
-  { id: 'rates', label: 'Rates', value: '5.25%-5.50%', context: 'Fed funds target' },
+  { id: "inflation", label: "Inflation", value: "3.2%", context: "CPI YoY" },
+  { id: "jobs", label: "Jobs", value: "+175K", context: "Nonfarm payrolls" },
+  {
+    id: "rates",
+    label: "Rates",
+    value: "5.25%-5.50%",
+    context: "Fed funds target",
+  },
 ];
 
-export const ECONOMY_DATA_SOURCE = 'Local macro sample dataset (mock)';
-export const ECONOMY_LAST_REFRESH = 'Apr 2026';
+export const ECONOMY_DATA_SOURCE = "Local macro sample dataset (mock)";
+export const ECONOMY_LAST_REFRESH = "Apr 2026";
 
 export function getEconomicSectorById(id: string): EconomicSector | null {
   return US_ECONOMIC_SECTORS.find((sector) => sector.id === id) ?? null;

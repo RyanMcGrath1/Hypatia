@@ -35,6 +35,15 @@ export type EconomyOverviewApiResponse = {
   sections: EconomyOverviewSections;
 };
 
+/** True when `sections[key]` is a success payload (not a per-series FRED error object). */
+export function isEconomySectionPayload(
+  section: unknown,
+): section is EconomySectionPayload {
+  if (typeof section !== 'object' || section === null) return false;
+  if (!('observations' in section)) return false;
+  return Array.isArray((section as EconomySectionPayload).observations);
+}
+
 export const ECONOMY_OVERVIEW_SECTION_KEYS = [
   "consumer_spending",
   "gdp",
