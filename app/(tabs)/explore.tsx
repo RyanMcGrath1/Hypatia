@@ -16,7 +16,12 @@ import { ThemedText } from "@/components/theme/ThemedText";
 import { ThemedView } from "@/components/theme/ThemedView";
 import { Brand, Colors } from "@/constants/theme/Colors";
 import { TAB_SCREEN_CONTENT_INSETS } from "@/constants/navigation/tabScreenContentInsets";
-import { Radius, Spacing, getSemanticColors } from "@/constants/theme/ThemeTokens";
+import {
+  Radius,
+  Spacing,
+  getSemanticColors,
+  getTabScreenCanvasTint,
+} from "@/constants/theme/ThemeTokens";
 import { Fonts } from "@/constants/theme/Typography";
 import { useColorScheme } from "@/hooks/useColorScheme";
 import { useThemeInteractive } from "@/hooks/useThemeInteractive";
@@ -29,7 +34,6 @@ const FEATURED_IMAGE =
 export default function ExploreScreen() {
   const insets = useSafeAreaInsets();
   const colorScheme = useColorScheme() ?? "light";
-  const isDark = colorScheme === "dark";
   const theme = Colors[colorScheme];
   const semantic = getSemanticColors(colorScheme);
   const interactive = useThemeInteractive();
@@ -68,7 +72,7 @@ export default function ExploreScreen() {
     [interactive],
   );
 
-  const canvasTint = isDark ? semantic.screenBackground : "#F4F2FA";
+  const canvasTint = getTabScreenCanvasTint(colorScheme);
   const [searchQuery, setSearchQuery] = useState("");
 
   const goTab = useCallback((href: string) => {

@@ -28,6 +28,7 @@ import {
   Radius,
   Spacing,
   getSemanticColors,
+  getTabScreenCanvasTint,
 } from "@/constants/theme/ThemeTokens";
 import { Fonts } from "@/constants/theme/Typography";
 import { NEWS_TOPIC_OPTIONS, type TopHeadlineItem } from "@/hooks/api/newsApi";
@@ -109,6 +110,7 @@ export default function HomeScreen() {
 
   const colorScheme = useColorScheme() ?? "light";
   const semantic = getSemanticColors(colorScheme);
+  const canvasTint = getTabScreenCanvasTint(colorScheme);
 
   const openArticle = useCallback((url: string, title: string) => {
     router.push({
@@ -398,7 +400,7 @@ export default function HomeScreen() {
   ]);
 
   return (
-    <ThemedView style={styles.screen}>
+    <ThemedView style={[styles.screen, { backgroundColor: canvasTint }]}>
       <FlatList
         data={headlines}
         keyExtractor={(item, index) => headlineKey(item, index)}

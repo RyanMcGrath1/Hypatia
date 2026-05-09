@@ -21,7 +21,12 @@ import { ThemedText } from "@/components/theme/ThemedText";
 import { ThemedView } from "@/components/theme/ThemedView";
 import { Brand, Colors } from "@/constants/theme/Colors";
 import { TAB_SCREEN_CONTENT_INSETS } from "@/constants/navigation/tabScreenContentInsets";
-import { Radius, Spacing, getSemanticColors } from "@/constants/theme/ThemeTokens";
+import {
+  Radius,
+  Spacing,
+  getSemanticColors,
+  getTabScreenCanvasTint,
+} from "@/constants/theme/ThemeTokens";
 import { Fonts } from "@/constants/theme/Typography";
 import { FEC_CANDIDATES_MIN_QUERY_LENGTH } from "@/hooks/api/fecCandidatesApi";
 import { usePoliticianSearch } from "@/hooks/usePoliticianSearch";
@@ -138,7 +143,7 @@ export default function PoliticianScreen() {
   const textColor = useThemeColor({}, "text");
   const iconColor = useThemeColor({}, "icon");
 
-  const canvasTint = colorScheme === "dark" ? semantic.screenBackground : "#F4F2FA";
+  const canvasTint = getTabScreenCanvasTint(colorScheme);
 
   const palette = useMemo(
     () => ({
@@ -481,13 +486,25 @@ export default function PoliticianScreen() {
                       styles.legTag,
                       item.variant === "blue"
                         ? { backgroundColor: interactive.primarySoft }
-                        : { backgroundColor: "#E65100" },
+                        : {
+                            backgroundColor:
+                              colorScheme === "dark"
+                                ? interactive.tertiarySoft
+                                : "#E65100",
+                          },
                     ]}
                   >
                     <ThemedText
                       style={[
                         styles.legTagText,
-                        item.variant === "blue" ? { color: interactive.primary } : { color: Brand.white },
+                        item.variant === "blue"
+                          ? { color: interactive.primary }
+                          : {
+                              color:
+                                colorScheme === "dark"
+                                  ? interactive.tertiary
+                                  : Brand.white,
+                            },
                       ]}
                     >
                       {item.tag}
@@ -552,14 +569,23 @@ export default function PoliticianScreen() {
               </ThemedText>
             </View>
             <View style={[styles.progressTrack, { backgroundColor: palette.sectionBackground }]}>
-              <View style={[styles.progressFill, { width: "42%", backgroundColor: "#0D9488" }]} />
+              <View
+                style={[
+                  styles.progressFill,
+                  { width: "42%", backgroundColor: interactive.secondary },
+                ]}
+              />
             </View>
 
             <ThemedText style={[styles.finSubheading, { color: semantic.mutedText, marginTop: Spacing.md }]}>
               TRADING ACTIVITY ALERT
             </ThemedText>
             <View style={[styles.alertBox, { backgroundColor: palette.sectionBackground }]}>
-              <Ionicons name="warning" size={22} color="#E65100" />
+              <Ionicons
+                name="warning"
+                size={22}
+                color={colorScheme === "dark" ? interactive.tertiary : "#E65100"}
+              />
               <View style={styles.alertTextCol}>
                 <ThemedText type="defaultSemiBold" style={{ color: theme.text }}>
                   Significant Tech Divestment

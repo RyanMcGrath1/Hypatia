@@ -4,6 +4,11 @@ import { Brand, BrandRgb, Colors } from '@/constants/theme/Colors';
 
 export type AppColorScheme = 'light' | 'dark';
 
+/** Shared tab-root fill: lavender-tinted light canvas, primary-hint dark canvas. */
+export function getTabScreenCanvasTint(colorScheme: AppColorScheme): string {
+  return colorScheme === 'dark' ? Brand.darkTabCanvas : '#F4F2FA';
+}
+
 /** Pillar wayfinding — growth green, neutral ink, primary blue */
 export function getPillarColors(colorScheme: AppColorScheme) {
   const isDark = colorScheme === 'dark';

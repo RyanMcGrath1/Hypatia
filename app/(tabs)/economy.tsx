@@ -24,6 +24,7 @@ import {
 import { Colors } from "@/constants/theme/Colors";
 import {
   getSemanticColors,
+  getTabScreenCanvasTint,
   Radius,
   Spacing,
 } from "@/constants/theme/ThemeTokens";
@@ -74,9 +75,15 @@ type SentimentGaugeProps = {
   score: number;
   isDark: boolean;
   mutedTextColor: string;
+  positiveAccentColor: string;
 };
 
-function SentimentGauge({ score, isDark, mutedTextColor }: SentimentGaugeProps) {
+function SentimentGauge({
+  score,
+  isDark,
+  mutedTextColor,
+  positiveAccentColor,
+}: SentimentGaugeProps) {
   const gaugeProgress = useRef(new Animated.Value(0)).current;
   const clampedScore = Math.max(0, Math.min(100, score));
   const size = 190;
@@ -108,7 +115,10 @@ function SentimentGauge({ score, isDark, mutedTextColor }: SentimentGaugeProps) 
           <Defs>
             <LinearGradient id="sentimentGaugeGradient" x1="0%" y1="0%" x2="100%" y2="0%">
               <Stop offset="0%" stopColor="#4A6CF7" />
-              <Stop offset="100%" stopColor="#2e7d32" />
+              <Stop
+                offset="100%"
+                stopColor={isDark ? positiveAccentColor : "#2e7d32"}
+              />
             </LinearGradient>
           </Defs>
           <Circle
@@ -142,8 +152,10 @@ function SentimentGauge({ score, isDark, mutedTextColor }: SentimentGaugeProps) 
       <View style={styles.gaugeCenter}>
         <ThemedText style={styles.gaugeScore}>{Math.round(clampedScore)}</ThemedText>
         <View style={styles.gaugeStatusRow}>
-          <ThemedText style={styles.gaugeStatus}>OPTIMAL</ThemedText>
-          <Feather name="trending-up" size={12} color="#2e7d32" />
+          <ThemedText style={[styles.gaugeStatus, { color: positiveAccentColor }]}>
+            OPTIMAL
+          </ThemedText>
+          <Feather name="trending-up" size={12} color={positiveAccentColor} />
         </View>
         <ThemedText style={[styles.gaugeSubtleLabel, { color: mutedTextColor }]}>
           ANNUAL AVG
@@ -219,6 +231,8 @@ export default function EconomyDashboardScreen() {
   const isDark = colorScheme === "dark";
   const theme = Colors[colorScheme];
   const semantic = getSemanticColors(colorScheme);
+  const canvasTint = getTabScreenCanvasTint(colorScheme);
+  const gaugePositiveColor = isDark ? "#4ADE80" : "#2e7d32";
 
   const [economyOverview, setEconomyOverview] =
     useState<EconomyOverviewApiResponse | null>(null);
@@ -320,7 +334,7 @@ export default function EconomyDashboardScreen() {
   }, [economyOverview, overviewAsOf]);
 
   return (
-    <ThemedView style={styles.screen}>
+    <ThemedView style={[styles.screen, { backgroundColor: canvasTint }]}>
       <ScrollView
         contentContainerStyle={styles.scrollContent}
         showsVerticalScrollIndicator={false}
@@ -341,12 +355,14 @@ export default function EconomyDashboardScreen() {
               backgroundColor: semantic.cardBackground,
               borderColor: semantic.cardBorder,
             },
+            semantic.cardShadow,
           ]}
         >
           <SentimentGauge
             score={sentimentScore}
             isDark={isDark}
             mutedTextColor={semantic.mutedText}
+            positiveAccentColor={gaugePositiveColor}
           />
 
           <ThemedText type="defaultSemiBold" style={styles.heroTitle}>
@@ -369,10 +385,7 @@ export default function EconomyDashboardScreen() {
                 TREND
               </ThemedText>
               <ThemedText
-                style={[
-                  styles.heroStatValue,
-                  { color: isDark ? "#4ADE80" : "#15803D" },
-                ]}
+                style={[styles.heroStatValue, { color: gaugePositiveColor }]}
               >
                 {sentimentLabel(sentimentScore)}
               </ThemedText>
@@ -452,6 +465,7 @@ export default function EconomyDashboardScreen() {
                     borderColor: semantic.cardBorder,
                     opacity: pressed ? 0.92 : 1,
                   },
+                  semantic.cardShadow,
                 ]}
                 onPress={() =>
                   router.push({
@@ -539,6 +553,7 @@ export default function EconomyDashboardScreen() {
               backgroundColor: semantic.cardBackground,
               borderColor: semantic.cardBorder,
             },
+            semantic.cardShadow,
           ]}
         >
           <View style={styles.infoHeader}>
@@ -569,6 +584,7 @@ export default function EconomyDashboardScreen() {
               backgroundColor: semantic.cardBackground,
               borderColor: semantic.cardBorder,
             },
+            semantic.cardShadow,
           ]}
         >
           <View style={styles.infoHeader}>
@@ -652,7 +668,6 @@ const styles = StyleSheet.create({
     fontFamily: Fonts.bodyMedium,
     fontSize: 12,
     letterSpacing: 1.2,
-    color: "#2e7d32",
   },
   gaugeSubtleLabel: {
     marginTop: 2,

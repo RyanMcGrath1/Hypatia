@@ -31,6 +31,11 @@ export const Palette = {
 
   /** Dark — YAML `background` / `surface` (level 0 canvas). */
   darkCanvas: '#11131b',
+  /**
+   * Tab screen roots — same family as `darkCanvas` with a whisper of primary so
+   * light `#F4F2FA` vs `canvas` has a dark analogue across News/Economy/Politician/Explore.
+   */
+  darkTabCanvas: '#121420',
   /** YAML `surface-container-low` — subtle fills below card tier. */
   darkSurfaceContainerLow: '#1a1b23',
   /** YAML `surface-container` — level 1 cards. */
