@@ -4,7 +4,6 @@ import {
   ActivityIndicator,
   Modal,
   Pressable,
-  ScrollView,
   StyleSheet,
   View,
 } from "react-native";
@@ -85,6 +84,69 @@ function payrollRangeOptionA11y(p: PayrollChartRangePreset): string {
     return "Prior full calendar year";
   }
   return `Last ${p.label}`;
+}
+
+function clampByte(n: number): number {
+  return Math.max(0, Math.min(255, Math.round(n)));
+}
+
+function parseHexRgb(hex: string): { r: number; g: number; b: number } | null {
+  const s = hex.trim();
+  const m6 = /^#?([a-f\d]{2})([a-f\d]{2})([a-f\d]{2})$/i.exec(s);
+  if (m6) {
+    return {
+      r: parseInt(m6[1], 16),
+      g: parseInt(m6[2], 16),
+      b: parseInt(m6[3], 16),
+    };
+  }
+  const m3 = /^#?([a-f\d])([a-f\d])([a-f\d])$/i.exec(s);
+  if (m3) {
+    return {
+      r: parseInt(m3[1] + m3[1], 16),
+      g: parseInt(m3[2] + m3[2], 16),
+      b: parseInt(m3[3] + m3[3], 16),
+    };
+  }
+  return null;
+}
+
+function rgbToHex(r: number, g: number, b: number): string {
+  return `#${[r, g, b]
+    .map((c) => clampByte(c).toString(16).padStart(2, "0"))
+    .join("")}`;
+}
+
+/** Slightly different shade for selected MoM bars (same hue as gain/loss base). */
+function shadeForSelectedBar(baseHex: string, scheme: "light" | "dark"): string {
+  const rgb = parseHexRgb(baseHex);
+  if (!rgb) {
+    return baseHex;
+  }
+  if (scheme === "dark") {
+    const t = 0.22;
+    return rgbToHex(
+      rgb.r + (255 - rgb.r) * t,
+      rgb.g + (255 - rgb.g) * t,
+      rgb.b + (255 - rgb.b) * t,
+    );
+  }
+  const t = 0.2;
+  return rgbToHex(rgb.r * (1 - t), rgb.g * (1 - t), rgb.b * (1 - t));
+}
+
+function payrollMomBarFillColor(
+  isPositive: boolean,
+  isSelected: boolean,
+  scheme: "light" | "dark",
+  positiveBase: string,
+  negativeBase: string,
+): string {
+  const base = isPositive ? positiveBase : negativeBase;
+  if (!isSelected) {
+    return base;
+  }
+  return shadeForSelectedBar(base, scheme);
 }
 
 export function LaborMarketDetailView() {
@@ -407,11 +469,7 @@ export function LaborMarketDetailView() {
           ) : payrollChart?.bars?.length ? (
             <View style={[styles.chartNativeWrap, { borderColor: semantic.hairline }]}>
               <View style={[styles.zeroLine, { backgroundColor: semantic.hairline }]} />
-              <ScrollView
-                horizontal
-                showsHorizontalScrollIndicator={false}
-                contentContainerStyle={styles.barsRow}
-              >
+              <View style={styles.barsRow}>
                 {payrollChart.bars.map((bar, i) => {
                   const delta = bar.momVsPriorThousands;
                   const isSelectable = delta != null;
@@ -424,6 +482,13 @@ export function LaborMarketDetailView() {
                         ? 54
                         : Math.max(10, Math.round((magnitude / payrollChartMaxAbsDelta) * 54));
                   const isPositive = (delta ?? 0) >= 0;
+                  const barFill = payrollMomBarFillColor(
+                    isPositive,
+                    isSelected,
+                    colorScheme,
+                    green,
+                    interactive.danger,
+                  );
                   return (
                     <Pressable
                       key={`${bar.observationDate}-${i}`}
@@ -442,7 +507,7 @@ export function LaborMarketDetailView() {
                               styles.barFillTop,
                               {
                                 height: scaledHeight,
-                                backgroundColor: isSelected ? interactive.primary : green,
+                                backgroundColor: barFill,
                               },
                             ]}
                           />
@@ -456,21 +521,24 @@ export function LaborMarketDetailView() {
                               styles.barFillBottom,
                               {
                                 height: scaledHeight,
-                                backgroundColor: isSelected
-                                  ? interactive.primary
-                                  : interactive.danger,
+                                backgroundColor: barFill,
                               },
                             ]}
                           />
                         ) : null}
                       </View>
-                      <ThemedText style={[styles.monthLabel, { color: semantic.mutedText }]}>
+                      <ThemedText
+                        style={[styles.monthLabel, { color: semantic.mutedText }]}
+                        numberOfLines={1}
+                        adjustsFontSizeToFit
+                        minimumFontScale={0.55}
+                      >
                         {bar.label}
                       </ThemedText>
                     </Pressable>
                   );
                 })}
-              </ScrollView>
+              </View>
             </View>
           ) : (
             <ThemedText
@@ -870,14 +938,18 @@ const styles = StyleSheet.create({
     zIndex: 1,
   },
   barsRow: {
+    flexDirection: "row",
+    alignItems: "flex-end",
+    width: "100%",
     paddingHorizontal: 8,
     paddingTop: 8,
     paddingBottom: 10,
-    gap: 6,
+    gap: 3,
     minHeight: 170,
   },
   barCol: {
-    width: 24,
+    flex: 1,
+    minWidth: 0,
     alignItems: "center",
   },
   barHalfTop: {
@@ -909,6 +981,8 @@ const styles = StyleSheet.create({
     fontSize: 10,
     fontFamily: Fonts.bodySemiBold,
     marginTop: 8,
+    width: "100%",
+    textAlign: "center",
   },
   inlineMetricRow: {
     flexDirection: "row",
