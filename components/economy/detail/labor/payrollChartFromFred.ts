@@ -42,6 +42,14 @@ export type PayrollChartFromFred = {
   periodLabel: string;
   /** Headline month-over-month change (e.g. "+216k"); "—" if not computable. */
   heroMetric: string;
+  /**
+   * Sum of monthly payroll changes (thousands) over every bar that has data — net jobs vs
+   * the month before the first counted print through the last counted print (≈ level delta
+   * across that span when months are contiguous).
+   */
+  periodNetThousands: number | null;
+  /** Set for Jan–Dec skeleton charts (`ytd` / `py`); null for trailing windows. */
+  calendarContextYear: number | null;
 };
 
 function parseObservationNumber(value: string): number | null {
@@ -260,7 +268,7 @@ export function buildPayrollYearToDateChartWithSkeleton(
   }
   const maxAbsDelta = deltasForScale.length > 0 ? Math.max(...deltasForScale) : 0;
 
-  const bars: PayrollBarPoint[] = slots.map((slot, i) => {
+  const bars: PayrollBarPoint[] = slots.map((slot) => {
     const hasObservation = slot.value != null;
     const val = slot.value;
     const momVsPrior: number | null = hasObservation && val != null ? val : null;
@@ -279,12 +287,27 @@ export function buildPayrollYearToDateChartWithSkeleton(
     };
   });
 
+  let periodNetThousands: number | null = null;
+  let netSum = 0;
+  let netCount = 0;
+  for (const b of bars) {
+    if (b.hasObservation && b.momVsPriorThousands != null) {
+      netSum += b.momVsPriorThousands;
+      netCount += 1;
+    }
+  }
+  if (netCount > 0) {
+    periodNetThousands = netSum;
+  }
+
   return {
     bars,
     monthOverMonthThousands,
     latestObservationDate,
     periodLabel,
     heroMetric,
+    periodNetThousands,
+    calendarContextYear: calendarYear,
   };
 }
 
@@ -402,11 +425,21 @@ export function buildPayrollChartFromFredObservations(
     };
   });
 
+  let periodNetThousands: number | null = null;
+  if (bars.length > 0) {
+    periodNetThousands = bars.reduce(
+      (s, b) => s + (b.momVsPriorThousands ?? 0),
+      0,
+    );
+  }
+
   return {
     bars,
     monthOverMonthThousands,
     latestObservationDate,
     periodLabel,
     heroMetric,
+    periodNetThousands,
+    calendarContextYear: null,
   };
 }

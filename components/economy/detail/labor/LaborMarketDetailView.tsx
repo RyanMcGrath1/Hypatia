@@ -46,6 +46,53 @@ import { useThemeInteractive } from "@/hooks/useThemeInteractive";
 /** Latest N PAYEMS prints (`sort_order=desc` on FRED); enough for multi-year UI ranges. */
 const PAYEMS_FETCH_LIMIT = 72;
 
+/** Diverging plot geometry — must match `barHalfTop` / `barHalfBottom` + inter-half margins. */
+const PAYROLL_DIVERGE_HALF_PX = 68;
+const PAYROLL_DIVERGE_GUTTER_PX = 2;
+const PAYROLL_Y_AXIS_TRACK_H =
+  PAYROLL_DIVERGE_HALF_PX + PAYROLL_DIVERGE_GUTTER_PX + PAYROLL_DIVERGE_HALF_PX;
+const PAYROLL_BARS_ROW_PAD_TOP = 8;
+/** Horizontal guides: 50% of scale within each half (px from `chartPlotMain` top). */
+const PAYROLL_GUIDE_UPPER_Y =
+  PAYROLL_BARS_ROW_PAD_TOP + PAYROLL_DIVERGE_HALF_PX / 2;
+const PAYROLL_GUIDE_LOWER_Y =
+  PAYROLL_BARS_ROW_PAD_TOP +
+  PAYROLL_DIVERGE_HALF_PX +
+  PAYROLL_DIVERGE_GUTTER_PX +
+  PAYROLL_DIVERGE_HALF_PX / 2;
+const PAYROLL_ZERO_LINE_Y = PAYROLL_BARS_ROW_PAD_TOP + PAYROLL_DIVERGE_HALF_PX;
+/** Top of negative half plot area (after gutter), for band fill alignment. */
+const PAYROLL_NEG_BAND_TOP =
+  PAYROLL_BARS_ROW_PAD_TOP +
+  PAYROLL_DIVERGE_HALF_PX +
+  PAYROLL_DIVERGE_GUTTER_PX;
+
+/**
+ * “Nice” symmetric Y max (thousands) so axis labels are round and headroom is consistent.
+ */
+function niceSymmetricScaleThousands(maxAbs: number): number {
+  if (!Number.isFinite(maxAbs) || maxAbs <= 0) {
+    return 50;
+  }
+  const exp = Math.floor(Math.log10(maxAbs));
+  const pow = 10 ** exp;
+  const f = maxAbs / pow;
+  const candidates = [1, 2, 2.5, 5, 10] as const;
+  const nf = candidates.find((c) => c + 1e-9 >= f) ?? 10;
+  return nf * pow;
+}
+
+type PayrollAxisTick = {
+  key: string;
+  label: string;
+  top?: number;
+  bottom?: number;
+  /** Stronger color for ±scale and 0 */
+  emphasis?: boolean;
+};
+
+const PAYROLL_Y_TICK_LAB_DY = 7;
+
 /** Matches payroll chart banner style (`PERIOD MONTH YEAR`). */
 function payrollPeriodBannerFromIso(iso: string): string {
   const d = new Date(`${iso.trim()}T12:00:00`);
@@ -119,7 +166,10 @@ function rgbToHex(r: number, g: number, b: number): string {
 }
 
 /** Slightly different shade for selected MoM bars (same hue as gain/loss base). */
-function shadeForSelectedBar(baseHex: string, scheme: "light" | "dark"): string {
+function shadeForSelectedBar(
+  baseHex: string,
+  scheme: "light" | "dark",
+): string {
   const rgb = parseHexRgb(baseHex);
   if (!rgb) {
     return baseHex;
@@ -153,6 +203,7 @@ function payrollMomBarFillColor(
 export function LaborMarketDetailView() {
   const insets = useSafeAreaInsets();
   const colorScheme = useColorScheme() ?? "light";
+  const isDark = colorScheme === "dark";
   const semantic = getSemanticColors(colorScheme);
   const theme = Colors[colorScheme];
   const interactive = useThemeInteractive();
@@ -272,6 +323,37 @@ export function LaborMarketDetailView() {
   const activeRangePreset =
     PAYROLL_CHART_RANGE_PRESETS.find((p) => p.key === chartRangeKey) ??
     PAYROLL_CHART_RANGE_PRESETS.find((p) => p.key === "1y")!;
+
+  /** Sum of monthly payroll changes over the chart window — shown as an on-chart aggregate. */
+  const payrollPeriodNetCallout = useMemo(() => {
+    if (payrollChart?.periodNetThousands == null) {
+      return null;
+    }
+    const net = payrollChart.periodNetThousands;
+    let scopeShort: string;
+    if (chartRangeKey === "ytd" && payrollChart.calendarContextYear != null) {
+      scopeShort = `${payrollChart.calendarContextYear} YTD`;
+    } else if (chartRangeKey === "py" && payrollChart.calendarContextYear != null) {
+      scopeShort = `${payrollChart.calendarContextYear}`;
+    } else {
+      scopeShort = `last ${activeRangePreset.label}`;
+    }
+    const valueColor =
+      net > 0 ? green : net < 0 ? interactive.danger : semantic.mutedText;
+    return {
+      scopeShort,
+      valueLabel: formatPayemsMomDeltaShort(net),
+      valueColor,
+    };
+  }, [
+    payrollChart,
+    chartRangeKey,
+    activeRangePreset.label,
+    green,
+    interactive.danger,
+    semantic.mutedText,
+  ]);
+
   const selectedBar =
     payrollChart != null && selectedBarIndex != null
       ? payrollChart.bars[selectedBarIndex]
@@ -369,14 +451,78 @@ export function LaborMarketDetailView() {
     interactive.danger,
   ]);
 
-  const payrollChartMaxAbsDelta = useMemo(() => {
+  /** Nice symmetric scale, contextual ticks, and guide positions for the diverging chart. */
+  const payrollAxis = useMemo(() => {
     if (!payrollChart?.bars?.length) {
-      return 0;
+      return {
+        scaleMax: 0,
+        rawMax: 0,
+        ticks: [
+          { key: "z", label: "0", top: 62, emphasis: true },
+        ] as PayrollAxisTick[],
+        midGuides: [] as { top: number }[],
+      };
     }
     const values = payrollChart.bars
       .map((b) => b.momVsPriorThousands)
       .filter((v): v is number => typeof v === "number");
-    return values.length > 0 ? Math.max(...values.map((v) => Math.abs(v))) : 0;
+    const rawMax =
+      values.length > 0 ? Math.max(...values.map((v) => Math.abs(v))) : 0;
+    if (rawMax <= 0) {
+      return {
+        scaleMax: 0,
+        rawMax: 0,
+        ticks: [{ key: "z", label: "0", top: 62, emphasis: true }],
+        midGuides: [],
+      };
+    }
+    const scaleMax = niceSymmetricScaleThousands(rawMax);
+    const half = scaleMax / 2;
+    const topLabel = formatPayemsMomDeltaShort(scaleMax);
+    const halfPosLabel = formatPayemsMomDeltaShort(half);
+    const halfNegLabel = formatPayemsMomDeltaShort(-half);
+    const bottomLabel = formatPayemsMomDeltaShort(-scaleMax);
+    const halfLabelsDistinct =
+      halfPosLabel !== topLabel && halfNegLabel !== bottomLabel;
+
+    const ticks: PayrollAxisTick[] = [
+      { key: "max", label: topLabel, top: 0, emphasis: true },
+    ];
+    if (halfLabelsDistinct) {
+      ticks.push({
+        key: "half+",
+        label: halfPosLabel,
+        top: PAYROLL_DIVERGE_HALF_PX / 2 - PAYROLL_Y_TICK_LAB_DY,
+      });
+    }
+    ticks.push({
+      key: "zero",
+      label: "0",
+      top:
+        PAYROLL_DIVERGE_HALF_PX +
+        PAYROLL_DIVERGE_GUTTER_PX / 2 -
+        PAYROLL_Y_TICK_LAB_DY,
+      emphasis: true,
+    });
+    if (halfLabelsDistinct) {
+      ticks.push({
+        key: "half-",
+        label: halfNegLabel,
+        top:
+          PAYROLL_DIVERGE_HALF_PX +
+          PAYROLL_DIVERGE_GUTTER_PX +
+          PAYROLL_DIVERGE_HALF_PX / 2 -
+          PAYROLL_Y_TICK_LAB_DY,
+      });
+    }
+    ticks.push({ key: "min", label: bottomLabel, bottom: 0, emphasis: true });
+
+    const midGuides =
+      halfLabelsDistinct && scaleMax > 0
+        ? [{ top: PAYROLL_GUIDE_UPPER_Y }, { top: PAYROLL_GUIDE_LOWER_Y }]
+        : [];
+
+    return { scaleMax, rawMax, ticks, midGuides };
   }, [payrollChart]);
 
   return (
@@ -392,49 +538,142 @@ export function LaborMarketDetailView() {
             {payrollLoading ? "—" : payrollHeroDisplay.periodLabel}
           </ThemedText>
         </View>
-        <View style={styles.heroMetricRow}>
-          <ThemedText
-            style={[styles.heroMetric, { color: theme.text }]}
-            adjustsFontSizeToFit
-            minimumFontScale={0.7}
-            numberOfLines={1}
-          >
-            {payrollLoading ? "…" : payrollHeroDisplay.heroMetric}
-          </ThemedText>
-          {!payrollLoading && payrollObservationsRaw.length > 0 ? (
-            <FilterIconButton
-              accessibilityLabel={`Chart time range, ${activeRangePreset.label}. Opens options.`}
-              onPress={() => setRangeFilterOpen(true)}
-              style={styles.heroMetricFilter}
-            />
-          ) : null}
-        </View>
         {!payrollLoading && payrollChart != null ? (
-          <View style={styles.consensusRow}>
-            <Feather
-              name={payrollHeroDisplay.trend.icon}
-              size={16}
-              color={payrollHeroDisplay.trend.color}
-              style={{ flexShrink: 0 }}
-            />
-            <ThemedText
-              style={[
-                styles.consensusText,
-                { color: payrollHeroDisplay.trend.color },
-              ]}
-            >
-              {payrollHeroDisplay.trend.label}
-            </ThemedText>
-          </View>
-        ) : payrollLoading ? (
-          <View style={styles.consensusRow}>
-            <ThemedText
-              style={[styles.consensusText, { color: semantic.mutedText }]}
-            >
-              Loading FRED data…
-            </ThemedText>
-          </View>
-        ) : null}
+          <>
+            <View style={styles.heroMetricRow}>
+              <ThemedText
+                style={[styles.heroMetric, { color: theme.text }]}
+                adjustsFontSizeToFit
+                minimumFontScale={0.7}
+                numberOfLines={1}
+              >
+                {payrollHeroDisplay.heroMetric}
+              </ThemedText>
+              {payrollPeriodNetCallout != null ? (
+                <View
+                  style={[
+                    styles.payrollNetChip,
+                    {
+                      borderColor: semantic.hairline,
+                      backgroundColor: isDark
+                        ? semantic.cardSubtleBackground
+                        : semantic.cardBackground,
+                    },
+                    semantic.cardShadow,
+                  ]}
+                  accessibilityLabel={`Net payroll change for ${payrollPeriodNetCallout.scopeShort}, ${payrollPeriodNetCallout.valueLabel} thousands of jobs versus the start of that span`}
+                >
+                  <View
+                    style={[
+                      styles.payrollNetChipAccent,
+                      { backgroundColor: payrollPeriodNetCallout.valueColor },
+                    ]}
+                  />
+                  <View style={styles.payrollNetChipBody}>
+                    <ThemedText
+                      style={[
+                        styles.payrollNetChipLabel,
+                        { color: semantic.mutedText },
+                      ]}
+                      numberOfLines={1}
+                    >
+                      Net change
+                    </ThemedText>
+                    <ThemedText
+                      style={[
+                        styles.payrollNetChipPeriod,
+                        { color: semantic.mutedText },
+                      ]}
+                      numberOfLines={1}
+                    >
+                      {payrollPeriodNetCallout.scopeShort}
+                    </ThemedText>
+                    <ThemedText
+                      style={[
+                        styles.payrollNetChipValue,
+                        { color: payrollPeriodNetCallout.valueColor },
+                      ]}
+                      numberOfLines={1}
+                      adjustsFontSizeToFit
+                      minimumFontScale={0.82}
+                    >
+                      {payrollPeriodNetCallout.valueLabel}
+                    </ThemedText>
+                  </View>
+                </View>
+              ) : null}
+              {payrollObservationsRaw.length > 0 ? (
+                <FilterIconButton
+                  accessibilityLabel={`Chart time range, ${activeRangePreset.label}. Opens options.`}
+                  onPress={() => setRangeFilterOpen(true)}
+                  style={styles.heroMetricFilter}
+                />
+              ) : null}
+            </View>
+            <View style={styles.consensusRow}>
+              <Feather
+                name={payrollHeroDisplay.trend.icon}
+                size={16}
+                color={payrollHeroDisplay.trend.color}
+                style={{ flexShrink: 0 }}
+              />
+              <ThemedText
+                style={[
+                  styles.consensusText,
+                  { color: payrollHeroDisplay.trend.color },
+                ]}
+              >
+                {payrollHeroDisplay.trend.label}
+              </ThemedText>
+            </View>
+          </>
+        ) : (
+          <>
+            <View style={styles.heroMetricRow}>
+              <ThemedText
+                style={[styles.heroMetric, { color: theme.text }]}
+                adjustsFontSizeToFit
+                minimumFontScale={0.7}
+                numberOfLines={1}
+              >
+                {payrollLoading ? "…" : payrollHeroDisplay.heroMetric}
+              </ThemedText>
+              {!payrollLoading && payrollObservationsRaw.length > 0 ? (
+                <FilterIconButton
+                  accessibilityLabel={`Chart time range, ${activeRangePreset.label}. Opens options.`}
+                  onPress={() => setRangeFilterOpen(true)}
+                  style={styles.heroMetricFilter}
+                />
+              ) : null}
+            </View>
+            {payrollLoading ? (
+              <View style={styles.consensusRow}>
+                <ThemedText
+                  style={[styles.consensusText, { color: semantic.mutedText }]}
+                >
+                  Loading FRED data…
+                </ThemedText>
+              </View>
+            ) : (
+              <View style={styles.consensusRow}>
+                <Feather
+                  name={payrollHeroDisplay.trend.icon}
+                  size={16}
+                  color={payrollHeroDisplay.trend.color}
+                  style={{ flexShrink: 0 }}
+                />
+                <ThemedText
+                  style={[
+                    styles.consensusText,
+                    { color: payrollHeroDisplay.trend.color },
+                  ]}
+                >
+                  {payrollHeroDisplay.trend.label}
+                </ThemedText>
+              </View>
+            )}
+          </>
+        )}
         {payrollError != null ? (
           <ThemedText
             style={[styles.payrollError, { color: interactive.danger }]}
@@ -448,77 +687,161 @@ export function LaborMarketDetailView() {
               <ActivityIndicator color={interactive.primary} />
             </View>
           ) : payrollChart?.bars?.length ? (
-            <View style={[styles.chartNativeWrap, { borderColor: semantic.hairline }]}>
-              <View style={[styles.zeroLine, { backgroundColor: semantic.hairline }]} />
-              <View style={styles.barsRow}>
-                {payrollChart.bars.map((bar, i) => {
-                  const delta = bar.momVsPriorThousands;
-                  const isSelectable = delta != null;
-                  const isSelected = selectedBarIndex === i;
-                  const magnitude = delta == null ? 0 : Math.abs(delta);
-                  const scaledHeight =
-                    magnitude === 0
-                      ? 0
-                      : payrollChartMaxAbsDelta === 0
-                        ? 54
-                        : Math.max(10, Math.round((magnitude / payrollChartMaxAbsDelta) * 54));
-                  const isPositive = (delta ?? 0) >= 0;
-                  const barFill = payrollMomBarFillColor(
-                    isPositive,
-                    isSelected,
-                    colorScheme,
-                    green,
-                    interactive.danger,
-                  );
-                  return (
-                    <Pressable
-                      key={`${bar.observationDate}-${i}`}
-                      disabled={!isSelectable}
-                      onPress={() => setSelectedBarIndex(i)}
-                      style={({ pressed }) => [
-                        styles.barCol,
-                        { opacity: pressed && isSelectable ? 0.86 : 1 },
-                      ]}
-                    >
-                      <View style={styles.barHalfTop}>
-                        {isSelectable && isPositive ? (
-                          <View
-                            style={[
-                              styles.barFill,
-                              styles.barFillTop,
-                              {
-                                height: scaledHeight,
-                                backgroundColor: barFill,
-                              },
-                            ]}
-                          />
-                        ) : null}
-                      </View>
-                      <View style={styles.barHalfBottom}>
-                        {isSelectable && !isPositive ? (
-                          <View
-                            style={[
-                              styles.barFill,
-                              styles.barFillBottom,
-                              {
-                                height: scaledHeight,
-                                backgroundColor: barFill,
-                              },
-                            ]}
-                          />
-                        ) : null}
-                      </View>
+            <View
+              style={[
+                styles.chartNativeWrap,
+                { borderColor: semantic.hairline },
+              ]}
+            >
+              <View style={styles.chartPlotRow}>
+                <View
+                  style={[
+                    styles.yAxisColumn,
+                    { borderRightColor: semantic.hairline },
+                  ]}
+                >
+                  <View style={styles.yAxisTrack}>
+                    {payrollAxis.ticks.map((t) => (
                       <ThemedText
-                        style={[styles.monthLabel, { color: semantic.mutedText }]}
+                        key={t.key}
+                        style={[
+                          styles.yAxisTick,
+                          t.emphasis ? styles.yAxisTickEmphasis : null,
+                          t.bottom != null
+                            ? { bottom: t.bottom }
+                            : { top: t.top ?? 0 },
+                          {
+                            color: t.emphasis ? theme.text : semantic.mutedText,
+                          },
+                        ]}
                         numberOfLines={1}
-                        adjustsFontSizeToFit
-                        minimumFontScale={0.55}
                       >
-                        {bar.label}
+                        {t.label}
                       </ThemedText>
-                    </Pressable>
-                  );
-                })}
+                    ))}
+                  </View>
+                </View>
+                <View style={styles.chartPlotMain}>
+                  <View
+                    pointerEvents="none"
+                    style={[
+                      styles.payrollPlotBand,
+                      {
+                        top: PAYROLL_BARS_ROW_PAD_TOP,
+                        height: PAYROLL_DIVERGE_HALF_PX,
+                        backgroundColor: interactive.primarySoft,
+                        opacity: isDark ? 0.16 : 0.28,
+                      },
+                    ]}
+                  />
+                  <View
+                    pointerEvents="none"
+                    style={[
+                      styles.payrollPlotBand,
+                      {
+                        top: PAYROLL_NEG_BAND_TOP,
+                        height: PAYROLL_DIVERGE_HALF_PX,
+                        backgroundColor: interactive.dangerSoft,
+                        opacity: isDark ? 0.12 : 0.2,
+                      },
+                    ]}
+                  />
+                  {payrollAxis.midGuides.map((g, idx) => (
+                    <View
+                      key={`guide-${idx}`}
+                      pointerEvents="none"
+                      style={[
+                        styles.payrollGridLine,
+                        {
+                          top: g.top,
+                          backgroundColor: semantic.hairline,
+                        },
+                      ]}
+                    />
+                  ))}
+                  <View
+                    style={[
+                      styles.zeroLine,
+                      {
+                        top: PAYROLL_ZERO_LINE_Y,
+                        backgroundColor: semantic.mutedText,
+                      },
+                    ]}
+                  />
+                  <View style={styles.barsRow}>
+                    {payrollChart.bars.map((bar, i) => {
+                      const delta = bar.momVsPriorThousands;
+                      const isSelectable = delta != null;
+                      const isSelected = selectedBarIndex === i;
+                      const magnitude = delta == null ? 0 : Math.abs(delta);
+                      const scaledHeight =
+                        magnitude === 0
+                          ? 0
+                          : payrollAxis.scaleMax === 0
+                            ? 54
+                            : Math.max(
+                                12,
+                                Math.round(
+                                  (magnitude / payrollAxis.scaleMax) * 54,
+                                ),
+                              );
+                      const isPositive = (delta ?? 0) >= 0;
+                      const barFill = payrollMomBarFillColor(
+                        isPositive,
+                        isSelected,
+                        colorScheme,
+                        green,
+                        interactive.danger,
+                      );
+                      return (
+                        <Pressable
+                          key={`${bar.observationDate}-${i}`}
+                          disabled={!isSelectable}
+                          onPress={() => setSelectedBarIndex(i)}
+                          style={({ pressed }) => [
+                            styles.barCol,
+                            { opacity: pressed && isSelectable ? 0.86 : 1 },
+                          ]}
+                        >
+                          <View style={styles.barHalfTop}>
+                            {isSelectable && isPositive ? (
+                              <View
+                                style={[
+                                  styles.barFill,
+                                  {
+                                    height: scaledHeight,
+                                    backgroundColor: barFill,
+                                  },
+                                ]}
+                              />
+                            ) : null}
+                          </View>
+                          <View style={styles.barHalfBottom}>
+                            {isSelectable && !isPositive ? (
+                              <View
+                                style={[
+                                  styles.barFill,
+                                  {
+                                    height: scaledHeight,
+                                    backgroundColor: barFill,
+                                  },
+                                ]}
+                              />
+                            ) : null}
+                          </View>
+                          <ThemedText
+                            style={[styles.monthLabel, { color: theme.text }]}
+                            numberOfLines={1}
+                            adjustsFontSizeToFit
+                            minimumFontScale={0.6}
+                          >
+                            {bar.label}
+                          </ThemedText>
+                        </Pressable>
+                      );
+                    })}
+                  </View>
+                </View>
               </View>
             </View>
           ) : (
@@ -530,6 +853,19 @@ export function LaborMarketDetailView() {
                 : "No payroll data in this time range."}
             </ThemedText>
           )}
+          {!payrollLoading && payrollChart?.bars?.length ? (
+            <ThemedText
+              style={[
+                styles.payrollChartCaption,
+                { color: semantic.mutedText },
+              ]}
+            >
+              Month-over-month change in payroll employment (thousands of jobs).
+              Scale is symmetric about zero. Net payroll change is the sum of those
+              monthly moves over the selected window (net jobs gained or lost in that
+              span).
+            </ThemedText>
+          ) : null}
         </View>
         <Modal
           visible={rangeFilterOpen}
@@ -899,11 +1235,109 @@ const styles = StyleSheet.create({
     minHeight: 170,
     position: "relative",
   },
+  chartPlotRow: {
+    flexDirection: "row",
+    alignItems: "stretch",
+  },
+  /** Width fits stacked MoM ticks (nice scale, ±half when shown). */
+  yAxisColumn: {
+    width: 64,
+    flexShrink: 0,
+    paddingLeft: 6,
+    paddingRight: 6,
+    borderRightWidth: StyleSheet.hairlineWidth,
+  },
+  /** Aligns with bars: two halves + gutter (see PAYROLL_Y_AXIS_TRACK_H). */
+  yAxisTrack: {
+    marginTop: PAYROLL_BARS_ROW_PAD_TOP,
+    height: PAYROLL_Y_AXIS_TRACK_H,
+    position: "relative",
+  },
+  yAxisTick: {
+    position: "absolute",
+    left: 0,
+    right: 0,
+    fontSize: 10,
+    fontFamily: Fonts.bodySemiBold,
+    lineHeight: 14,
+    textAlign: "right",
+  },
+  yAxisTickEmphasis: {
+    fontSize: 11,
+    lineHeight: 14,
+    fontFamily: Fonts.bodyBold,
+  },
+  chartPlotMain: {
+    flex: 1,
+    minWidth: 0,
+    position: "relative",
+  },
+  payrollNetChip: {
+    flexDirection: "row",
+    alignItems: "stretch",
+    flexShrink: 0,
+    flexGrow: 0,
+    maxWidth: 148,
+    minWidth: 104,
+    borderRadius: Radius.md,
+    borderWidth: StyleSheet.hairlineWidth,
+    overflow: "hidden",
+    alignSelf: "center",
+  },
+  payrollNetChipAccent: {
+    width: 3,
+    opacity: 0.92,
+  },
+  payrollNetChipBody: {
+    flex: 1,
+    minWidth: 0,
+    justifyContent: "center",
+    paddingVertical: 8,
+    paddingLeft: 10,
+    paddingRight: 11,
+    alignItems: "flex-end",
+  },
+  payrollNetChipLabel: {
+    fontSize: 9,
+    fontFamily: Fonts.bodyBold,
+    letterSpacing: 0.65,
+    textTransform: "uppercase",
+    marginBottom: 2,
+    textAlign: "right",
+  },
+  payrollNetChipPeriod: {
+    fontSize: 11,
+    fontFamily: Fonts.bodyMedium,
+    lineHeight: 14,
+    marginBottom: 5,
+    textAlign: "right",
+    opacity: 0.92,
+  },
+  payrollNetChipValue: {
+    fontSize: 19,
+    fontFamily: Fonts.displayBold,
+    letterSpacing: -0.45,
+    textAlign: "right",
+    width: "100%",
+  },
+  payrollPlotBand: {
+    position: "absolute",
+    left: 0,
+    right: 0,
+    zIndex: 0,
+  },
+  payrollGridLine: {
+    position: "absolute",
+    left: 0,
+    right: 0,
+    height: StyleSheet.hairlineWidth,
+    opacity: 0.52,
+    zIndex: 0,
+  },
   zeroLine: {
     position: "absolute",
     left: 0,
     right: 0,
-    top: 76,
     height: StyleSheet.hairlineWidth,
     zIndex: 1,
   },
@@ -912,10 +1346,11 @@ const styles = StyleSheet.create({
     alignItems: "flex-end",
     width: "100%",
     paddingHorizontal: 8,
-    paddingTop: 8,
+    paddingTop: PAYROLL_BARS_ROW_PAD_TOP,
     paddingBottom: 10,
-    gap: 3,
+    gap: 4,
     minHeight: 170,
+    zIndex: 2,
   },
   barCol: {
     flex: 1,
@@ -939,20 +1374,20 @@ const styles = StyleSheet.create({
   barFill: {
     width: "100%",
   },
-  barFillTop: {
-    borderTopLeftRadius: 4,
-    borderTopRightRadius: 4,
-  },
-  barFillBottom: {
-    borderBottomLeftRadius: 4,
-    borderBottomRightRadius: 4,
-  },
   monthLabel: {
-    fontSize: 10,
+    fontSize: 11,
     fontFamily: Fonts.bodySemiBold,
+    lineHeight: 14,
     marginTop: 8,
     width: "100%",
     textAlign: "center",
+  },
+  payrollChartCaption: {
+    marginTop: Spacing.sm,
+    paddingHorizontal: 4,
+    fontSize: 12,
+    fontFamily: Fonts.bodyMedium,
+    lineHeight: 16,
   },
   inlineMetricRow: {
     flexDirection: "row",
@@ -1055,11 +1490,9 @@ const styles = StyleSheet.create({
   },
   distTrack: {
     height: 8,
-    borderRadius: 4,
     overflow: "hidden",
   },
   distFill: {
     height: "100%",
-    borderRadius: 4,
   },
 });
