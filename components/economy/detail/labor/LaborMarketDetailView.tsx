@@ -27,6 +27,7 @@ import {
   EconomyDetailShell,
 } from "@/components/economy/detail/shared/EconomyDetailShell";
 import { ThemedText } from "@/components/theme/ThemedText";
+import { FilterIconButton } from "@/components/ui/FilterIconButton";
 import { Colors } from "@/constants/theme/Colors";
 import {
   getSemanticColors,
@@ -391,14 +392,23 @@ export function LaborMarketDetailView() {
             {payrollLoading ? "—" : payrollHeroDisplay.periodLabel}
           </ThemedText>
         </View>
-        <ThemedText
-          style={[styles.heroMetric, { color: theme.text }]}
-          adjustsFontSizeToFit
-          minimumFontScale={0.7}
-          numberOfLines={1}
-        >
-          {payrollLoading ? "…" : payrollHeroDisplay.heroMetric}
-        </ThemedText>
+        <View style={styles.heroMetricRow}>
+          <ThemedText
+            style={[styles.heroMetric, { color: theme.text }]}
+            adjustsFontSizeToFit
+            minimumFontScale={0.7}
+            numberOfLines={1}
+          >
+            {payrollLoading ? "…" : payrollHeroDisplay.heroMetric}
+          </ThemedText>
+          {!payrollLoading && payrollObservationsRaw.length > 0 ? (
+            <FilterIconButton
+              accessibilityLabel={`Chart time range, ${activeRangePreset.label}. Opens options.`}
+              onPress={() => setRangeFilterOpen(true)}
+              style={styles.heroMetricFilter}
+            />
+          ) : null}
+        </View>
         {!payrollLoading && payrollChart != null ? (
           <View style={styles.consensusRow}>
             <Feather
@@ -431,35 +441,6 @@ export function LaborMarketDetailView() {
           >
             {payrollError}
           </ThemedText>
-        ) : null}
-        {!payrollLoading && payrollObservationsRaw.length > 0 ? (
-          <View style={styles.chartFilterRow}>
-            <Pressable
-              accessibilityRole="button"
-              accessibilityLabel={`Open chart time range. Current ${activeRangePreset.label}.`}
-              onPress={() => setRangeFilterOpen(true)}
-              style={({ pressed }) => [
-                styles.rangeFilterButton,
-                {
-                  borderColor: semantic.hairline,
-                  backgroundColor: semantic.cardSubtleBackground,
-                  opacity: pressed ? 0.88 : 1,
-                },
-              ]}
-            >
-              <Feather name="filter" size={14} color={interactive.primary} />
-              <ThemedText
-                style={[styles.rangeFilterButtonLabel, { color: theme.text }]}
-              >
-                {activeRangePreset.label}
-              </ThemedText>
-              <Feather
-                name="chevron-down"
-                size={14}
-                color={semantic.mutedText}
-              />
-            </Pressable>
-          </View>
         ) : null}
         <View style={styles.chartArea}>
           {payrollLoading ? (
@@ -808,14 +789,23 @@ const styles = StyleSheet.create({
     flexShrink: 1,
     minWidth: 0,
   },
+  heroMetricRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 8,
+    marginBottom: 6,
+    minHeight: 44,
+  },
   heroMetric: {
+    flex: 1,
+    minWidth: 0,
     fontSize: 32,
     fontFamily: Fonts.displayBold,
     letterSpacing: -0.5,
-    marginBottom: 6,
     lineHeight: 40,
-    alignSelf: "stretch",
-    maxWidth: "100%",
+  },
+  heroMetricFilter: {
+    flexShrink: 0,
   },
   consensusRow: {
     flexDirection: "row",
@@ -848,26 +838,6 @@ const styles = StyleSheet.create({
     marginBottom: Spacing.sm,
     alignSelf: "stretch",
     flexShrink: 1,
-  },
-  chartFilterRow: {
-    flexDirection: "row",
-    alignItems: "center",
-    marginBottom: Spacing.sm,
-  },
-  rangeFilterButton: {
-    flexDirection: "row",
-    alignItems: "center",
-    gap: 8,
-    paddingHorizontal: 12,
-    paddingVertical: 8,
-    borderRadius: Radius.sm,
-    borderWidth: 1,
-    alignSelf: "flex-start",
-  },
-  rangeFilterButtonLabel: {
-    fontSize: 12,
-    fontFamily: Fonts.bodyBold,
-    letterSpacing: 0.3,
   },
   rangeModalRoot: {
     flex: 1,
