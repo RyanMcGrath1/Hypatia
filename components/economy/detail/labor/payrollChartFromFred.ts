@@ -162,6 +162,26 @@ export function computeCalendarYearPayrollNetLevelDeltaThousands(
 }
 
 /**
+ * Net change in PAYEMS **level** (thousands of persons) between the **first and last bar that
+ * carry data** on the chart, in left-to-right order. This is the aggregate implied by whatever
+ * year or trailing window the chart is currently showing (including skeleton months with gaps).
+ */
+export function computeDisplayedChartNetLevelDeltaThousands(
+  chart: PayrollChartFromFred,
+): number | null {
+  const levels: number[] = [];
+  for (const b of chart.bars) {
+    if (b.hasObservation && b.levelThousands != null) {
+      levels.push(b.levelThousands);
+    }
+  }
+  if (levels.length < 2) {
+    return null;
+  }
+  return levels[levels.length - 1]! - levels[0]!;
+}
+
+/**
  * **Year-to-date** for the **device’s current calendar year** (local): every monthly observation
  * from `YYYY-01-01` through `YYYY-12-31` present in the payload (`YYYY = today.getFullYear()`).
  * If nothing exists yet for that year (e.g. January before the first print), falls back to the same

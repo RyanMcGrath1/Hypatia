@@ -14,7 +14,7 @@ import { Fonts } from "@/constants/theme/Typography";
  *   │  └────────────────────────────────────────────────────────────────────│
  *   │  ┌─ content: z=1, full width + right inset so text clears watermark ─│
  *   │  │  ① kicker     — "YEARLY TOTAL JOBS" (uppercase label)              │
- *   │  │  ② metricRow  — row: big value (flex) + optional YoY badge (pill)  │
+ *   │  │  ② metricRow  — row: net jobs from chart (last−first level shown) + optional YoY pill   │
  *   │  │       OR loadingRow + ActivityIndicator                             │
  *   │  │  ③ footer     — optional caption (regular Inter, muted white)      │
  *   │  └────────────────────────────────────────────────────────────────────│
@@ -27,7 +27,7 @@ const HYPATIA_PRIMARY_METRIC_BG = "#4A6CF7";
 const DECOR_ICON_COLOR = "rgba(255, 255, 255, 0.2)";
 
 export type YearlyTotalJobsPrimaryCardProps = {
-  /** Net payroll change in thousands (level delta); null → fallback label; feeds ② hero + a11y. */
+  /** Net level change (thousands) for the chart on screen — see `computeDisplayedChartNetLevelDeltaThousands`. */
   netThousands: number | null;
   /** Shown when `netThousands` is null. */
   fallbackValueLabel?: string;

@@ -14,7 +14,7 @@ import {
   buildPayrollChartFromFredObservations,
   buildPayrollYearToDateChartWithSkeleton,
   computeCalendarYearPayrollNetLevelDeltaThousands,
-  computePayrollSpanNetLevelDeltaThousands,
+  computeDisplayedChartNetLevelDeltaThousands,
   filterPayemsObservationsByRangeKey,
   formatPayemsMomDeltaShort,
   PAYROLL_CHART_RANGE_PRESETS,
@@ -507,25 +507,11 @@ export function LaborMarketDetailView() {
   }, [payrollChart]);
 
   const yearlyTotalJobsNetThousands = useMemo(() => {
-    if (
-      payrollLoading ||
-      payrollObservationsRaw.length === 0 ||
-      !payrollChart
-    ) {
+    if (payrollLoading || !payrollChart?.bars?.length) {
       return null;
     }
-    if (payrollChart.calendarContextYear != null) {
-      return computeCalendarYearPayrollNetLevelDeltaThousands(
-        payrollObservationsRaw,
-        payrollChart.calendarContextYear,
-      );
-    }
-    const filtered = filterPayemsObservationsByRangeKey(
-      payrollObservationsRaw,
-      chartRangeKey,
-    );
-    return computePayrollSpanNetLevelDeltaThousands(filtered);
-  }, [payrollLoading, payrollObservationsRaw, payrollChart, chartRangeKey]);
+    return computeDisplayedChartNetLevelDeltaThousands(payrollChart);
+  }, [payrollLoading, payrollChart]);
 
   const yearlyTotalJobsSubtitle = useMemo(() => {
     if (!payrollChart) {
