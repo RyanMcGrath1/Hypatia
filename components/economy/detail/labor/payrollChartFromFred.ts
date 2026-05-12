@@ -5,6 +5,7 @@ export const PAYROLL_CHART_RANGE_PRESETS = [
   { key: "ytd", label: "YTD", mode: "ytd" as const },
   {
     key: "py",
+    /** Prefer {@link payrollChartRangePresetDisplayLabel} in UI. */
     label: "PY",
     mode: "last_full_year" as const,
   },
@@ -42,12 +43,6 @@ export type PayrollChartFromFred = {
   periodLabel: string;
   /** Headline month-over-month change (e.g. "+216k"); "—" if not computable. */
   heroMetric: string;
-  /**
-   * Sum of monthly payroll changes (thousands) over every bar that has data — net jobs vs
-   * the month before the first counted print through the last counted print (≈ level delta
-   * across that span when months are contiguous).
-   */
-  periodNetThousands: number | null;
   /** Set for Jan–Dec skeleton charts (`ytd` / `py`); null for trailing windows. */
   calendarContextYear: number | null;
 };
@@ -121,6 +116,49 @@ function collectSortedValidPayemsPairs(observations: FredObservationRow[]): Sort
   }
   pairs.sort((a, b) => a.date.localeCompare(b.date));
   return pairs;
+}
+
+/**
+ * Net change in PAYEMS **level** (thousands of persons) from the **first** to **last**
+ * chronological observation in `observations` (typically a filtered FRED window).
+ */
+export function computePayrollSpanNetLevelDeltaThousands(
+  observations: FredObservationRow[],
+): number | null {
+  const pairs = collectSortedValidPayemsPairs(observations);
+  if (pairs.length < 2) {
+    return null;
+  }
+  const vFirst = parseObservationNumber(pairs[0].row.value);
+  const vLast = parseObservationNumber(pairs[pairs.length - 1].row.value);
+  if (vFirst == null || vLast == null) {
+    return null;
+  }
+  return vLast - vFirst;
+}
+
+/**
+ * Same as {@link computePayrollSpanNetLevelDeltaThousands} but restricted to `calendarYear`
+ * Jan–Dec (first vs last valid print in that calendar year).
+ */
+export function computeCalendarYearPayrollNetLevelDeltaThousands(
+  observations: FredObservationRow[],
+  calendarYear: number,
+): number | null {
+  const start = `${calendarYear}-01-01`;
+  const end = `${calendarYear}-12-31`;
+  const pairs = collectSortedValidPayemsPairs(observations).filter(
+    (p) => p.date >= start && p.date <= end,
+  );
+  if (pairs.length < 2) {
+    return null;
+  }
+  const vFirst = parseObservationNumber(pairs[0].row.value);
+  const vLast = parseObservationNumber(pairs[pairs.length - 1].row.value);
+  if (vFirst == null || vLast == null) {
+    return null;
+  }
+  return vLast - vFirst;
 }
 
 /**
@@ -215,6 +253,23 @@ export function resolvePayrollLastFullCalendarYear(
 }
 
 /**
+ * Short label for payroll range filter chips (modal row title, a11y). The prior-full-year
+ * preset shows the calendar year (e.g. `2025`), aligned with {@link resolvePayrollLastFullCalendarYear}
+ * when the feed supports it; otherwise the local clock’s previous year.
+ */
+export function payrollChartRangePresetDisplayLabel(
+  preset: PayrollChartRangePreset,
+  observations: FredObservationRow[],
+  now: Date = new Date(),
+): string {
+  if (preset.key !== "py") {
+    return preset.label;
+  }
+  const y = resolvePayrollLastFullCalendarYear(observations, now);
+  return String(y ?? now.getFullYear() - 1);
+}
+
+/**
  * **12 month slots** for `calendarYear`: bars where data exists are filled; others keep labels with **no bar**
  * (`hasObservation: false`) so the full year reads as a timeline.
  */
@@ -287,26 +342,12 @@ export function buildPayrollYearToDateChartWithSkeleton(
     };
   });
 
-  let periodNetThousands: number | null = null;
-  let netSum = 0;
-  let netCount = 0;
-  for (const b of bars) {
-    if (b.hasObservation && b.momVsPriorThousands != null) {
-      netSum += b.momVsPriorThousands;
-      netCount += 1;
-    }
-  }
-  if (netCount > 0) {
-    periodNetThousands = netSum;
-  }
-
   return {
     bars,
     monthOverMonthThousands,
     latestObservationDate,
     periodLabel,
     heroMetric,
-    periodNetThousands,
     calendarContextYear: calendarYear,
   };
 }
@@ -425,21 +466,12 @@ export function buildPayrollChartFromFredObservations(
     };
   });
 
-  let periodNetThousands: number | null = null;
-  if (bars.length > 0) {
-    periodNetThousands = bars.reduce(
-      (s, b) => s + (b.momVsPriorThousands ?? 0),
-      0,
-    );
-  }
-
   return {
     bars,
     monthOverMonthThousands,
     latestObservationDate,
     periodLabel,
     heroMetric,
-    periodNetThousands,
     calendarContextYear: null,
   };
 }
