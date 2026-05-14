@@ -75,17 +75,19 @@ export async function fetchCivicDivisionsByAddress(
 }
 
 /**
- * `GET {base}/api/economy/overview` — US economic dashboard snapshot.
- * Resolves to **`http://127.0.0.1:5001/api/economy/overview`** when using defaults
- * (`EXPO_PUBLIC_NEWS_API_BASE_URL` / dev LAN host). On **Expo web dev**, the base URL
- * follows `getNewsApiBaseUrl()` so requests use the Metro same-origin proxy (no CORS to :5001).
+ * `GET {base}/api/economy/{sectorId}/dashboard` — one Economy tab tile (e.g. `labor` →
+ * `/api/economy/labor/dashboard`). Response shape matches a single-sector slice of the former
+ * combined dashboard: `{ as_of, sections: { … } }`.
+ * Base URL follows `getNewsApiBaseUrl()` (news stack / Metro proxy on web).
  */
-export async function fetchEconomyOverview(
+export async function fetchEconomySectorDashboard(
+  sectorId: string,
   signal?: AbortSignal,
 ): Promise<unknown> {
+  const seg = encodeURIComponent(sectorId.trim());
   return fetchApiGet(
     getNewsApiBaseUrl(),
-    '/api/economy/overview',
+    `/api/economy/${seg}/dashboard`,
     undefined,
     signal,
   );

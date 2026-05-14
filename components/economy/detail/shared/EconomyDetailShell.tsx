@@ -16,12 +16,20 @@ import { useThemeInteractive } from "@/hooks/useThemeInteractive";
 
 export const ECONOMY_DASHBOARD_POSITIVE_GREEN = "#16A34A";
 
+/** Extra scroll bottom inset when `floatingAction` is set so tail content clears the FAB. */
+const FAB_SCROLL_CLEARANCE = 92;
+
 export type EconomyDetailHeaderLayout = "hypatia" | "sectorInline";
 
 type EconomyDetailShellProps = {
   /** Large all-caps style title (e.g. LABOR MARKET or INFLATION & PRICES). */
   pageTitle: string;
   children: ReactNode;
+  /**
+   * Pinned to the bottom-right of the screen, above the scroll body (e.g. chart range FAB).
+   * Parent supplies layout/visuals; shell only anchors and applies safe-area padding.
+   */
+  floatingAction?: ReactNode;
   /** Show green “LIVE DATA FEED” next to the title. Default true. */
   showLiveFeed?: boolean;
   /**
@@ -40,6 +48,7 @@ type EconomyDetailShellProps = {
 export function EconomyDetailShell({
   pageTitle,
   children,
+  floatingAction,
   showLiveFeed = true,
   headerLayout = "hypatia",
   inlineHeaderIcon = "bar-chart-2",
@@ -54,16 +63,19 @@ export function EconomyDetailShell({
 
   return (
     <ThemedView style={[styles.screen, { backgroundColor: semantic.screenBackground }]}>
-      <ScrollView
-        contentContainerStyle={[
-          styles.scroll,
-          {
-            paddingTop: insets.top + Spacing.sm,
-            paddingBottom: insets.bottom + Spacing.xl,
-          },
-        ]}
-        showsVerticalScrollIndicator={false}
-      >
+      <View style={styles.screenBody}>
+        <ScrollView
+          style={styles.scrollView}
+          contentContainerStyle={[
+            styles.scroll,
+            {
+              paddingTop: insets.top + Spacing.sm,
+              paddingBottom:
+                insets.bottom + Spacing.xl + (floatingAction ? FAB_SCROLL_CLEARANCE : 0),
+            },
+          ]}
+          showsVerticalScrollIndicator={false}
+        >
         <Pressable
           accessibilityRole="button"
           accessibilityLabel="Go back"
@@ -114,7 +126,22 @@ export function EconomyDetailShell({
         )}
 
         {children}
-      </ScrollView>
+        </ScrollView>
+        {floatingAction ? (
+          <View
+            pointerEvents="box-none"
+            style={[
+              styles.fabOverlay,
+              {
+                paddingBottom: insets.bottom + Spacing.md,
+                paddingRight: Spacing.lg,
+              },
+            ]}
+          >
+            {floatingAction}
+          </View>
+        ) : null}
+      </View>
     </ThemedView>
   );
 }
@@ -122,6 +149,17 @@ export function EconomyDetailShell({
 const styles = StyleSheet.create({
   screen: {
     flex: 1,
+  },
+  screenBody: {
+    flex: 1,
+  },
+  scrollView: {
+    flex: 1,
+  },
+  fabOverlay: {
+    ...StyleSheet.absoluteFillObject,
+    justifyContent: "flex-end",
+    alignItems: "flex-end",
   },
   scroll: {
     paddingHorizontal: Spacing.lg,

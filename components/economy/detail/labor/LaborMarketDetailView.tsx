@@ -1,28 +1,20 @@
 import Feather from "@expo/vector-icons/Feather";
-import { useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import {
   ActivityIndicator,
-  Modal,
+  Platform,
   Pressable,
   StyleSheet,
   View,
 } from "react-native";
-import { useSafeAreaInsets } from "react-native-safe-area-context";
 
 import { LABOR_EMPLOYMENT_BY_SECTOR } from "@/components/economy/detail/labor/laborDetailData";
+import { PayrollRangeFilterModal } from "@/components/economy/detail/labor/PayrollRangeFilterModal";
 import {
   buildPayrollChartFromFredObservations,
-  buildPayrollYearToDateChartWithSkeleton,
   computeCalendarYearPayrollNetLevelDeltaThousands,
   computeDisplayedChartNetLevelDeltaThousands,
-  filterPayemsObservationsByRangeKey,
   formatPayemsMomDeltaShort,
-  PAYROLL_CHART_RANGE_PRESETS,
-  payrollChartRangePresetDisplayLabel,
-  resolvePayrollLastFullCalendarYear,
-  resolvePayrollYtdCalendarYear,
-  type PayrollChartRangeKey,
-  type PayrollChartRangePreset,
 } from "@/components/economy/detail/labor/payrollChartFromFred";
 import { YearlyTotalJobsPrimaryCard } from "@/components/economy/detail/labor/YearlyTotalJobsPrimaryCard";
 import { EconomyCard } from "@/components/economy/detail/shared/EconomyCard";
@@ -45,7 +37,13 @@ import {
   type FredObservationRow,
 } from "@/hooks/api/fredObservations";
 import { useColorScheme } from "@/hooks/useColorScheme";
+import { useEconomyDetail } from "@/hooks/useEconomyDetail";
 import { useThemeInteractive } from "@/hooks/useThemeInteractive";
+import { laborPrimaryFromEconomyDetail } from "@/lib/economy/laborPrimaryFromEconomyDetail";
+import {
+  clampPayrollRangeIndices,
+  formatMonthYearShortDisplay,
+} from "@/lib/economy/payrollMonthRange";
 
 /** Latest N PAYEMS prints (`sort_order=desc` on FRED); enough for multi-year UI ranges. */
 const PAYEMS_FETCH_LIMIT = 72;
@@ -70,6 +68,18 @@ const PAYROLL_NEG_BAND_TOP =
   PAYROLL_BARS_ROW_PAD_TOP +
   PAYROLL_DIVERGE_HALF_PX +
   PAYROLL_DIVERGE_GUTTER_PX;
+
+type LaborPrimaryMetricClosed = { show: false };
+type LaborPrimaryMetricOpen = {
+  show: true;
+  loading: boolean;
+  kickerLabel?: string;
+  heroValueLabel?: string;
+  netThousands: number | null;
+  badgeLabel?: string;
+  subtitle?: string;
+};
+type LaborPrimaryMetric = LaborPrimaryMetricClosed | LaborPrimaryMetricOpen;
 
 /**
  * “Nice” symmetric Y max (thousands) so axis labels are round and headroom is consistent.
@@ -116,33 +126,6 @@ function isAbortError(e: unknown): boolean {
     e instanceof DOMException &&
     e.name === "AbortError"
   );
-}
-
-function payrollRangeOptionCaption(
-  p: PayrollChartRangePreset,
-  observations: FredObservationRow[],
-): string {
-  if (p.mode === "ytd") {
-    return "Calendar year through latest print (empty months shown)";
-  }
-  if (p.mode === "last_full_year") {
-    const y = payrollChartRangePresetDisplayLabel(p, observations);
-    return `January–December ${y} (empty months shown)`;
-  }
-  return `Trailing ${p.months} months`;
-}
-
-function payrollRangeOptionA11y(
-  p: PayrollChartRangePreset,
-  observations: FredObservationRow[],
-): string {
-  if (p.mode === "ytd") {
-    return "Year to date";
-  }
-  if (p.mode === "last_full_year") {
-    return `Prior full calendar year ${payrollChartRangePresetDisplayLabel(p, observations)}`;
-  }
-  return `Last ${p.label}`;
 }
 
 function clampByte(n: number): number {
@@ -212,7 +195,6 @@ function payrollMomBarFillColor(
 }
 
 export function LaborMarketDetailView() {
-  const insets = useSafeAreaInsets();
   const colorScheme = useColorScheme() ?? "light";
   const isDark = colorScheme === "dark";
   const semantic = getSemanticColors(colorScheme);
@@ -227,50 +209,48 @@ export function LaborMarketDetailView() {
   const [payrollObservationsRaw, setPayrollObservationsRaw] = useState<
     FredObservationRow[]
   >([]);
-  const [chartRangeKey, setChartRangeKey] =
-    useState<PayrollChartRangeKey>("ytd");
+  const [payrollRangeStartIdx, setPayrollRangeStartIdx] = useState(0);
+  const [payrollRangeEndIdx, setPayrollRangeEndIdx] = useState(0);
+  const payrollRangeInitRef = useRef(false);
   const [selectedBarIndex, setSelectedBarIndex] = useState<number | null>(null);
   const [rangeFilterOpen, setRangeFilterOpen] = useState(false);
+
+  const { data: laborEconomyDetail, isLoading: laborEconomyLoading } =
+    useEconomyDetail("labor");
+  const laborApiPrimary = useMemo(
+    () => laborPrimaryFromEconomyDetail(laborEconomyDetail),
+    [laborEconomyDetail],
+  );
 
   const payrollChart = useMemo(() => {
     if (payrollObservationsRaw.length === 0) {
       return null;
     }
-    if (chartRangeKey === "ytd") {
-      const year = resolvePayrollYtdCalendarYear(
-        payrollObservationsRaw,
-        new Date(),
-      );
-      if (year == null) {
-        return null;
-      }
-      return buildPayrollYearToDateChartWithSkeleton(
-        year,
-        payrollObservationsRaw,
-      );
-    }
-    if (chartRangeKey === "py") {
-      const year = resolvePayrollLastFullCalendarYear(
-        payrollObservationsRaw,
-        new Date(),
-      );
-      if (year == null) {
-        return null;
-      }
-      return buildPayrollYearToDateChartWithSkeleton(
-        year,
-        payrollObservationsRaw,
-      );
-    }
-    const filtered = filterPayemsObservationsByRangeKey(
+    const { lo, hi } = clampPayrollRangeIndices(
       payrollObservationsRaw,
-      chartRangeKey,
+      payrollRangeStartIdx,
+      payrollRangeEndIdx,
     );
+    const filtered = payrollObservationsRaw.slice(lo, hi + 1);
     if (filtered.length === 0) {
       return null;
     }
     return buildPayrollChartFromFredObservations(filtered, filtered.length);
-  }, [payrollObservationsRaw, chartRangeKey]);
+  }, [payrollObservationsRaw, payrollRangeStartIdx, payrollRangeEndIdx]);
+
+  useEffect(() => {
+    if (payrollObservationsRaw.length === 0) {
+      payrollRangeInitRef.current = false;
+      return;
+    }
+    if (payrollRangeInitRef.current) {
+      return;
+    }
+    payrollRangeInitRef.current = true;
+    const n = payrollObservationsRaw.length;
+    setPayrollRangeEndIdx(n - 1);
+    setPayrollRangeStartIdx(Math.max(0, n - 12));
+  }, [payrollObservationsRaw]);
 
   useEffect(() => {
     if (!payrollChart?.bars?.length) {
@@ -331,9 +311,24 @@ export function LaborMarketDetailView() {
     };
   }, []);
 
-  const activeRangePreset =
-    PAYROLL_CHART_RANGE_PRESETS.find((p) => p.key === chartRangeKey) ??
-    PAYROLL_CHART_RANGE_PRESETS.find((p) => p.key === "1y")!;
+  const payrollRangeA11yLabel = useMemo(() => {
+    if (payrollObservationsRaw.length === 0) {
+      return "Chart time range";
+    }
+    const { lo, hi } = clampPayrollRangeIndices(
+      payrollObservationsRaw,
+      payrollRangeStartIdx,
+      payrollRangeEndIdx,
+    );
+    const a = formatMonthYearShortDisplay(payrollObservationsRaw[lo]?.date);
+    const b = formatMonthYearShortDisplay(payrollObservationsRaw[hi]?.date);
+    return `${a} through ${b}`;
+  }, [payrollObservationsRaw, payrollRangeStartIdx, payrollRangeEndIdx]);
+
+  const onPayrollRangeChange = useCallback((lo: number, hi: number) => {
+    setPayrollRangeStartIdx(lo);
+    setPayrollRangeEndIdx(hi);
+  }, []);
 
   const selectedBar =
     payrollChart != null && selectedBarIndex != null
@@ -514,25 +509,23 @@ export function LaborMarketDetailView() {
   }, [payrollLoading, payrollChart]);
 
   const yearlyTotalJobsSubtitle = useMemo(() => {
-    if (!payrollChart) {
+    if (!payrollChart || payrollObservationsRaw.length === 0) {
       return undefined;
     }
-    if (payrollChart.calendarContextYear != null) {
-      const y = payrollChart.calendarContextYear;
-      if (chartRangeKey === "ytd") {
-        return `Accumulated growth from first through latest payroll print in ${y}.`;
-      }
-      return `Accumulated growth over calendar year ${y}.`;
-    }
-    const preset = PAYROLL_CHART_RANGE_PRESETS.find(
-      (p) => p.key === chartRangeKey,
+    const { lo, hi } = clampPayrollRangeIndices(
+      payrollObservationsRaw,
+      payrollRangeStartIdx,
+      payrollRangeEndIdx,
     );
-    if (preset?.mode === "trailing" && preset.months != null) {
-      return `Accumulated growth over trailing ${preset.months} months.`;
-    }
-    const rangeLabel = preset?.label ?? chartRangeKey;
-    return `Accumulated growth over selected window (${rangeLabel}).`;
-  }, [payrollChart, chartRangeKey]);
+    const a = formatMonthYearShortDisplay(payrollObservationsRaw[lo]?.date);
+    const b = formatMonthYearShortDisplay(payrollObservationsRaw[hi]?.date);
+    return `Accumulated growth from payroll MoM prints in the selected window (${a}–${b}).`;
+  }, [
+    payrollChart,
+    payrollObservationsRaw,
+    payrollRangeStartIdx,
+    payrollRangeEndIdx,
+  ]);
 
   const yearlyTotalJobsBadgeLabel = useMemo(() => {
     if (
@@ -562,8 +555,93 @@ export function LaborMarketDetailView() {
     payrollObservationsRaw,
   ]);
 
+  const primaryMetricCard: LaborPrimaryMetric = useMemo(() => {
+    const fredReady = !payrollLoading && (payrollChart?.bars?.length ?? 0) > 0;
+    if (laborApiPrimary) {
+      return {
+        show: true,
+        loading: false,
+        kickerLabel: laborApiPrimary.kickerLabel,
+        heroValueLabel: laborApiPrimary.heroValueLabel,
+        badgeLabel: laborApiPrimary.badgeLabel,
+        subtitle: laborApiPrimary.subtitle,
+        netThousands: null as number | null,
+      };
+    }
+    if (laborEconomyLoading && !fredReady) {
+      return {
+        show: true,
+        loading: true,
+        kickerLabel: "LABOR MARKET",
+        heroValueLabel: undefined as string | undefined,
+        badgeLabel: undefined as string | undefined,
+        subtitle: undefined as string | undefined,
+        netThousands: null as number | null,
+      };
+    }
+    if (fredReady) {
+      const fredSubtitle =
+        yearlyTotalJobsNetThousands == null
+          ? yearlyTotalJobsSubtitle
+            ? `${yearlyTotalJobsSubtitle} Payroll prints in the selected window are needed to compute net change.`
+            : "Payroll prints in the selected window are needed to compute net change."
+          : yearlyTotalJobsSubtitle;
+      return {
+        show: true,
+        loading: false,
+        kickerLabel: "YEARLY TOTAL JOBS",
+        heroValueLabel: undefined as string | undefined,
+        netThousands: yearlyTotalJobsNetThousands,
+        badgeLabel: yearlyTotalJobsBadgeLabel,
+        subtitle: fredSubtitle,
+      };
+    }
+    return { show: false };
+  }, [
+    laborApiPrimary,
+    laborEconomyLoading,
+    payrollLoading,
+    payrollChart,
+    yearlyTotalJobsNetThousands,
+    yearlyTotalJobsBadgeLabel,
+    yearlyTotalJobsSubtitle,
+  ]);
+
   return (
-    <EconomyDetailShell pageTitle="LABOR MARKET">
+    <EconomyDetailShell
+      pageTitle="LABOR MARKET"
+      floatingAction={
+        payrollObservationsRaw.length > 0 ? (
+          <View
+            style={[
+              styles.payrollFabWrap,
+              {
+                backgroundColor: semantic.cardBackground,
+                borderColor: semantic.hairline,
+                ...Platform.select({
+                  ios: {
+                    shadowColor: "#000000",
+                    shadowOffset: { width: 0, height: 4 },
+                    shadowOpacity: 0.18,
+                    shadowRadius: 10,
+                  },
+                  default: {
+                    elevation: 8,
+                  },
+                }),
+              },
+            ]}
+          >
+            <FilterIconButton
+              accessibilityLabel={`Chart time range, ${payrollRangeA11yLabel}. Opens options.`}
+              onPress={() => setRangeFilterOpen(true)}
+              iconSize={30}
+              style={styles.payrollFabHit}
+            />
+          </View>
+        ) : null
+      }
+    >
       <EconomyCard style={styles.payrollCard}>
         <View style={styles.cardTopRow}>
           <ThemedText
@@ -594,13 +672,6 @@ export function LaborMarketDetailView() {
                   style={styles.heroTrendIcon}
                 />
               </View>
-              {payrollObservationsRaw.length > 0 ? (
-                <FilterIconButton
-                  accessibilityLabel={`Chart time range, ${payrollChartRangePresetDisplayLabel(activeRangePreset, payrollObservationsRaw)}. Opens options.`}
-                  onPress={() => setRangeFilterOpen(true)}
-                  style={styles.heroMetricFilter}
-                />
-              ) : null}
             </View>
             <View style={styles.consensusRow}>
               <ThemedText
@@ -634,13 +705,6 @@ export function LaborMarketDetailView() {
                   />
                 ) : null}
               </View>
-              {!payrollLoading && payrollObservationsRaw.length > 0 ? (
-                <FilterIconButton
-                  accessibilityLabel={`Chart time range, ${payrollChartRangePresetDisplayLabel(activeRangePreset, payrollObservationsRaw)}. Opens options.`}
-                  onPress={() => setRangeFilterOpen(true)}
-                  style={styles.heroMetricFilter}
-                />
-              ) : null}
             </View>
             {payrollLoading ? (
               <View style={styles.consensusRow}>
@@ -845,108 +909,25 @@ export function LaborMarketDetailView() {
                 : "No payroll data in this time range."}
             </ThemedText>
           )}
-          {!payrollLoading && payrollChart?.bars?.length ? (
+          {primaryMetricCard.show === true ? (
             <YearlyTotalJobsPrimaryCard
-              netThousands={yearlyTotalJobsNetThousands}
-              badgeLabel={yearlyTotalJobsBadgeLabel}
-              subtitle={
-                yearlyTotalJobsNetThousands == null
-                  ? yearlyTotalJobsSubtitle
-                    ? `${yearlyTotalJobsSubtitle} At least two months with data are needed to compute net change.`
-                    : "At least two months with data are needed to compute net change."
-                  : yearlyTotalJobsSubtitle
-              }
+              loading={primaryMetricCard.loading}
+              kickerLabel={primaryMetricCard.kickerLabel}
+              heroValueLabel={primaryMetricCard.heroValueLabel}
+              netThousands={primaryMetricCard.netThousands ?? null}
+              badgeLabel={primaryMetricCard.badgeLabel}
+              subtitle={primaryMetricCard.subtitle}
             />
           ) : null}
         </View>
-        <Modal
+        <PayrollRangeFilterModal
           visible={rangeFilterOpen}
-          transparent
-          animationType="slide"
-          onRequestClose={() => setRangeFilterOpen(false)}
-        >
-          <View style={styles.rangeModalRoot} pointerEvents="box-none">
-            <Pressable
-              accessibilityRole="button"
-              accessibilityLabel="Dismiss time range picker"
-              style={styles.rangeModalScrim}
-              onPress={() => setRangeFilterOpen(false)}
-            />
-            <View
-              style={[
-                styles.rangeModalSheet,
-                {
-                  paddingBottom: insets.bottom + Spacing.md,
-                  backgroundColor: semantic.cardBackground,
-                  borderTopColor: semantic.hairline,
-                },
-              ]}
-            >
-              <ThemedText
-                style={[styles.rangeModalTitle, { color: theme.text }]}
-              >
-                Chart time range
-              </ThemedText>
-              {PAYROLL_CHART_RANGE_PRESETS.map((p) => {
-                const active = chartRangeKey === p.key;
-                return (
-                  <Pressable
-                    key={p.key}
-                    accessibilityRole="button"
-                    accessibilityState={{ selected: active }}
-                    accessibilityLabel={payrollRangeOptionA11y(
-                      p,
-                      payrollObservationsRaw,
-                    )}
-                    onPress={() => {
-                      setChartRangeKey(p.key);
-                      setRangeFilterOpen(false);
-                    }}
-                    style={({ pressed }) => [
-                      styles.rangeModalOption,
-                      {
-                        borderColor: semantic.hairline,
-                        backgroundColor: active
-                          ? interactive.primarySoft
-                          : "transparent",
-                        opacity: pressed ? 0.9 : 1,
-                      },
-                    ]}
-                  >
-                    <View style={styles.rangeModalOptionTextCol}>
-                      <ThemedText
-                        style={[
-                          styles.rangeModalOptionLabel,
-                          { color: active ? interactive.primary : theme.text },
-                        ]}
-                      >
-                        {payrollChartRangePresetDisplayLabel(
-                          p,
-                          payrollObservationsRaw,
-                        )}
-                      </ThemedText>
-                      <ThemedText
-                        style={[
-                          styles.rangeModalOptionCaption,
-                          { color: semantic.mutedText },
-                        ]}
-                      >
-                        {payrollRangeOptionCaption(p, payrollObservationsRaw)}
-                      </ThemedText>
-                    </View>
-                    {active ? (
-                      <Feather
-                        name="check"
-                        size={18}
-                        color={interactive.primary}
-                      />
-                    ) : null}
-                  </Pressable>
-                );
-              })}
-            </View>
-          </View>
-        </Modal>
+          onClose={() => setRangeFilterOpen(false)}
+          observations={payrollObservationsRaw}
+          startIdx={payrollRangeStartIdx}
+          endIdx={payrollRangeEndIdx}
+          onChangeRange={onPayrollRangeChange}
+        />
       </EconomyCard>
 
       <EconomyCard>
@@ -1150,8 +1131,18 @@ const styles = StyleSheet.create({
   heroTrendIcon: {
     flexShrink: 0,
   },
-  heroMetricFilter: {
-    flexShrink: 0,
+  payrollFabWrap: {
+    width: 68,
+    height: 68,
+    borderRadius: 34,
+    alignItems: "center",
+    justifyContent: "center",
+    borderWidth: StyleSheet.hairlineWidth,
+    overflow: Platform.OS === "android" ? "hidden" : "visible",
+  },
+  payrollFabHit: {
+    minWidth: 64,
+    minHeight: 64,
   },
   consensusRow: {
     flexDirection: "row",
@@ -1184,54 +1175,6 @@ const styles = StyleSheet.create({
     marginBottom: Spacing.sm,
     alignSelf: "stretch",
     flexShrink: 1,
-  },
-  rangeModalRoot: {
-    flex: 1,
-    justifyContent: "flex-end",
-  },
-  rangeModalScrim: {
-    ...StyleSheet.absoluteFillObject,
-    backgroundColor: "rgba(0,0,0,0.45)",
-  },
-  rangeModalSheet: {
-    borderTopLeftRadius: Radius.md,
-    borderTopRightRadius: Radius.md,
-    borderTopWidth: StyleSheet.hairlineWidth,
-    paddingHorizontal: Spacing.md,
-    paddingTop: Spacing.md,
-    maxHeight: "55%",
-  },
-  rangeModalTitle: {
-    fontSize: 13,
-    fontFamily: Fonts.bodyBold,
-    letterSpacing: 0.4,
-    marginBottom: Spacing.sm,
-    textTransform: "uppercase",
-  },
-  rangeModalOption: {
-    flexDirection: "row",
-    alignItems: "center",
-    justifyContent: "space-between",
-    gap: Spacing.sm,
-    paddingVertical: 12,
-    paddingHorizontal: 12,
-    borderRadius: Radius.sm,
-    borderWidth: 1,
-    marginBottom: 8,
-  },
-  rangeModalOptionTextCol: {
-    flex: 1,
-    minWidth: 0,
-  },
-  rangeModalOptionLabel: {
-    fontSize: 15,
-    fontFamily: Fonts.bodyBold,
-  },
-  rangeModalOptionCaption: {
-    fontSize: 12,
-    fontFamily: Fonts.body,
-    marginTop: 2,
-    lineHeight: 16,
   },
   payrollEmpty: {
     fontSize: 13,

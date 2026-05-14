@@ -30,15 +30,15 @@ import {
   Spacing,
 } from "@/constants/theme/ThemeTokens";
 import { Fonts } from "@/constants/theme/Typography";
-import { fetchEconomyOverview } from "@/hooks/api/flaskMainApi";
+import { fetchEconomySectorDashboard } from "@/hooks/api/flaskMainApi";
 import { getNewsApiNetworkErrorMessage } from "@/hooks/api/newsApi";
 import { useColorScheme } from "@/hooks/useColorScheme";
 import {
   formatOverviewAsOfDisplay,
   isEconomySectionPayload,
-  parseEconomyOverviewResponse,
   type EconomyOverviewApiResponse,
 } from "@/lib/economy/economyOverviewTypes";
+import { mergeEconomySectorDashboardResponses } from "@/lib/economy/mergeEconomySectorDashboardResponses";
 import {
   formatObservationMonthYear,
   formatOverviewMetricValue,
@@ -61,7 +61,7 @@ type FeedRow = {
   overviewSectionBound: boolean;
 };
 
-/** Matches `sections` keys from `GET /api/economy/overview` via {@link SECTOR_ID_TO_OVERVIEW_KEY}. */
+/** Matches `sections` keys from `GET /api/economy/{id}/dashboard` via {@link SECTOR_ID_TO_OVERVIEW_KEY}. */
 const FEED_IDS = ["labor", "inflation", "rates", "gdp"];
 const sentimentScore = 74;
 const sentimentDelta = 2.4;
@@ -287,9 +287,26 @@ export default function EconomyDashboardScreen() {
       try {
         setIsEconomyOverviewLoading(true);
         setEconomyOverviewError(null);
-        const data = await fetchEconomyOverview(controller.signal);
+        const settled = await Promise.allSettled(
+          FEED_IDS.map((id) =>
+            fetchEconomySectorDashboard(id, controller.signal),
+          ),
+        );
         if (!cancelled) {
-          setEconomyOverview(parseEconomyOverviewResponse(data));
+          const merged = mergeEconomySectorDashboardResponses(settled);
+          if (merged) {
+            setEconomyOverview(merged);
+          } else {
+            setEconomyOverview(null);
+            const firstRejection = settled.find(
+              (r): r is PromiseRejectedResult => r.status === "rejected",
+            );
+            const reason =
+              firstRejection?.reason instanceof Error
+                ? firstRejection.reason.message
+                : "Could not load economy sector dashboards.";
+            setEconomyOverviewError(reason);
+          }
         }
       } catch (err) {
         if (err instanceof Error && err.name === "AbortError") {
@@ -476,7 +493,7 @@ export default function EconomyDashboardScreen() {
         {isEconomyOverviewLoading && (
           <StateNoticeCard
             title="Loading"
-            message="Fetching dashboard snapshot from the server…"
+            message="Fetching sector dashboards from the server…"
             borderColor={semantic.cardBorder}
             backgroundColor={semantic.cardBackground}
             messageColor={semantic.mutedText}

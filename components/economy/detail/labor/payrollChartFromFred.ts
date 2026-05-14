@@ -119,27 +119,30 @@ function collectSortedValidPayemsPairs(observations: FredObservationRow[]): Sort
 }
 
 /**
- * Net change in PAYEMS **level** (thousands of persons) from the **first** to **last**
- * chronological observation in `observations` (typically a filtered FRED window).
+ * Net payroll change (thousands of persons) over the observations in `observations`.
+ * Values must be **month-over-month deltas** from {@link getFredObservations} (`PAYEMS/delta`);
+ * the net change in levels over the span is the **sum** of those deltas.
  */
 export function computePayrollSpanNetLevelDeltaThousands(
   observations: FredObservationRow[],
 ): number | null {
   const pairs = collectSortedValidPayemsPairs(observations);
-  if (pairs.length < 2) {
+  if (pairs.length < 1) {
     return null;
   }
-  const vFirst = parseObservationNumber(pairs[0].row.value);
-  const vLast = parseObservationNumber(pairs[pairs.length - 1].row.value);
-  if (vFirst == null || vLast == null) {
-    return null;
+  let sum = 0;
+  for (const p of pairs) {
+    const v = parseObservationNumber(p.row.value);
+    if (v != null) {
+      sum += v;
+    }
   }
-  return vLast - vFirst;
+  return sum;
 }
 
 /**
  * Same as {@link computePayrollSpanNetLevelDeltaThousands} but restricted to `calendarYear`
- * Jan–Dec (first vs last valid print in that calendar year).
+ * Jan–Dec (sum of every MoM delta in that calendar year).
  */
 export function computeCalendarYearPayrollNetLevelDeltaThousands(
   observations: FredObservationRow[],
@@ -150,35 +153,38 @@ export function computeCalendarYearPayrollNetLevelDeltaThousands(
   const pairs = collectSortedValidPayemsPairs(observations).filter(
     (p) => p.date >= start && p.date <= end,
   );
-  if (pairs.length < 2) {
+  if (pairs.length < 1) {
     return null;
   }
-  const vFirst = parseObservationNumber(pairs[0].row.value);
-  const vLast = parseObservationNumber(pairs[pairs.length - 1].row.value);
-  if (vFirst == null || vLast == null) {
-    return null;
+  let sum = 0;
+  for (const p of pairs) {
+    const v = parseObservationNumber(p.row.value);
+    if (v != null) {
+      sum += v;
+    }
   }
-  return vLast - vFirst;
+  return sum;
 }
 
 /**
- * Net change in PAYEMS **level** (thousands of persons) between the **first and last bar that
- * carry data** on the chart, in left-to-right order. This is the aggregate implied by whatever
- * year or trailing window the chart is currently showing (including skeleton months with gaps).
+ * Net payroll change (thousands) implied by the chart: **sum** of each bar’s MoM delta
+ * (`PAYEMS/delta` proxy). Bar order does not matter. Requires at least one month with data.
  */
 export function computeDisplayedChartNetLevelDeltaThousands(
   chart: PayrollChartFromFred,
 ): number | null {
-  const levels: number[] = [];
+  let sum = 0;
+  let count = 0;
   for (const b of chart.bars) {
     if (b.hasObservation && b.levelThousands != null) {
-      levels.push(b.levelThousands);
+      sum += b.levelThousands;
+      count += 1;
     }
   }
-  if (levels.length < 2) {
+  if (count < 1) {
     return null;
   }
-  return levels[levels.length - 1]! - levels[0]!;
+  return sum;
 }
 
 /**

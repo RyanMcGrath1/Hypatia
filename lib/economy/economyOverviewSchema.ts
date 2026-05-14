@@ -1,7 +1,7 @@
 import { z } from 'zod';
 
 /**
- * Zod contract for `GET /api/economy/overview` (hypatia-backend).
+ * Zod contract for merged `GET /api/economy/{sector}/dashboard` responses (hypatia-backend).
  * Sections may be success payloads or per-series error objects from FRED.
  */
 

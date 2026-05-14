@@ -27,9 +27,12 @@ const HYPATIA_PRIMARY_METRIC_BG = "#4A6CF7";
 const DECOR_ICON_COLOR = "rgba(255, 255, 255, 0.2)";
 
 export type YearlyTotalJobsPrimaryCardProps = {
-  /** Net level change (thousands) for the chart on screen — see `computeDisplayedChartNetLevelDeltaThousands`. */
+  /**
+   * Net payroll change (thousands) for the PAYEMS chart: sum of MoM deltas in the visible window
+   * — see `computeDisplayedChartNetLevelDeltaThousands`. Ignored when `heroValueLabel` is set.
+   */
   netThousands: number | null;
-  /** Shown when `netThousands` is null. */
+  /** Shown when `netThousands` is null and `heroValueLabel` is unset. */
   fallbackValueLabel?: string;
   /** e.g. `+1.2% YoY` — optional pill in ② (right of hero value). */
   badgeLabel?: string;
@@ -37,6 +40,13 @@ export type YearlyTotalJobsPrimaryCardProps = {
   subtitle?: string;
   /** When true, ② shows `loadingRow` instead of value + badge. */
   loading?: boolean;
+  /** Overrides ① — default `YEARLY TOTAL JOBS` (PAYEMS). Use API series label in uppercase when set. */
+  kickerLabel?: string;
+  /**
+   * When set, shown as the hero figure instead of formatting `netThousands` (e.g. economy detail headline
+   * or API-derived net change string).
+   */
+  heroValueLabel?: string;
 };
 
 /**
@@ -48,14 +58,18 @@ export function YearlyTotalJobsPrimaryCard({
   badgeLabel,
   subtitle,
   loading,
+  kickerLabel,
+  heroValueLabel,
 }: YearlyTotalJobsPrimaryCardProps) {
   const valueLabel =
-    netThousands != null
-      ? formatPayemsMomDeltaShort(netThousands)
-      : fallbackValueLabel;
+    heroValueLabel != null && heroValueLabel.trim() !== ""
+      ? heroValueLabel.trim()
+      : netThousands != null
+        ? formatPayemsMomDeltaShort(netThousands)
+        : fallbackValueLabel;
 
   const a11y = [
-    "Yearly total jobs",
+    kickerLabel?.trim() || "Yearly total jobs",
     valueLabel,
     badgeLabel,
     subtitle,
@@ -78,7 +92,7 @@ export function YearlyTotalJobsPrimaryCard({
       {/* ─── Layer 1: text stack (sits above watermark) ─── */}
       <View style={styles.content}>
         {/* ① Header label */}
-        <Text style={styles.kicker}>YEARLY TOTAL JOBS</Text>
+        <Text style={styles.kicker}>{kickerLabel?.trim() || "YEARLY TOTAL JOBS"}</Text>
 
         {loading ? (
           /* Loading branch: same vertical role as `metricRow` */

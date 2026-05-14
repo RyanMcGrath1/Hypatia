@@ -1,5 +1,6 @@
 /**
- * `GET /api/economy/overview` response — two most recent observations per section (newest first).
+ * Per-sector `GET /api/economy/{sector}/dashboard` payloads (merged on the client) — each
+ * section lists the two most recent observations (newest first) when successful.
  */
 import { economyOverviewResponseSchema } from '@/lib/economy/economyOverviewSchema';
 
