@@ -17,6 +17,7 @@ import {
 } from "@/components/economy/detail/labor/laborMarketPayrollChart";
 import {
   PayrollRangeFilterModal,
+  type PayrollRangeCommitPayload,
   type PayrollRangeFilterCloseReason,
 } from "@/components/economy/detail/labor/PayrollRangeFilterModal";
 import type { PayrollChartFromFred } from "@/components/economy/detail/labor/payrollChartFromFred";
@@ -47,16 +48,19 @@ export type LaborPayrollJobsCreatedCardProps = {
   payrollLoading: boolean;
   payrollError: string | null;
   payrollObservationsRaw: FredObservationRow[];
-  payrollRangeStartIdx: number;
-  payrollRangeEndIdx: number;
-  onPayrollRangeChange: (lo: number, hi: number) => void;
+  payrollCommittedObservationStart: string;
+  payrollCommittedObservationEnd: string;
+  payrollSeriesLatestMonthKey: string;
   payrollHeroDisplay: PayrollHeroDisplay;
   payrollAxis: PayrollAxisModel;
   payrollChart: PayrollChartFromFred | null;
   selectedBarIndex: number | null;
   onSelectBarIndex: (index: number) => void;
   rangeFilterOpen: boolean;
-  onRequestCloseRangeFilter: (reason: PayrollRangeFilterCloseReason) => void;
+  onRequestCloseRangeFilter: (
+    reason: PayrollRangeFilterCloseReason,
+    commit?: PayrollRangeCommitPayload,
+  ) => void;
   primaryMetricCard: LaborPrimaryMetric;
 };
 
@@ -68,9 +72,9 @@ export function LaborPayrollJobsCreatedCard({
   payrollLoading,
   payrollError,
   payrollObservationsRaw,
-  payrollRangeStartIdx,
-  payrollRangeEndIdx,
-  onPayrollRangeChange,
+  payrollCommittedObservationStart,
+  payrollCommittedObservationEnd,
+  payrollSeriesLatestMonthKey,
   payrollHeroDisplay,
   payrollAxis,
   payrollChart,
@@ -364,10 +368,9 @@ export function LaborPayrollJobsCreatedCard({
       <PayrollRangeFilterModal
         visible={rangeFilterOpen}
         onClose={onRequestCloseRangeFilter}
-        observations={payrollObservationsRaw}
-        startIdx={payrollRangeStartIdx}
-        endIdx={payrollRangeEndIdx}
-        onChangeRange={onPayrollRangeChange}
+        committedObservationStart={payrollCommittedObservationStart}
+        committedObservationEnd={payrollCommittedObservationEnd}
+        seriesLastMonthKey={payrollSeriesLatestMonthKey}
       />
     </EconomyCard>
   );

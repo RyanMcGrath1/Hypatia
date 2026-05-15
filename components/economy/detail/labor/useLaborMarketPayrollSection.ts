@@ -1,12 +1,14 @@
-import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 
 import {
   buildPayrollAxisFromChart,
   buildPayrollHeroDisplay,
   isAbortError,
-  PAYEMS_FETCH_LIMIT,
 } from "@/components/economy/detail/labor/laborMarketPayrollChart";
-import type { PayrollRangeFilterCloseReason } from "@/components/economy/detail/labor/PayrollRangeFilterModal";
+import type {
+  PayrollRangeCommitPayload,
+  PayrollRangeFilterCloseReason,
+} from "@/components/economy/detail/labor/PayrollRangeFilterModal";
 import {
   buildPayrollChartFromFredObservations,
   computeCalendarYearPayrollNetLevelDeltaThousands,
@@ -18,9 +20,11 @@ import {
   type FredObservationRow,
 } from "@/hooks/api/fredObservations";
 import {
-  clampPayrollRangeIndices,
   formatMonthYearShortDisplay,
+  monthKeyFromObservationDate,
+  payrollDefaultSeriesLastMonthKeyUtc,
   payrollDefaultYtdBoundsUtc,
+  payrollFredObservationFetchLimit,
 } from "@/lib/economy/payrollMonthRange";
 
 export type LaborMarketPayrollHeroTheme = {
@@ -32,16 +36,17 @@ export type LaborMarketPayrollHeroTheme = {
 export function useLaborMarketPayrollSection(heroTheme: LaborMarketPayrollHeroTheme) {
   const { mutedText, green, danger } = heroTheme;
 
-  const rangeIdxRef = useRef({ lo: 0, hi: 0 });
   const [payrollFetchWindow, setPayrollFetchWindow] = useState(payrollDefaultYtdBoundsUtc);
+
+  const [payrollSeriesLatestMonthKey, setPayrollSeriesLatestMonthKey] = useState(
+    payrollDefaultSeriesLastMonthKeyUtc,
+  );
 
   const [payrollLoading, setPayrollLoading] = useState(true);
   const [payrollError, setPayrollError] = useState<string | null>(null);
   const [payrollObservationsRaw, setPayrollObservationsRaw] = useState<
     FredObservationRow[]
   >([]);
-  const [payrollRangeStartIdx, setPayrollRangeStartIdx] = useState(0);
-  const [payrollRangeEndIdx, setPayrollRangeEndIdx] = useState(0);
   const [selectedBarIndex, setSelectedBarIndex] = useState<number | null>(null);
   const [rangeFilterOpen, setRangeFilterOpen] = useState(false);
 
@@ -49,41 +54,44 @@ export function useLaborMarketPayrollSection(heroTheme: LaborMarketPayrollHeroTh
     if (payrollObservationsRaw.length === 0) {
       return null;
     }
-    const { lo, hi } = clampPayrollRangeIndices(
-      payrollObservationsRaw,
-      payrollRangeStartIdx,
-      payrollRangeEndIdx,
-    );
-    const filtered = payrollObservationsRaw.slice(lo, hi + 1);
-    if (filtered.length === 0) {
-      return null;
-    }
-    return buildPayrollChartFromFredObservations(filtered, filtered.length);
-  }, [payrollObservationsRaw, payrollRangeStartIdx, payrollRangeEndIdx]);
-
-  useEffect(() => {
-    if (payrollObservationsRaw.length === 0) {
-      rangeIdxRef.current = { lo: 0, hi: 0 };
-      return;
-    }
     const n = payrollObservationsRaw.length;
-    const hi = n - 1;
-    rangeIdxRef.current = { lo: 0, hi };
-    setPayrollRangeEndIdx(hi);
-    setPayrollRangeStartIdx(0);
+    return buildPayrollChartFromFredObservations(payrollObservationsRaw, n);
   }, [payrollObservationsRaw]);
 
   useEffect(() => {
-    if (!payrollChart?.bars?.length) {
-      setSelectedBarIndex(null);
-      return;
+    const ac = new AbortController();
+    let cancelled = false;
+
+    async function probeLatestMonth() {
+      try {
+        const w = payrollDefaultYtdBoundsUtc();
+        const data = await getFredObservations(
+          {
+            observationStart: "1948-01-01",
+            observationEnd: w.observationEnd,
+            limit: 1,
+            sortOrder: "desc",
+          },
+          ac.signal,
+        );
+        if (cancelled) {
+          return;
+        }
+        const mk = monthKeyFromObservationDate(data.observations?.[0]?.date);
+        if (mk) {
+          setPayrollSeriesLatestMonthKey(mk);
+        }
+      } catch {
+        /* ignore; fallback remains default / main fetch */
+      }
     }
-    const withData = payrollChart.bars
-      .map((b, i) => (b.hasObservation ? i : -1))
-      .filter((i) => i >= 0);
-    const lastIdx = withData.length > 0 ? withData[withData.length - 1]! : null;
-    setSelectedBarIndex(lastIdx);
-  }, [payrollChart]);
+
+    void probeLatestMonth();
+    return () => {
+      cancelled = true;
+      ac.abort();
+    };
+  }, []);
 
   useEffect(() => {
     const ac = new AbortController();
@@ -93,11 +101,15 @@ export function useLaborMarketPayrollSection(heroTheme: LaborMarketPayrollHeroTh
       setPayrollLoading(true);
       setPayrollError(null);
       try {
+        const limit = payrollFredObservationFetchLimit(
+          payrollFetchWindow.observationStart,
+          payrollFetchWindow.observationEnd,
+        );
         const data = await getFredObservations(
           {
             observationStart: payrollFetchWindow.observationStart,
             observationEnd: payrollFetchWindow.observationEnd,
-            limit: PAYEMS_FETCH_LIMIT,
+            limit,
             sortOrder: "desc",
           },
           ac.signal,
@@ -134,53 +146,60 @@ export function useLaborMarketPayrollSection(heroTheme: LaborMarketPayrollHeroTh
     };
   }, [payrollFetchWindow]);
 
+  useEffect(() => {
+    if (payrollObservationsRaw.length === 0) {
+      return;
+    }
+    const tail =
+      payrollObservationsRaw[payrollObservationsRaw.length - 1]?.date;
+    const mk = monthKeyFromObservationDate(tail);
+    if (mk) {
+      setPayrollSeriesLatestMonthKey((prev) => (mk > prev ? mk : prev));
+    }
+  }, [payrollObservationsRaw]);
+
+  useEffect(() => {
+    if (!payrollChart?.bars?.length) {
+      setSelectedBarIndex(null);
+      return;
+    }
+    const withData = payrollChart.bars
+      .map((b, i) => (b.hasObservation ? i : -1))
+      .filter((i) => i >= 0);
+    const lastIdx = withData.length > 0 ? withData[withData.length - 1]! : null;
+    setSelectedBarIndex(lastIdx);
+  }, [payrollChart]);
+
   const payrollRangeA11yLabel = useMemo(() => {
     if (payrollObservationsRaw.length === 0) {
       return "Chart time range";
     }
-    const { lo, hi } = clampPayrollRangeIndices(
-      payrollObservationsRaw,
-      payrollRangeStartIdx,
-      payrollRangeEndIdx,
+    const a = formatMonthYearShortDisplay(payrollObservationsRaw[0]?.date);
+    const b = formatMonthYearShortDisplay(
+      payrollObservationsRaw[payrollObservationsRaw.length - 1]?.date,
     );
-    const a = formatMonthYearShortDisplay(payrollObservationsRaw[lo]?.date);
-    const b = formatMonthYearShortDisplay(payrollObservationsRaw[hi]?.date);
     return `${a} through ${b}`;
-  }, [payrollObservationsRaw, payrollRangeStartIdx, payrollRangeEndIdx]);
-
-  const onPayrollRangeChange = useCallback((lo: number, hi: number) => {
-    rangeIdxRef.current = { lo, hi };
-    setPayrollRangeStartIdx(lo);
-    setPayrollRangeEndIdx(hi);
-  }, []);
+  }, [payrollObservationsRaw]);
 
   const onPayrollRangeFilterModalClose = useCallback(
-    (reason: PayrollRangeFilterCloseReason) => {
+    (reason: PayrollRangeFilterCloseReason, commit?: PayrollRangeCommitPayload) => {
       setRangeFilterOpen(false);
-      if (reason !== "confirm" || payrollObservationsRaw.length === 0) {
+      if (reason !== "confirm" || commit == null) {
         return;
       }
-      const { lo, hi } = clampPayrollRangeIndices(
-        payrollObservationsRaw,
-        rangeIdxRef.current.lo,
-        rangeIdxRef.current.hi,
-      );
-      const rawLo = payrollObservationsRaw[lo]?.date;
-      const rawHi = payrollObservationsRaw[hi]?.date;
-      if (!rawLo?.trim() || !rawHi?.trim()) {
+      const { observationStart, observationEnd } = commit;
+      if (!observationStart?.trim() || !observationEnd?.trim()) {
         return;
       }
-      const d0 = rawLo.trim().slice(0, 10);
-      const d1 = rawHi.trim().slice(0, 10);
-      const observationStart = d0 <= d1 ? d0 : d1;
-      const observationEnd = d0 <= d1 ? d1 : d0;
+      const s0 = observationStart.trim().slice(0, 10);
+      const s1 = observationEnd.trim().slice(0, 10);
       setPayrollFetchWindow((prev) =>
-        prev.observationStart === observationStart && prev.observationEnd === observationEnd
+        prev.observationStart === s0 && prev.observationEnd === s1
           ? prev
-          : { observationStart, observationEnd },
+          : { observationStart: s0, observationEnd: s1 },
       );
     },
-    [payrollObservationsRaw],
+    [],
   );
 
   const selectedBar =
@@ -214,20 +233,12 @@ export function useLaborMarketPayrollSection(heroTheme: LaborMarketPayrollHeroTh
     if (!payrollChart || payrollObservationsRaw.length === 0) {
       return undefined;
     }
-    const { lo, hi } = clampPayrollRangeIndices(
-      payrollObservationsRaw,
-      payrollRangeStartIdx,
-      payrollRangeEndIdx,
+    const a = formatMonthYearShortDisplay(payrollObservationsRaw[0]?.date);
+    const b = formatMonthYearShortDisplay(
+      payrollObservationsRaw[payrollObservationsRaw.length - 1]?.date,
     );
-    const a = formatMonthYearShortDisplay(payrollObservationsRaw[lo]?.date);
-    const b = formatMonthYearShortDisplay(payrollObservationsRaw[hi]?.date);
     return `Accumulated growth from payroll MoM prints in the selected window (${a}–${b}).`;
-  }, [
-    payrollChart,
-    payrollObservationsRaw,
-    payrollRangeStartIdx,
-    payrollRangeEndIdx,
-  ]);
+  }, [payrollChart, payrollObservationsRaw]);
 
   const yearlyTotalJobsBadgeLabel = useMemo(() => {
     if (
@@ -261,9 +272,8 @@ export function useLaborMarketPayrollSection(heroTheme: LaborMarketPayrollHeroTh
     payrollLoading,
     payrollError,
     payrollObservationsRaw,
-    payrollRangeStartIdx,
-    payrollRangeEndIdx,
-    onPayrollRangeChange,
+    payrollFetchWindow,
+    payrollSeriesLatestMonthKey,
     onPayrollRangeFilterModalClose,
     payrollRangeA11yLabel,
     payrollChart,

@@ -43,9 +43,8 @@ export function LaborMarketDetailView() {
     payrollLoading,
     payrollError,
     payrollObservationsRaw,
-    payrollRangeStartIdx,
-    payrollRangeEndIdx,
-    onPayrollRangeChange,
+    payrollFetchWindow,
+    payrollSeriesLatestMonthKey,
     onPayrollRangeFilterModalClose,
     payrollRangeA11yLabel,
     payrollChart,
@@ -170,9 +169,9 @@ export function LaborMarketDetailView() {
         payrollLoading={payrollLoading}
         payrollError={payrollError}
         payrollObservationsRaw={payrollObservationsRaw}
-        payrollRangeStartIdx={payrollRangeStartIdx}
-        payrollRangeEndIdx={payrollRangeEndIdx}
-        onPayrollRangeChange={onPayrollRangeChange}
+        payrollCommittedObservationStart={payrollFetchWindow.observationStart}
+        payrollCommittedObservationEnd={payrollFetchWindow.observationEnd}
+        payrollSeriesLatestMonthKey={payrollSeriesLatestMonthKey}
         payrollHeroDisplay={payrollHeroDisplay}
         payrollAxis={payrollAxis}
         payrollChart={payrollChart}

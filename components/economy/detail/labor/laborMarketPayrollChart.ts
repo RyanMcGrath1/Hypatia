@@ -4,9 +4,6 @@ import {
   type PayrollChartFromFred,
 } from "@/components/economy/detail/labor/payrollChartFromFred";
 
-/** Latest N PAYEMS prints (`sort_order=desc` on FRED); enough for multi-year UI ranges. */
-export const PAYEMS_FETCH_LIMIT = 72;
-
 /** Diverging plot geometry — must match bar halves + inter-half margins in styles. */
 export const PAYROLL_DIVERGE_HALF_PX = 68;
 export const PAYROLL_DIVERGE_GUTTER_PX = 2;
