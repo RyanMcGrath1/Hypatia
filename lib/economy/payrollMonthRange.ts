@@ -127,3 +127,15 @@ export function clampPayrollRangeIndices(
   const lo = Math.max(0, Math.min(startIdx, hi));
   return { lo, hi };
 }
+
+/** UTC year-to-date: Jan 1 through today (`YYYY-MM-DD`). */
+export function payrollDefaultYtdBoundsUtc(): {
+  observationStart: string;
+  observationEnd: string;
+} {
+  const now = new Date();
+  const y = now.getUTCFullYear();
+  const m = String(now.getUTCMonth() + 1).padStart(2, "0");
+  const d = String(now.getUTCDate()).padStart(2, "0");
+  return { observationStart: `${y}-01-01`, observationEnd: `${y}-${m}-${d}` };
+}

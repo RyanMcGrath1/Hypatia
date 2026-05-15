@@ -75,20 +75,21 @@ export async function fetchCivicDivisionsByAddress(
 }
 
 /**
- * `GET {base}/api/economy/{sectorId}/dashboard` — one Economy tab tile (e.g. `labor` →
- * `/api/economy/labor/dashboard`). Response shape matches a single-sector slice of the former
- * combined dashboard: `{ as_of, sections: { … } }`.
- * Base URL follows `getNewsApiBaseUrl()` (news stack / Metro proxy on web).
+ * `GET {base}/api/economy/overview` — full Economy tab snapshot (`as_of`, `sections` for all
+ * overview series). Base URL follows `getNewsApiBaseUrl()` (news stack / Metro proxy on web).
  */
-export async function fetchEconomySectorDashboard(
-  sectorId: string,
+export async function fetchEconomyOverview(
   signal?: AbortSignal,
+  observationEnd?: string,
 ): Promise<unknown> {
-  const seg = encodeURIComponent(sectorId.trim());
+  const searchParams: Record<string, string> | undefined =
+    observationEnd?.trim()
+      ? { observation_end: observationEnd.trim() }
+      : undefined;
   return fetchApiGet(
     getNewsApiBaseUrl(),
-    `/api/economy/${seg}/dashboard`,
-    undefined,
+    '/api/economy/overview',
+    searchParams,
     signal,
   );
 }

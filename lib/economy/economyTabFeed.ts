@@ -28,7 +28,7 @@ export type FeedRow = {
   overviewSectionBound: boolean;
 };
 
-/** Matches `sections` keys from `GET /api/economy/{id}/dashboard` via {@link SECTOR_ID_TO_OVERVIEW_KEY}. */
+/** Matches `sections` keys from `GET /api/economy/overview` via {@link SECTOR_ID_TO_OVERVIEW_KEY}. */
 export const ECONOMY_FEED_IDS = ["labor", "inflation", "rates", "gdp"] as const;
 
 export function trendVisual(trend: SectorTrend, isDark: boolean) {

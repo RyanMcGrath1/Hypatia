@@ -15,7 +15,10 @@ import {
   type PayrollAxisModel,
   type PayrollHeroDisplay,
 } from "@/components/economy/detail/labor/laborMarketPayrollChart";
-import { PayrollRangeFilterModal } from "@/components/economy/detail/labor/PayrollRangeFilterModal";
+import {
+  PayrollRangeFilterModal,
+  type PayrollRangeFilterCloseReason,
+} from "@/components/economy/detail/labor/PayrollRangeFilterModal";
 import type { PayrollChartFromFred } from "@/components/economy/detail/labor/payrollChartFromFred";
 import { YearlyTotalJobsPrimaryCard } from "@/components/economy/detail/labor/YearlyTotalJobsPrimaryCard";
 import { EconomyCard } from "@/components/economy/detail/shared/EconomyCard";
@@ -53,7 +56,7 @@ export type LaborPayrollJobsCreatedCardProps = {
   selectedBarIndex: number | null;
   onSelectBarIndex: (index: number) => void;
   rangeFilterOpen: boolean;
-  onRequestCloseRangeFilter: () => void;
+  onRequestCloseRangeFilter: (reason: PayrollRangeFilterCloseReason) => void;
   primaryMetricCard: LaborPrimaryMetric;
 };
 

@@ -1,6 +1,5 @@
 /**
- * Per-sector `GET /api/economy/{sector}/dashboard` payloads (merged on the client) — each
- * section lists the two most recent observations (newest first) when successful.
+ * `GET /api/economy/overview` payload — `sections` may include per-series FRED error objects.
  */
 import { economyOverviewResponseSchema } from '@/lib/economy/economyOverviewSchema';
 

@@ -101,7 +101,7 @@ export default function EconomyDashboardScreen() {
         {isEconomyOverviewLoading && (
           <StateNoticeCard
             title="Loading"
-            message="Fetching sector dashboards from the server…"
+            message="Fetching economy overview…"
             borderColor={semantic.cardBorder}
             backgroundColor={semantic.cardBackground}
             messageColor={semantic.mutedText}

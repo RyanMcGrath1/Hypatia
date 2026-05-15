@@ -10,6 +10,8 @@ import { useSafeAreaInsets } from "react-native-safe-area-context";
 
 import {
   DualRangeSlider,
+  type DualRangeThumbTooltip,
+  PAYROLL_RANGE_SLIDER_DISCRETE_POSITIONS,
   dualRangeSliderPadStyle,
 } from "@/components/economy/detail/labor/DualRangeSlider";
 import { ThemedText } from "@/components/theme/ThemedText";
@@ -27,9 +29,11 @@ import {
   parsePayrollFilterMonthInput,
 } from "@/lib/economy/payrollMonthRange";
 
+export type PayrollRangeFilterCloseReason = "confirm" | "dismiss";
+
 export type PayrollRangeFilterModalProps = {
   visible: boolean;
-  onClose: () => void;
+  onClose: (reason: PayrollRangeFilterCloseReason) => void;
   observations: FredObservationRow[];
   startIdx: number;
   endIdx: number;
@@ -98,6 +102,21 @@ export function PayrollRangeFilterModal({
     [observations, onChangeRange],
   );
 
+  const confirmClose = useCallback(() => {
+    applyDrafts();
+    onClose("confirm");
+  }, [applyDrafts, onClose]);
+
+  const thumbTooltip = useMemo<DualRangeThumbTooltip>(
+    () => ({
+      getLabel: (i: number) => formatMonthYearShortDisplay(observations[i]?.date),
+      textColor: theme.text,
+      backgroundColor: semantic.cardBackground,
+      borderColor: semantic.hairline,
+    }),
+    [observations, semantic.cardBackground, semantic.hairline, theme.text],
+  );
+
   const trackMuted = semantic.hairline;
   const rangeTint = interactive.primarySoft;
   const thumbFill = semantic.cardBackground;
@@ -107,14 +126,14 @@ export function PayrollRangeFilterModal({
       visible={visible}
       transparent
       animationType="slide"
-      onRequestClose={onClose}
+      onRequestClose={() => onClose("dismiss")}
     >
       <View style={styles.modalRoot} pointerEvents="box-none">
         <Pressable
           accessibilityRole="button"
           accessibilityLabel="Dismiss time range picker"
           style={styles.scrim}
-          onPress={onClose}
+          onPress={() => onClose("dismiss")}
         />
         <View
           style={[
@@ -139,9 +158,11 @@ export function PayrollRangeFilterModal({
               <View style={dualRangeSliderPadStyle}>
                 <DualRangeSlider
                   count={count}
+                  discretePositionCount={PAYROLL_RANGE_SLIDER_DISCRETE_POSITIONS}
                   lowIndex={lo}
                   highIndex={hi}
                   onChange={onSliderChange}
+                  thumbTooltip={thumbTooltip}
                   trackColor={trackMuted}
                   rangeColor={rangeTint}
                   thumbBorder={interactive.primary}
@@ -203,7 +224,7 @@ export function PayrollRangeFilterModal({
               <Pressable
                 accessibilityRole="button"
                 accessibilityLabel="Done"
-                onPress={onClose}
+                onPress={confirmClose}
                 style={({ pressed }) => [
                   styles.doneBtn,
                   {

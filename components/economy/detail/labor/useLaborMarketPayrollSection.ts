@@ -6,6 +6,7 @@ import {
   isAbortError,
   PAYEMS_FETCH_LIMIT,
 } from "@/components/economy/detail/labor/laborMarketPayrollChart";
+import type { PayrollRangeFilterCloseReason } from "@/components/economy/detail/labor/PayrollRangeFilterModal";
 import {
   buildPayrollChartFromFredObservations,
   computeCalendarYearPayrollNetLevelDeltaThousands,
@@ -19,6 +20,7 @@ import {
 import {
   clampPayrollRangeIndices,
   formatMonthYearShortDisplay,
+  payrollDefaultYtdBoundsUtc,
 } from "@/lib/economy/payrollMonthRange";
 
 export type LaborMarketPayrollHeroTheme = {
@@ -30,6 +32,9 @@ export type LaborMarketPayrollHeroTheme = {
 export function useLaborMarketPayrollSection(heroTheme: LaborMarketPayrollHeroTheme) {
   const { mutedText, green, danger } = heroTheme;
 
+  const rangeIdxRef = useRef({ lo: 0, hi: 0 });
+  const [payrollFetchWindow, setPayrollFetchWindow] = useState(payrollDefaultYtdBoundsUtc);
+
   const [payrollLoading, setPayrollLoading] = useState(true);
   const [payrollError, setPayrollError] = useState<string | null>(null);
   const [payrollObservationsRaw, setPayrollObservationsRaw] = useState<
@@ -37,7 +42,6 @@ export function useLaborMarketPayrollSection(heroTheme: LaborMarketPayrollHeroTh
   >([]);
   const [payrollRangeStartIdx, setPayrollRangeStartIdx] = useState(0);
   const [payrollRangeEndIdx, setPayrollRangeEndIdx] = useState(0);
-  const payrollRangeInitRef = useRef(false);
   const [selectedBarIndex, setSelectedBarIndex] = useState<number | null>(null);
   const [rangeFilterOpen, setRangeFilterOpen] = useState(false);
 
@@ -59,16 +63,14 @@ export function useLaborMarketPayrollSection(heroTheme: LaborMarketPayrollHeroTh
 
   useEffect(() => {
     if (payrollObservationsRaw.length === 0) {
-      payrollRangeInitRef.current = false;
+      rangeIdxRef.current = { lo: 0, hi: 0 };
       return;
     }
-    if (payrollRangeInitRef.current) {
-      return;
-    }
-    payrollRangeInitRef.current = true;
     const n = payrollObservationsRaw.length;
-    setPayrollRangeEndIdx(n - 1);
-    setPayrollRangeStartIdx(Math.max(0, n - 12));
+    const hi = n - 1;
+    rangeIdxRef.current = { lo: 0, hi };
+    setPayrollRangeEndIdx(hi);
+    setPayrollRangeStartIdx(0);
   }, [payrollObservationsRaw]);
 
   useEffect(() => {
@@ -93,6 +95,8 @@ export function useLaborMarketPayrollSection(heroTheme: LaborMarketPayrollHeroTh
       try {
         const data = await getFredObservations(
           {
+            observationStart: payrollFetchWindow.observationStart,
+            observationEnd: payrollFetchWindow.observationEnd,
             limit: PAYEMS_FETCH_LIMIT,
             sortOrder: "desc",
           },
@@ -128,7 +132,7 @@ export function useLaborMarketPayrollSection(heroTheme: LaborMarketPayrollHeroTh
       cancelled = true;
       ac.abort();
     };
-  }, []);
+  }, [payrollFetchWindow]);
 
   const payrollRangeA11yLabel = useMemo(() => {
     if (payrollObservationsRaw.length === 0) {
@@ -145,9 +149,39 @@ export function useLaborMarketPayrollSection(heroTheme: LaborMarketPayrollHeroTh
   }, [payrollObservationsRaw, payrollRangeStartIdx, payrollRangeEndIdx]);
 
   const onPayrollRangeChange = useCallback((lo: number, hi: number) => {
+    rangeIdxRef.current = { lo, hi };
     setPayrollRangeStartIdx(lo);
     setPayrollRangeEndIdx(hi);
   }, []);
+
+  const onPayrollRangeFilterModalClose = useCallback(
+    (reason: PayrollRangeFilterCloseReason) => {
+      setRangeFilterOpen(false);
+      if (reason !== "confirm" || payrollObservationsRaw.length === 0) {
+        return;
+      }
+      const { lo, hi } = clampPayrollRangeIndices(
+        payrollObservationsRaw,
+        rangeIdxRef.current.lo,
+        rangeIdxRef.current.hi,
+      );
+      const rawLo = payrollObservationsRaw[lo]?.date;
+      const rawHi = payrollObservationsRaw[hi]?.date;
+      if (!rawLo?.trim() || !rawHi?.trim()) {
+        return;
+      }
+      const d0 = rawLo.trim().slice(0, 10);
+      const d1 = rawHi.trim().slice(0, 10);
+      const observationStart = d0 <= d1 ? d0 : d1;
+      const observationEnd = d0 <= d1 ? d1 : d0;
+      setPayrollFetchWindow((prev) =>
+        prev.observationStart === observationStart && prev.observationEnd === observationEnd
+          ? prev
+          : { observationStart, observationEnd },
+      );
+    },
+    [payrollObservationsRaw],
+  );
 
   const selectedBar =
     payrollChart != null && selectedBarIndex != null
@@ -230,6 +264,7 @@ export function useLaborMarketPayrollSection(heroTheme: LaborMarketPayrollHeroTh
     payrollRangeStartIdx,
     payrollRangeEndIdx,
     onPayrollRangeChange,
+    onPayrollRangeFilterModalClose,
     payrollRangeA11yLabel,
     payrollChart,
     selectedBarIndex,

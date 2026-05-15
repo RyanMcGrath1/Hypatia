@@ -2,7 +2,7 @@
  * Hypatia backend proxy for PAYEMS monthly deltas (`FRED_API_KEY` stays server-side).
  * GET `{newsApiBase}/api/economy/fred/series/PAYEMS/delta?...`
  *
- * Base URL matches {@link fetchEconomySectorDashboard} / news stack so Expo web dev can use the Metro proxy.
+ * Base URL matches {@link fetchEconomyOverview} / news stack so Expo web dev can use the Metro proxy.
  */
 import { getNewsApiBaseUrl } from "@/hooks/api/newsApi";
 

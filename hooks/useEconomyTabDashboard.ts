@@ -1,12 +1,11 @@
 import { useEffect, useState } from "react";
 
-import { fetchEconomySectorDashboard } from "@/hooks/api/flaskMainApi";
+import { fetchEconomyOverview } from "@/hooks/api/flaskMainApi";
 import { getNewsApiNetworkErrorMessage } from "@/hooks/api/newsApi";
 import {
   type EconomyOverviewApiResponse,
+  parseEconomyOverviewResponse,
 } from "@/lib/economy/economyOverviewTypes";
-import { mergeEconomySectorDashboardResponses } from "@/lib/economy/mergeEconomySectorDashboardResponses";
-import { ECONOMY_FEED_IDS } from "@/lib/economy/economyTabFeed";
 
 export function useEconomyTabDashboard() {
   const [economyOverview, setEconomyOverview] =
@@ -25,26 +24,16 @@ export function useEconomyTabDashboard() {
       try {
         setIsEconomyOverviewLoading(true);
         setEconomyOverviewError(null);
-        const settled = await Promise.allSettled(
-          ECONOMY_FEED_IDS.map((id) =>
-            fetchEconomySectorDashboard(id, controller.signal),
-          ),
-        );
-        if (!cancelled) {
-          const merged = mergeEconomySectorDashboardResponses(settled);
-          if (merged) {
-            setEconomyOverview(merged);
-          } else {
-            setEconomyOverview(null);
-            const firstRejection = settled.find(
-              (r): r is PromiseRejectedResult => r.status === "rejected",
-            );
-            const reason =
-              firstRejection?.reason instanceof Error
-                ? firstRejection.reason.message
-                : "Could not load economy sector dashboards.";
-            setEconomyOverviewError(reason);
-          }
+        const raw = await fetchEconomyOverview(controller.signal);
+        if (cancelled) {
+          return;
+        }
+        const parsed = parseEconomyOverviewResponse(raw);
+        if (parsed) {
+          setEconomyOverview(parsed);
+        } else {
+          setEconomyOverview(null);
+          setEconomyOverviewError("Could not parse economy overview response.");
         }
       } catch (err) {
         if (err instanceof Error && err.name === "AbortError") {

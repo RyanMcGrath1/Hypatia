@@ -46,6 +46,7 @@ export function LaborMarketDetailView() {
     payrollRangeStartIdx,
     payrollRangeEndIdx,
     onPayrollRangeChange,
+    onPayrollRangeFilterModalClose,
     payrollRangeA11yLabel,
     payrollChart,
     selectedBarIndex,
@@ -178,7 +179,7 @@ export function LaborMarketDetailView() {
         selectedBarIndex={selectedBarIndex}
         onSelectBarIndex={setSelectedBarIndex}
         rangeFilterOpen={rangeFilterOpen}
-        onRequestCloseRangeFilter={() => setRangeFilterOpen(false)}
+        onRequestCloseRangeFilter={onPayrollRangeFilterModalClose}
         primaryMetricCard={primaryMetricCard}
       />
 
