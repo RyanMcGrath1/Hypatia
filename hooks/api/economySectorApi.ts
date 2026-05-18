@@ -1,7 +1,7 @@
 /**
  * Hypatia backend sector endpoint — `GET {API_BASE}/api/economy/labor/sector`.
  *
- * Returns the trailing-12-month observation window for each labor-market sector
+ * Returns labor-market sector observations for a server-side date window (default YTD UTC).
  * (FRED series) the server tracks. The client never sends a FRED key; the proxy
  * adds it server-side. Per-sector errors come through as `sectors[id].error`
  * strings so a single bad series doesn't fail the whole view.
@@ -279,17 +279,30 @@ function errorBodyFromHttpMessage(message: string): {
   }
 }
 
-/** GET `/api/economy/labor/sector` — no query/headers; FRED key stays server-side. */
+export type EconomySectorFetchParams = {
+  observationStart?: string;
+  observationEnd?: string;
+};
+
+/** GET `/api/economy/labor/sector` — FRED key stays server-side. */
 export async function fetchEconomySector(
   signal?: AbortSignal,
+  params?: EconomySectorFetchParams,
 ): Promise<EconomySectorResponse> {
   const base = getNewsApiBaseUrl().replace(/\/$/, "");
+  const searchParams: Record<string, string> = {};
+  if (params?.observationStart?.trim()) {
+    searchParams.observation_start = params.observationStart.trim();
+  }
+  if (params?.observationEnd?.trim()) {
+    searchParams.observation_end = params.observationEnd.trim();
+  }
 
   try {
     const raw = await fetchApiGet(
       base,
       "/api/economy/labor/sector",
-      undefined,
+      Object.keys(searchParams).length > 0 ? searchParams : undefined,
       signal,
     );
     return parseEconomySectorResponse(raw);

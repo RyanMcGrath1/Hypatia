@@ -1,13 +1,14 @@
 /**
- * Cached fetcher for `GET /api/economy/labor/sector` — trailing 12 months of labor-market
- * sector observations. FRED data updates monthly, so we keep an in-memory result
- * for ~1 hour (matching the "stale time" guidance from the API contract).
+ * Cached fetcher for `GET /api/economy/labor/sector` — labor-market sector observations
+ * for a date window (backend default: YTD UTC). FRED data updates monthly, so we keep
+ * an in-memory result for ~1 hour per window (matching the API contract).
  */
 import { useCallback, useEffect, useRef, useState } from "react";
 
 import {
   EconomySectorApiError,
   fetchEconomySector,
+  type EconomySectorFetchParams,
   type EconomySectorResponse,
 } from "@/hooks/api/economySectorApi";
 import { getNewsApiNetworkErrorMessage } from "@/hooks/api/newsApi";
@@ -19,7 +20,13 @@ type CacheEntry = {
   data: EconomySectorResponse;
 };
 
-let cached: CacheEntry | null = null;
+const cacheByWindow = new Map<string, CacheEntry>();
+
+function windowCacheKey(params?: EconomySectorFetchParams): string {
+  const start = params?.observationStart?.trim() ?? "";
+  const end = params?.observationEnd?.trim() ?? "";
+  return `${start}|${end}`;
+}
 
 function isAbort(e: unknown): boolean {
   return e instanceof Error && e.name === "AbortError";
@@ -52,13 +59,17 @@ export type UseEconomySectorResult = {
   refetch: () => void;
 };
 
-export function useEconomySector(): UseEconomySectorResult {
+export function useEconomySector(
+  params?: EconomySectorFetchParams,
+): UseEconomySectorResult {
+  const cacheKey = windowCacheKey(params);
+
   const [data, setData] = useState<EconomySectorResponse | null>(() => {
-    const c = cached;
+    const c = cacheByWindow.get(cacheKey);
     return c && isFresh(c, Date.now()) ? c.data : null;
   });
   const [isLoading, setIsLoading] = useState<boolean>(() => {
-    const c = cached;
+    const c = cacheByWindow.get(cacheKey);
     return !(c && isFresh(c, Date.now()));
   });
   const [error, setError] = useState<string | null>(null);
@@ -68,6 +79,7 @@ export function useEconomySector(): UseEconomySectorResult {
   useEffect(() => {
     cancelledRef.current = false;
     const now = Date.now();
+    const cached = cacheByWindow.get(cacheKey);
     if (cached && isFresh(cached, now)) {
       setData(cached.data);
       setIsLoading(false);
@@ -81,11 +93,11 @@ export function useEconomySector(): UseEconomySectorResult {
 
     void (async () => {
       try {
-        const res = await fetchEconomySector(ac.signal);
+        const res = await fetchEconomySector(ac.signal, params);
         if (cancelledRef.current) {
           return;
         }
-        cached = { fetchedAt: Date.now(), data: res };
+        cacheByWindow.set(cacheKey, { fetchedAt: Date.now(), data: res });
         setData(res);
         setError(null);
       } catch (e) {
@@ -105,12 +117,12 @@ export function useEconomySector(): UseEconomySectorResult {
       cancelledRef.current = true;
       ac.abort();
     };
-  }, [reloadKey]);
+  }, [cacheKey, reloadKey, params?.observationStart, params?.observationEnd]);
 
   const refetch = useCallback(() => {
-    cached = null;
+    cacheByWindow.delete(cacheKey);
     setReloadKey((k) => k + 1);
-  }, []);
+  }, [cacheKey]);
 
   return { data, isLoading, error, refetch };
 }

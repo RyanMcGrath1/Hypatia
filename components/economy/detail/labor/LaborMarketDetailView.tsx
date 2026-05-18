@@ -1,7 +1,8 @@
 import FontAwesome from "@expo/vector-icons/FontAwesome";
 import { useMemo, useState } from "react";
-import { Platform, Pressable, View } from "react-native";
+import { Platform, Pressable, useWindowDimensions, View } from "react-native";
 
+import { LaborSectorLineChart } from "@/components/economy/detail/labor/LaborSectorLineChart";
 import { laborMarketDetailStyles as styles } from "@/components/economy/detail/labor/LaborMarketDetailView.styles";
 import {
   LaborPayrollJobsCreatedCard,
@@ -18,6 +19,7 @@ import { FilterIconButton } from "@/components/ui/FilterIconButton";
 import { Colors } from "@/constants/theme/Colors";
 import {
   getSemanticColors,
+  Spacing,
   type AppColorScheme,
 } from "@/constants/theme/ThemeTokens";
 import { useColorScheme } from "@/hooks/useColorScheme";
@@ -28,6 +30,11 @@ import { laborPrimaryFromEconomyDetail } from "@/lib/economy/laborPrimaryFromEco
 import { sectorRowsFromApi } from "@/lib/economy/sectorRowsFromApi";
 
 export function LaborMarketDetailView() {
+  const { width: windowWidth } = useWindowDimensions();
+  const sectorChartWidth = useMemo(
+    () => Math.max(windowWidth - Spacing.lg * 4, 280),
+    [windowWidth],
+  );
   const colorScheme = (useColorScheme() ?? "light") as AppColorScheme;
   const isDark = colorScheme === "dark";
   const semantic = getSemanticColors(colorScheme);
@@ -36,24 +43,6 @@ export function LaborMarketDetailView() {
   const green = ECONOMY_DASHBOARD_POSITIVE_GREEN;
 
   const [sectorView, setSectorView] = useState<"bars" | "line">("bars");
-
-  const {
-    data: sectorApi,
-    isLoading: sectorLoading,
-    error: sectorError,
-    refetch: refetchSector,
-  } = useEconomySector();
-
-  const rows = useMemo(() => {
-    if (!sectorApi) {
-      return [];
-    }
-    return sectorRowsFromApi(sectorApi);
-  }, [sectorApi]);
-  const sectorShowError =
-    !sectorLoading && sectorError != null && rows.length === 0;
-  const sectorShowEmpty =
-    !sectorLoading && sectorError == null && sectorApi != null && rows.length === 0;
 
   const {
     payrollLoading,
@@ -78,6 +67,31 @@ export function LaborMarketDetailView() {
     green,
     danger: interactive.danger,
   });
+
+  const {
+    data: sectorApi,
+    isLoading: sectorLoading,
+    error: sectorError,
+    refetch: refetchSector,
+  } = useEconomySector({
+    observationStart: payrollFetchWindow.observationStart,
+    observationEnd: payrollFetchWindow.observationEnd,
+  });
+
+  const rows = useMemo(() => {
+    if (!sectorApi) {
+      return [];
+    }
+    return sectorRowsFromApi(sectorApi);
+  }, [sectorApi]);
+  const sectorShowLoading = sectorLoading && sectorApi == null;
+  const sectorShowError =
+    !sectorLoading && sectorError != null && sectorApi == null;
+  const sectorShowEmpty =
+    !sectorLoading &&
+    sectorError == null &&
+    sectorApi != null &&
+    rows.length === 0;
 
   const { data: laborEconomyDetail, isLoading: laborEconomyLoading } =
     useEconomyDetail("labor");
@@ -262,17 +276,7 @@ export function LaborMarketDetailView() {
         <View
           style={[styles.tableRule, { backgroundColor: semantic.hairline }]}
         />
-        {sectorView === "line" ? (
-          <View style={styles.sectorLinePlaceholder}>
-            <ThemedText
-              style={[styles.footerNote, { color: semantic.mutedText }]}
-            >
-              Line chart view coming soon.
-            </ThemedText>
-          </View>
-        ) : (
-          <>
-        {sectorLoading && rows.length === 0 ? (
+        {sectorShowLoading ? (
           <ThemedText
             style={[styles.sectorStatusText, { color: semantic.mutedText }]}
           >
@@ -308,6 +312,12 @@ export function LaborMarketDetailView() {
             </Pressable>
           </View>
         ) : null}
+        {sectorView === "line" ? (
+          sectorApi != null && !sectorShowError ? (
+            <LaborSectorLineChart data={sectorApi} width={sectorChartWidth} />
+          ) : null
+        ) : (
+          <>
         {sectorShowEmpty ? (
           <ThemedText
             style={[styles.sectorStatusText, { color: semantic.mutedText }]}
