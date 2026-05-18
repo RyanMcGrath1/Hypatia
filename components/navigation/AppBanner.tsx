@@ -4,13 +4,13 @@ import { Image } from "expo-image";
 import { Href, usePathname, useRouter } from "expo-router";
 import { useEffect, useMemo, useRef, useState } from "react";
 import {
-  Animated,
-  Easing,
-  Platform,
-  Pressable,
-  StyleSheet,
-  useWindowDimensions,
-  View,
+    Animated,
+    Easing,
+    Platform,
+    Pressable,
+    StyleSheet,
+    useWindowDimensions,
+    View,
 } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 
@@ -18,7 +18,7 @@ import { ThemedText } from "@/components/theme/ThemedText";
 import { ThemedView } from "@/components/theme/ThemedView";
 import { AppRoutes } from "@/constants/app/routes";
 import { Brand, Colors } from "@/constants/theme/Colors";
-import { Radius, getSemanticColors } from "@/constants/theme/ThemeTokens";
+import { getSemanticColors, Radius } from "@/constants/theme/ThemeTokens";
 import { useColorScheme } from "@/hooks/useColorScheme";
 
 type MenuItem = {
@@ -52,7 +52,10 @@ export function AppBanner() {
   const colorScheme = useColorScheme() ?? "light";
   const theme = Colors[colorScheme];
   const semantic = getSemanticColors(colorScheme);
-  const bannerLogo = useMemo(() => require("@/assets/images/hypatia-logo-mark.png"), []);
+  const bannerLogo = useMemo(
+    () => require("@/assets/images/hypatia-logo-mark.png"),
+    [],
+  );
   const panelAnim = useRef(new Animated.Value(0)).current;
   const panelColors = useMemo(
     () => ({
@@ -238,7 +241,9 @@ export function AppBanner() {
                       style={[
                         styles.panelItemButton,
                         {
-                          borderLeftColor: isActive ? theme.tint : "transparent",
+                          borderLeftColor: isActive
+                            ? theme.tint
+                            : "transparent",
                           borderLeftWidth: isActive ? 3 : 0,
                           backgroundColor: isActive
                             ? semantic.sidePanelItemActiveBackground

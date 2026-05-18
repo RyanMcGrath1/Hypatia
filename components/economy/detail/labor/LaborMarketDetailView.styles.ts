@@ -261,13 +261,49 @@ export const laborMarketDetailStyles = StyleSheet.create({
     fontFamily: Fonts.bodyBold,
     letterSpacing: 0.3,
   },
-  exportBtn: {
+  sectorViewToggle: {
+    flexDirection: "row",
+    alignItems: "center",
+    borderWidth: StyleSheet.hairlineWidth,
+    borderRadius: Radius.sm,
+    padding: 2,
+    gap: 2,
+  },
+  sectorViewSeg: {
+    width: 22,
+    height: 18,
+    borderRadius: Radius.sm - 1,
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  sectorLinePlaceholder: {
+    minHeight: 120,
+    alignItems: "center",
+    justifyContent: "center",
+    paddingVertical: Spacing.md,
+  },
+  sectorStatusRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
+    gap: Spacing.sm,
+    marginBottom: Spacing.sm,
+  },
+  sectorStatusText: {
+    flex: 1,
+    fontSize: 12,
+    fontFamily: Fonts.bodyMedium,
+    lineHeight: 16,
+    marginBottom: Spacing.sm,
+  },
+  sectorRetryBtn: {
     borderWidth: 1,
     borderRadius: Radius.sm,
     paddingHorizontal: 10,
-    paddingVertical: 6,
+    paddingVertical: 4,
+    marginBottom: Spacing.sm,
   },
-  exportBtnText: {
+  sectorRetryText: {
     fontSize: 10,
     fontFamily: Fonts.bodyBold,
     letterSpacing: 0.4,
