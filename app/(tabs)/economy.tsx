@@ -11,10 +11,7 @@ import { StateNoticeCard } from "@/components/surfaces/StateNoticeCard";
 import { ThemedText } from "@/components/theme/ThemedText";
 import { ThemedView } from "@/components/theme/ThemedView";
 import { Colors } from "@/constants/theme/Colors";
-import {
-    getSemanticColors,
-    getTabScreenCanvasTint,
-} from "@/constants/theme/ThemeTokens";
+import { getSemanticColors } from "@/constants/theme/ThemeTokens";
 import { useColorScheme } from "@/hooks/useColorScheme";
 import { useEconomyTabDashboard } from "@/hooks/useEconomyTabDashboard";
 import { formatOverviewAsOfDisplay } from "@/lib/economy/economyOverviewTypes";
@@ -43,7 +40,6 @@ export default function EconomyDashboardScreen() {
   const isDark = colorScheme === "dark";
   const theme = Colors[colorScheme];
   const semantic = getSemanticColors(colorScheme);
-  const canvasTint = getTabScreenCanvasTint(colorScheme);
   const gaugePositiveColor = isDark ? "#4ADE80" : "#2e7d32";
 
   const [selectedBarIndexBySector, setSelectedBarIndexBySector] = useState<
@@ -77,7 +73,7 @@ export default function EconomyDashboardScreen() {
   }, [economyOverview, overviewAsOf]);
 
   return (
-    <ThemedView style={[styles.screen, { backgroundColor: canvasTint }]}>
+    <ThemedView style={styles.screen}>
       <ScrollView
         contentContainerStyle={styles.scrollContent}
         showsVerticalScrollIndicator={false}

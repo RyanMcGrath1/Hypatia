@@ -24,11 +24,7 @@ import { ThemedText } from "@/components/theme/ThemedText";
 import { ThemedView } from "@/components/theme/ThemedView";
 import { TAB_SCREEN_CONTENT_INSETS } from "@/constants/navigation/tabScreenContentInsets";
 import { Brand, Colors } from "@/constants/theme/Colors";
-import {
-    Spacing,
-    getSemanticColors,
-    getTabScreenCanvasTint,
-} from "@/constants/theme/ThemeTokens";
+import { Spacing, getSemanticColors } from "@/constants/theme/ThemeTokens";
 import { useColorScheme } from "@/hooks/useColorScheme";
 import { usePoliticianSearch } from "@/hooks/usePoliticianSearch";
 import { useThemeColor } from "@/hooks/useThemeColor";
@@ -116,8 +112,6 @@ export default function PoliticianScreen() {
   const textColor = useThemeColor({}, "text");
   const iconColor = useThemeColor({}, "icon");
 
-  const canvasTint = getTabScreenCanvasTint(colorScheme);
-
   const palette = useMemo(
     () => ({
       cardBackground: semantic.cardBackground,
@@ -137,7 +131,7 @@ export default function PoliticianScreen() {
   );
 
   return (
-    <ThemedView style={[styles.screen, { backgroundColor: canvasTint }]}>
+    <ThemedView style={styles.screen}>
       <KeyboardAvoidingView
         style={styles.flex}
         behavior={Platform.OS === "ios" ? "padding" : undefined}

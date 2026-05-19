@@ -5,7 +5,10 @@
  */
 
 export const Palette = {
+  /** App banner / top chrome (lighter than main content). */
   canvas: "#fbf8ff",
+  /** Main scrollable content below the banner (lavender-tinted). */
+  tabCanvasLight: "#F4F2FA",
   white: "#ffffff",
   ink: "#1a1b23",
   muted: "#444655",
@@ -90,6 +93,8 @@ export const Brand = {
 /** RGB tuples for charts and overlays. */
 export const BrandRgb = {
   canvas: [251, 248, 255] as const,
+  tabCanvasLight: [244, 242, 250] as const,
+  darkTabCanvas: [18, 20, 32] as const,
   white: [255, 255, 255] as const,
   ink: [26, 27, 35] as const,
   muted: [68, 70, 85] as const,
@@ -119,7 +124,10 @@ const tintDark = Brand.darkPrimary;
 export const Colors = {
   light: {
     text: Brand.ink,
+    /** Banner and top chrome (`AppBanner`). */
     background: Brand.canvas,
+    /** Main viewing area below the banner (tab screens, stack content). */
+    contentBackground: Brand.tabCanvasLight,
     tint: tintLight,
     icon: Brand.muted,
     tabIconDefault: Brand.muted,
@@ -128,6 +136,7 @@ export const Colors = {
   dark: {
     text: Brand.darkOnSurface,
     background: Brand.darkCanvas,
+    contentBackground: Brand.darkTabCanvas,
     tint: tintDark,
     icon: "rgba(196, 197, 215, 0.55)",
     tabIconDefault: "rgba(196, 197, 215, 0.45)",

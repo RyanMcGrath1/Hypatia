@@ -16,11 +16,13 @@ import { SafeAreaProvider, SafeAreaView } from 'react-native-safe-area-context';
 
 import { AppBanner } from '@/components/navigation/AppBanner';
 import { Colors } from '@/constants/theme/Colors';
+import { getTabScreenCanvasTint } from '@/constants/theme/ThemeTokens';
 import { useColorScheme } from '@/hooks/useColorScheme';
 
 export default function RootLayout() {
   const colorScheme = useColorScheme() ?? 'light';
   const theme = Colors[colorScheme];
+  const contentBackground = getTabScreenCanvasTint(colorScheme);
   const [loaded, error] = useFonts({
     Inter_400Regular,
     Inter_500Medium,
@@ -66,8 +68,8 @@ export default function RootLayout() {
           colors: {
             ...DarkTheme.colors,
             primary: theme.tint,
-            background: theme.background,
-            card: theme.background,
+            background: contentBackground,
+            card: contentBackground,
             text: theme.text,
           },
         }
@@ -76,8 +78,8 @@ export default function RootLayout() {
           colors: {
             ...DefaultTheme.colors,
             primary: theme.tint,
-            background: theme.background,
-            card: theme.background,
+            background: contentBackground,
+            card: contentBackground,
             text: theme.text,
           },
         };
@@ -89,7 +91,7 @@ export default function RootLayout() {
           style={{ flex: 1, backgroundColor: theme.background }}
           edges={['top', 'left', 'right']}>
           <AppBanner />
-          <View style={{ flex: 1, backgroundColor: theme.background }}>
+          <View style={{ flex: 1, backgroundColor: contentBackground }}>
             <Stack>
               <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
               <Stack.Screen name="+not-found" />

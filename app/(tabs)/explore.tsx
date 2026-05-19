@@ -16,12 +16,7 @@ import { ThemedText } from "@/components/theme/ThemedText";
 import { ThemedView } from "@/components/theme/ThemedView";
 import { TAB_SCREEN_CONTENT_INSETS } from "@/constants/navigation/tabScreenContentInsets";
 import { Brand, Colors } from "@/constants/theme/Colors";
-import {
-    Radius,
-    Spacing,
-    getSemanticColors,
-    getTabScreenCanvasTint,
-} from "@/constants/theme/ThemeTokens";
+import { Radius, Spacing, getSemanticColors } from "@/constants/theme/ThemeTokens";
 import { Fonts } from "@/constants/theme/Typography";
 import { useColorScheme } from "@/hooks/useColorScheme";
 import { useThemeInteractive } from "@/hooks/useThemeInteractive";
@@ -76,7 +71,6 @@ export default function ExploreScreen() {
     [interactive],
   );
 
-  const canvasTint = getTabScreenCanvasTint(colorScheme);
   const [searchQuery, setSearchQuery] = useState("");
 
   const goTab = useCallback((href: string) => {
@@ -84,7 +78,7 @@ export default function ExploreScreen() {
   }, []);
 
   return (
-    <ThemedView style={[styles.screen, { backgroundColor: canvasTint }]}>
+    <ThemedView style={styles.screen}>
       <ScrollView
         contentContainerStyle={[
           styles.scroll,

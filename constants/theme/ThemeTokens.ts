@@ -4,9 +4,9 @@ import { Brand, BrandRgb, Colors } from "@/constants/theme/Colors";
 
 export type AppColorScheme = "light" | "dark";
 
-/** Shared tab-root fill: lavender-tinted light canvas, primary-hint dark canvas. */
+/** Main content fill below `AppBanner` — pairs with `Colors[scheme].background` (banner chrome). */
 export function getTabScreenCanvasTint(colorScheme: AppColorScheme): string {
-  return colorScheme === "dark" ? Brand.darkTabCanvas : "#F4F2FA";
+  return Colors[colorScheme].contentBackground;
 }
 
 /** Pillar wayfinding — growth green, neutral ink, primary blue */
@@ -35,7 +35,10 @@ export function getSemanticColors(colorScheme: AppColorScheme) {
       };
 
   return {
-    screenBackground: theme.background,
+    /** Scrollable body / stack screens (below banner). */
+    screenBackground: getTabScreenCanvasTint(colorScheme),
+    /** Top bar with logo and menu — matches `Colors[scheme].background`. */
+    bannerBackground: theme.background,
     cardBackground: isDark ? Brand.darkSurfaceContainer : Brand.white,
     /** Level-2 surface (YAML `surface-container-high`) — drawer above canvas. */
     sidePanelBackground: isDark ? Brand.darkSurfaceContainerHigh : Brand.white,
@@ -44,8 +47,8 @@ export function getSemanticColors(colorScheme: AppColorScheme) {
      * instead of reading as generic system gray.
      */
     sidePanelBlurOverlay: isDark
-      ? `rgba(${BrandRgb.darkCanvas[0]}, ${BrandRgb.darkCanvas[1]}, ${BrandRgb.darkCanvas[2]}, 0.5)`
-      : `rgba(${BrandRgb.canvas[0]}, ${BrandRgb.canvas[1]}, ${BrandRgb.canvas[2]}, 0.78)`,
+      ? `rgba(${BrandRgb.darkTabCanvas[0]}, ${BrandRgb.darkTabCanvas[1]}, ${BrandRgb.darkTabCanvas[2]}, 0.5)`
+      : `rgba(${BrandRgb.tabCanvasLight[0]}, ${BrandRgb.tabCanvasLight[1]}, ${BrandRgb.tabCanvasLight[2]}, 0.78)`,
     /** Active drawer row — primary soft (light) / primary wash (dark). */
     sidePanelItemActiveBackground: isDark
       ? "rgba(184, 195, 255, 0.14)"
@@ -60,7 +63,7 @@ export function getSemanticColors(colorScheme: AppColorScheme) {
     danger: isDark ? Brand.darkError : Brand.danger,
     hairline: isDark ? "rgba(142, 144, 160, 0.22)" : Brand.divider,
     overlayScrim: isDark
-      ? `rgba(${BrandRgb.darkCanvas[0]}, ${BrandRgb.darkCanvas[1]}, ${BrandRgb.darkCanvas[2]}, 0.62)`
+      ? `rgba(${BrandRgb.darkTabCanvas[0]}, ${BrandRgb.darkTabCanvas[1]}, ${BrandRgb.darkTabCanvas[2]}, 0.62)`
       : `rgba(${BrandRgb.ink[0]}, ${BrandRgb.ink[1]}, ${BrandRgb.ink[2]}, 0.35)`,
     cardShadow,
   };

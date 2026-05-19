@@ -24,12 +24,7 @@ import { NEWS_TOPIC_ICON_NAMES } from "@/constants/app/newsTopicIcons";
 import { AppRoutes } from "@/constants/app/routes";
 import { TAB_SCREEN_CONTENT_INSETS } from "@/constants/navigation/tabScreenContentInsets";
 import { Brand } from "@/constants/theme/Colors";
-import {
-    Radius,
-    Spacing,
-    getSemanticColors,
-    getTabScreenCanvasTint,
-} from "@/constants/theme/ThemeTokens";
+import { Radius, Spacing, getSemanticColors } from "@/constants/theme/ThemeTokens";
 import { Fonts } from "@/constants/theme/Typography";
 import { NEWS_TOPIC_OPTIONS, type TopHeadlineItem } from "@/hooks/api/newsApi";
 import {
@@ -110,7 +105,6 @@ export default function HomeScreen() {
 
   const colorScheme = useColorScheme() ?? "light";
   const semantic = getSemanticColors(colorScheme);
-  const canvasTint = getTabScreenCanvasTint(colorScheme);
 
   const openArticle = useCallback((url: string, title: string) => {
     router.push({
@@ -400,7 +394,7 @@ export default function HomeScreen() {
   ]);
 
   return (
-    <ThemedView style={[styles.screen, { backgroundColor: canvasTint }]}>
+    <ThemedView style={styles.screen}>
       <FlatList
         data={headlines}
         keyExtractor={(item, index) => headlineKey(item, index)}
