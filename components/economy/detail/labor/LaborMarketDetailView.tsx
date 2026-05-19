@@ -1,6 +1,6 @@
 import FontAwesome from "@expo/vector-icons/FontAwesome";
-import { useMemo, useState } from "react";
-import { Platform, Pressable, useWindowDimensions, View } from "react-native";
+import { useMemo, useRef, useState } from "react";
+import { Animated, Platform, Pressable, useWindowDimensions, View } from "react-native";
 
 import { laborMarketDetailStyles as styles } from "@/components/economy/detail/labor/LaborMarketDetailView.styles";
 import {
@@ -29,6 +29,10 @@ import { useThemeInteractive } from "@/hooks/useThemeInteractive";
 import { laborPrimaryFromEconomyDetail } from "@/lib/economy/laborPrimaryFromEconomyDetail";
 import { sectorRowsFromApi } from "@/lib/economy/sectorRowsFromApi";
 
+const PAYROLL_FAB_SCROLL_RANGE = 96;
+const PAYROLL_FAB_MIN_SCALE = 0.72;
+const PAYROLL_FAB_SIZE = 68;
+
 export function LaborMarketDetailView() {
   const { width: windowWidth } = useWindowDimensions();
   const sectorChartWidth = useMemo(
@@ -43,6 +47,35 @@ export function LaborMarketDetailView() {
   const green = ECONOMY_DASHBOARD_POSITIVE_GREEN;
 
   const [sectorView, setSectorView] = useState<"bars" | "line">("bars");
+  const scrollY = useRef(new Animated.Value(0)).current;
+
+  const fabScale = useMemo(
+    () =>
+      scrollY.interpolate({
+        inputRange: [0, PAYROLL_FAB_SCROLL_RANGE],
+        outputRange: [1, PAYROLL_FAB_MIN_SCALE],
+        extrapolate: "clamp",
+      }),
+    [scrollY],
+  );
+
+  const fabCornerNudge = useMemo(
+    () =>
+      scrollY.interpolate({
+        inputRange: [0, PAYROLL_FAB_SCROLL_RANGE],
+        outputRange: [0, (PAYROLL_FAB_SIZE * (1 - PAYROLL_FAB_MIN_SCALE)) / 2],
+        extrapolate: "clamp",
+      }),
+    [scrollY],
+  );
+
+  const onPayrollFabScroll = useMemo(
+    () =>
+      Animated.event([{ nativeEvent: { contentOffset: { y: scrollY } } }], {
+        useNativeDriver: true,
+      }),
+    [scrollY],
+  );
 
   const {
     payrollLoading,
@@ -152,40 +185,68 @@ export function LaborMarketDetailView() {
     yearlyTotalJobsSubtitle,
   ]);
 
+  const payrollFabShadow = useMemo(
+    () =>
+      Platform.select({
+        ios: {
+          shadowColor: "#000000",
+          shadowOffset: { width: 0, height: 4 },
+          shadowOpacity: 0.18,
+          shadowRadius: 10,
+        },
+        default: {
+          elevation: 8,
+        },
+      }),
+    [],
+  );
+
+  const floatingAction = useMemo(() => {
+    if (payrollObservationsRaw.length === 0) {
+      return null;
+    }
+    return (
+      <Animated.View
+        style={[
+          styles.payrollFabWrap,
+          {
+            backgroundColor: semantic.cardBackground,
+            borderColor: semantic.hairline,
+            transform: [
+              { translateX: fabCornerNudge },
+              { translateY: fabCornerNudge },
+              { scale: fabScale },
+            ],
+            ...payrollFabShadow,
+          },
+        ]}
+      >
+        <FilterIconButton
+          accessibilityLabel={`Chart time range, ${payrollRangeA11yLabel}. Opens options.`}
+          onPress={() => setRangeFilterOpen(true)}
+          iconSize={30}
+          style={styles.payrollFabHit}
+        />
+      </Animated.View>
+    );
+  }, [
+    payrollObservationsRaw.length,
+    semantic.cardBackground,
+    semantic.hairline,
+    fabScale,
+    fabCornerNudge,
+    payrollFabShadow,
+    payrollRangeA11yLabel,
+    setRangeFilterOpen,
+  ]);
+
   return (
     <EconomyDetailShell
       pageTitle="LABOR MARKET"
-      floatingAction={
-        payrollObservationsRaw.length > 0 ? (
-          <View
-            style={[
-              styles.payrollFabWrap,
-              {
-                backgroundColor: semantic.cardBackground,
-                borderColor: semantic.hairline,
-                ...Platform.select({
-                  ios: {
-                    shadowColor: "#000000",
-                    shadowOffset: { width: 0, height: 4 },
-                    shadowOpacity: 0.18,
-                    shadowRadius: 10,
-                  },
-                  default: {
-                    elevation: 8,
-                  },
-                }),
-              },
-            ]}
-          >
-            <FilterIconButton
-              accessibilityLabel={`Chart time range, ${payrollRangeA11yLabel}. Opens options.`}
-              onPress={() => setRangeFilterOpen(true)}
-              iconSize={30}
-              style={styles.payrollFabHit}
-            />
-          </View>
-        ) : null
-      }
+      showHypatiaBrand={false}
+      showUpdatedBelowLiveFeed
+      onScroll={onPayrollFabScroll}
+      floatingAction={floatingAction}
     >
       <LaborPayrollJobsCreatedCard
         semantic={semantic}

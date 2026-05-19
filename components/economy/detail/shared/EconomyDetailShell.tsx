@@ -2,7 +2,14 @@ import Feather from "@expo/vector-icons/Feather";
 import Ionicons from "@expo/vector-icons/Ionicons";
 import { useRouter } from "expo-router";
 import { useMemo, type ReactNode } from "react";
-import { Pressable, ScrollView, StyleSheet, View } from "react-native";
+import {
+  Animated,
+  Pressable,
+  ScrollView,
+  StyleSheet,
+  View,
+  type ScrollViewProps,
+} from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 
 import { ThemedText } from "@/components/theme/ThemedText";
@@ -19,6 +26,8 @@ export const ECONOMY_DASHBOARD_POSITIVE_GREEN = "#16A34A";
 /** Extra scroll bottom inset when `floatingAction` is set so tail content clears the FAB. */
 const FAB_SCROLL_CLEARANCE = 92;
 
+const AnimatedScrollView = Animated.createAnimatedComponent(ScrollView);
+
 export type EconomyDetailHeaderLayout = "hypatia" | "sectorInline";
 
 type EconomyDetailShellProps = {
@@ -32,6 +41,10 @@ type EconomyDetailShellProps = {
   floatingAction?: ReactNode;
   /** Show green “LIVE DATA FEED” next to the title. Default true. */
   showLiveFeed?: boolean;
+  /** Show HYPATIA wordmark row above the title. Default true. */
+  showHypatiaBrand?: boolean;
+  /** Stack “UPDATED … EST” under the live-feed line in the title block. */
+  showUpdatedBelowLiveFeed?: boolean;
   /**
    * `hypatia` — HYPATIA row + accent + title + live (labor-style).
    * `sectorInline` — one row: icon + title + UPDATED (inflation-style).
@@ -39,6 +52,9 @@ type EconomyDetailShellProps = {
   headerLayout?: EconomyDetailHeaderLayout;
   /** Feather icon in the inline header chip (only when `headerLayout` is `sectorInline`). */
   inlineHeaderIcon?: keyof typeof Feather.glyphMap;
+  /** Forwarded to the body scroll view (e.g. `Animated.event` for a shrinking FAB). */
+  onScroll?: ScrollViewProps["onScroll"];
+  scrollEventThrottle?: number;
 };
 
 /**
@@ -50,8 +66,12 @@ export function EconomyDetailShell({
   children,
   floatingAction,
   showLiveFeed = true,
+  showHypatiaBrand = true,
+  showUpdatedBelowLiveFeed = false,
   headerLayout = "hypatia",
   inlineHeaderIcon = "bar-chart-2",
+  onScroll,
+  scrollEventThrottle = 16,
 }: EconomyDetailShellProps) {
   const router = useRouter();
   const insets = useSafeAreaInsets();
@@ -66,7 +86,7 @@ export function EconomyDetailShell({
       style={[styles.screen, { backgroundColor: semantic.screenBackground }]}
     >
       <View style={styles.screenBody}>
-        <ScrollView
+        <AnimatedScrollView
           style={styles.scrollView}
           contentContainerStyle={[
             styles.scroll,
@@ -79,6 +99,8 @@ export function EconomyDetailShell({
             },
           ]}
           showsVerticalScrollIndicator={false}
+          onScroll={onScroll}
+          scrollEventThrottle={scrollEventThrottle}
         >
           <Pressable
             accessibilityRole="button"
@@ -121,60 +143,117 @@ export function EconomyDetailShell({
             </View>
           ) : (
             <>
-              <View style={styles.brandRow}>
-                <View style={styles.brandLeft}>
-                  <Feather
-                    name="bar-chart-2"
-                    size={20}
-                    color={interactive.primary}
-                  />
+              {showHypatiaBrand ? (
+                <View style={styles.brandRow}>
+                  <View style={styles.brandLeft}>
+                    <Feather
+                      name="bar-chart-2"
+                      size={20}
+                      color={interactive.primary}
+                    />
+                    <ThemedText
+                      style={[styles.brandWordmark, { color: theme.text }]}
+                    >
+                      HYPATIA
+                    </ThemedText>
+                  </View>
                   <ThemedText
-                    style={[styles.brandWordmark, { color: theme.text }]}
+                    style={[styles.updatedStamp, { color: semantic.mutedText }]}
                   >
-                    HYPATIA
+                    UPDATED {updated} EST
                   </ThemedText>
                 </View>
-                <ThemedText
-                  style={[styles.updatedStamp, { color: semantic.mutedText }]}
-                >
-                  UPDATED {updated} EST
-                </ThemedText>
-              </View>
+              ) : null}
 
-              <View style={styles.titleBlock}>
+              <View
+                style={[
+                  styles.titleBlock,
+                  showUpdatedBelowLiveFeed && styles.titleBlockStacked,
+                ]}
+              >
                 <View
                   style={[
                     styles.accentBar,
+                    showUpdatedBelowLiveFeed && styles.accentBarTall,
                     { backgroundColor: interactive.primary },
                   ]}
                 />
-                <ThemedText style={[styles.pageTitle, { color: theme.text }]}>
-                  {pageTitle}
-                </ThemedText>
-                {showLiveFeed ? (
-                  <View style={styles.liveFeed}>
-                    <View
-                      style={[
-                        styles.liveDot,
-                        { backgroundColor: ECONOMY_DASHBOARD_POSITIVE_GREEN },
-                      ]}
-                    />
-                    <ThemedText
-                      style={[
-                        styles.liveText,
-                        { color: ECONOMY_DASHBOARD_POSITIVE_GREEN },
-                      ]}
-                    >
-                      LIVE DATA FEED
-                    </ThemedText>
+                {showUpdatedBelowLiveFeed ? (
+                  <View style={styles.titleColumn}>
+                    <View style={styles.titleLiveRow}>
+                      <ThemedText
+                        style={[styles.pageTitle, { color: theme.text }]}
+                        numberOfLines={2}
+                      >
+                        {pageTitle}
+                      </ThemedText>
+                      <View style={styles.liveFeedMetaColumn}>
+                        {showLiveFeed ? (
+                          <View style={styles.liveFeed}>
+                            <View
+                              style={[
+                                styles.liveDot,
+                                {
+                                  backgroundColor:
+                                    ECONOMY_DASHBOARD_POSITIVE_GREEN,
+                                },
+                              ]}
+                            />
+                            <ThemedText
+                              style={[
+                                styles.liveText,
+                                { color: ECONOMY_DASHBOARD_POSITIVE_GREEN },
+                              ]}
+                            >
+                              LIVE DATA FEED
+                            </ThemedText>
+                          </View>
+                        ) : null}
+                        <ThemedText
+                          style={[
+                            styles.updatedStamp,
+                            styles.updatedStampUnderLiveFeed,
+                            { color: semantic.mutedText },
+                          ]}
+                        >
+                          UPDATED {updated} EST
+                        </ThemedText>
+                      </View>
+                    </View>
                   </View>
-                ) : null}
+                ) : (
+                  <>
+                    <ThemedText style={[styles.pageTitle, { color: theme.text }]}>
+                      {pageTitle}
+                    </ThemedText>
+                    {showLiveFeed ? (
+                      <View style={styles.liveFeed}>
+                        <View
+                          style={[
+                            styles.liveDot,
+                            {
+                              backgroundColor: ECONOMY_DASHBOARD_POSITIVE_GREEN,
+                            },
+                          ]}
+                        />
+                        <ThemedText
+                          style={[
+                            styles.liveText,
+                            { color: ECONOMY_DASHBOARD_POSITIVE_GREEN },
+                          ]}
+                        >
+                          LIVE DATA FEED
+                        </ThemedText>
+                      </View>
+                    ) : null}
+                  </>
+                )}
               </View>
             </>
           )}
 
           {children}
-        </ScrollView>
+        </AnimatedScrollView>
         {floatingAction ? (
           <View
             pointerEvents="box-none"
@@ -247,10 +326,37 @@ const styles = StyleSheet.create({
     marginBottom: Spacing.sm,
     flexWrap: "wrap",
   },
+  titleBlockStacked: {
+    alignItems: "flex-start",
+    flexWrap: "nowrap",
+  },
+  titleColumn: {
+    flex: 1,
+    gap: 6,
+    minWidth: 0,
+  },
+  titleLiveRow: {
+    flexDirection: "row",
+    alignItems: "flex-start",
+    gap: Spacing.sm,
+    width: "100%",
+  },
+  liveFeedMetaColumn: {
+    alignItems: "flex-end",
+    gap: 4,
+    flexShrink: 0,
+  },
+  updatedStampUnderLiveFeed: {
+    textAlign: "right",
+  },
   accentBar: {
     width: 4,
     height: 28,
     borderRadius: 2,
+  },
+  accentBarTall: {
+    alignSelf: "stretch",
+    minHeight: 28,
   },
   pageTitle: {
     flex: 1,
@@ -262,6 +368,7 @@ const styles = StyleSheet.create({
     flexDirection: "row",
     alignItems: "center",
     gap: 6,
+    flexShrink: 0,
   },
   liveDot: {
     width: 8,
