@@ -1,110 +1,27 @@
 import FontAwesome from "@expo/vector-icons/FontAwesome";
-import { BlurView } from "expo-blur";
+import Ionicons from "@expo/vector-icons/Ionicons";
 import { Image } from "expo-image";
-import { Href, usePathname, useRouter } from "expo-router";
-import { useEffect, useMemo, useRef, useState } from "react";
-import {
-    Animated,
-    Easing,
-    Platform,
-    Pressable,
-    StyleSheet,
-    useWindowDimensions,
-    View,
-} from "react-native";
-import { useSafeAreaInsets } from "react-native-safe-area-context";
+import { usePathname, useRouter } from "expo-router";
+import { useMemo } from "react";
+import { Pressable, StyleSheet, View } from "react-native";
 
-import { ThemedText } from "@/components/theme/ThemedText";
-import { ThemedView } from "@/components/theme/ThemedView";
 import { AppRoutes } from "@/constants/app/routes";
 import { Brand, Colors } from "@/constants/theme/Colors";
-import { getSemanticColors, Radius } from "@/constants/theme/ThemeTokens";
+import { getSemanticColors } from "@/constants/theme/ThemeTokens";
 import { useColorScheme } from "@/hooks/useColorScheme";
-
-type MenuItem = {
-  label: string;
-  icon: keyof typeof FontAwesome.glyphMap;
-  href: Href;
-};
-
-const MENU_ITEMS: MenuItem[] = [
-  { label: "News", icon: "list-alt", href: AppRoutes.tabsRoot },
-  { label: "Economy", icon: "dollar", href: AppRoutes.tabsEconomy },
-  { label: "Politician", icon: "university", href: AppRoutes.tabsPolitician },
-  { label: "Explore", icon: "search", href: AppRoutes.tabsExplore },
-];
-
-function approximateSidePanelWidth(windowWidth: number) {
-  return Math.min(windowWidth * 0.74, 320);
-}
+import { appBannerShowsBack } from "@/lib/navigation/appBannerBack";
 
 export function AppBanner() {
-  const [isPanelMounted, setIsPanelMounted] = useState(false);
-  const [measuredPanelWidth, setMeasuredPanelWidth] = useState<number | null>(
-    null,
-  );
-  const { width: windowWidth } = useWindowDimensions();
-  const panelWidth =
-    measuredPanelWidth ?? approximateSidePanelWidth(windowWidth);
-  const insets = useSafeAreaInsets();
   const router = useRouter();
   const pathname = usePathname();
   const colorScheme = useColorScheme() ?? "light";
   const theme = Colors[colorScheme];
   const semantic = getSemanticColors(colorScheme);
+  const showBack = appBannerShowsBack(pathname);
   const bannerLogo = useMemo(
     () => require("@/assets/images/hypatia-logo-mark.png"),
     [],
   );
-  const panelAnim = useRef(new Animated.Value(0)).current;
-  const panelColors = useMemo(
-    () => ({
-      panelBg: semantic.sidePanelBackground,
-      panelBlurOverlay: semantic.sidePanelBlurOverlay,
-      panelBorder: Brand.border,
-      scrim: semantic.overlayScrim,
-    }),
-    [
-      semantic.sidePanelBackground,
-      semantic.sidePanelBlurOverlay,
-      semantic.overlayScrim,
-    ],
-  );
-  const usePanelBlur = Platform.OS === "ios" || Platform.OS === "android";
-
-  useEffect(() => {
-    setMeasuredPanelWidth(null);
-  }, [windowWidth]);
-
-  const openPanel = () => {
-    setIsPanelMounted(true);
-    Animated.timing(panelAnim, {
-      toValue: 1,
-      duration: 240,
-      easing: Easing.out(Easing.cubic),
-      useNativeDriver: true,
-    }).start();
-  };
-
-  const closePanel = () => {
-    Animated.timing(panelAnim, {
-      toValue: 0,
-      duration: 200,
-      easing: Easing.in(Easing.cubic),
-      useNativeDriver: true,
-    }).start(({ finished }) => {
-      if (finished) {
-        setIsPanelMounted(false);
-      }
-    });
-  };
-
-  const navigateFromMenu = (href: Href) => {
-    closePanel();
-    if (pathname !== href) {
-      router.push(href);
-    }
-  };
 
   const openProfile = () => {
     if (pathname !== AppRoutes.profile) {
@@ -112,168 +29,61 @@ export function AppBanner() {
     }
   };
 
-  const isActiveRoute = (href: Href) => {
-    const hrefString = String(href);
-    if (hrefString === AppRoutes.tabsRoot) {
-      return pathname === "/(tabs)" || pathname === "/";
-    }
-    return pathname.startsWith(hrefString);
-  };
-
   return (
-    <>
-      <View
-        style={[
-          styles.bar,
-          {
-            backgroundColor: theme.background,
-          },
-        ]}
-      >
-        <Pressable style={styles.menuButton} onPress={openPanel}>
-          <FontAwesome name="bars" size={18} color={theme.text} />
-        </Pressable>
-
-        <Image
-          source={bannerLogo}
-          style={styles.image}
-          contentFit="contain"
-          accessibilityLabel="App banner"
-        />
-
+    <View
+      style={[
+        styles.bar,
+        {
+          backgroundColor: theme.background,
+        },
+      ]}
+    >
+      {showBack ? (
         <Pressable
           accessibilityRole="button"
-          accessibilityLabel="Profile"
-          accessibilityHint="Opens your profile"
-          hitSlop={8}
+          accessibilityLabel="Go back"
+          hitSlop={12}
+          onPress={() => router.back()}
           style={({ pressed }) => [
-            styles.profileHitArea,
-            { opacity: pressed ? 0.82 : 1 },
+            styles.backHitArea,
+            { opacity: pressed ? 0.65 : 1 },
           ]}
-          onPress={openProfile}
         >
-          <View
-            style={[
-              styles.profileAvatar,
-              {
-                borderColor: Brand.border,
-                backgroundColor: semantic.cardSubtleBackground,
-              },
-            ]}
-          >
-            <FontAwesome name="user" size={15} color={theme.icon} />
-          </View>
+          <Ionicons name="chevron-back" size={26} color={theme.text} />
         </Pressable>
-      </View>
+      ) : null}
 
-      {isPanelMounted && (
-        <View style={styles.overlayWrap} pointerEvents="box-none">
-          <Animated.View
-            style={[
-              styles.scrim,
-              {
-                left: panelWidth,
-                backgroundColor: panelColors.scrim,
-                opacity: panelAnim,
-              },
-            ]}
-          >
-            <Pressable style={styles.scrimPressable} onPress={closePanel} />
-          </Animated.View>
-          <Animated.View
-            onLayout={(e) => setMeasuredPanelWidth(e.nativeEvent.layout.width)}
-            style={[
-              styles.sidePanel,
-              {
-                backgroundColor: usePanelBlur
-                  ? "transparent"
-                  : panelColors.panelBg,
-                borderColor: panelColors.panelBorder,
-                paddingTop: insets.top + 12,
-              },
-              {
-                transform: [
-                  {
-                    translateX: panelAnim.interpolate({
-                      inputRange: [0, 1],
-                      outputRange: [-panelWidth, 0],
-                    }),
-                  },
-                ],
-              },
-            ]}
-          >
-            {usePanelBlur ? (
-              <>
-                <BlurView
-                  pointerEvents="none"
-                  tint={colorScheme === "dark" ? "dark" : "light"}
-                  intensity={72}
-                  style={StyleSheet.absoluteFill}
-                />
-                <View
-                  pointerEvents="none"
-                  style={[
-                    StyleSheet.absoluteFill,
-                    { backgroundColor: panelColors.panelBlurOverlay },
-                  ]}
-                />
-              </>
-            ) : (
-              <View
-                pointerEvents="none"
-                style={[
-                  StyleSheet.absoluteFill,
-                  { backgroundColor: panelColors.panelBg },
-                ]}
-              />
-            )}
-            <ThemedView style={styles.sidePanelContent}>
-              <View style={styles.sidePanelHeader}>
-                <ThemedText type="subtitle">Welcome, Ryan!</ThemedText>
-              </View>
-              <View style={styles.panelItemList}>
-                {MENU_ITEMS.map((item) => {
-                  const isActive = isActiveRoute(item.href);
-                  return (
-                    <Pressable
-                      key={item.label}
-                      style={[
-                        styles.panelItemButton,
-                        {
-                          borderLeftColor: isActive
-                            ? theme.tint
-                            : "transparent",
-                          borderLeftWidth: isActive ? 3 : 0,
-                          backgroundColor: isActive
-                            ? semantic.sidePanelItemActiveBackground
-                            : "transparent",
-                        },
-                      ]}
-                      onPress={() => navigateFromMenu(item.href)}
-                    >
-                      <FontAwesome
-                        name={item.icon}
-                        size={16}
-                        color={isActive ? theme.tint : theme.text}
-                      />
-                      <ThemedText
-                        style={[
-                          styles.panelItem,
-                          { color: isActive ? theme.tint : theme.text },
-                        ]}
-                      >
-                        {item.label}
-                      </ThemedText>
-                    </Pressable>
-                  );
-                })}
-              </View>
-            </ThemedView>
-          </Animated.View>
+      <Image
+        source={bannerLogo}
+        style={styles.image}
+        contentFit="contain"
+        accessibilityLabel="App banner"
+      />
+
+      <Pressable
+        accessibilityRole="button"
+        accessibilityLabel="Profile"
+        accessibilityHint="Opens your profile"
+        hitSlop={8}
+        style={({ pressed }) => [
+          styles.profileHitArea,
+          { opacity: pressed ? 0.82 : 1 },
+        ]}
+        onPress={openProfile}
+      >
+        <View
+          style={[
+            styles.profileAvatar,
+            {
+              borderColor: Brand.border,
+              backgroundColor: semantic.cardSubtleBackground,
+            },
+          ]}
+        >
+          <FontAwesome name="user" size={15} color={theme.icon} />
         </View>
-      )}
-    </>
+      </Pressable>
+    </View>
   );
 }
 
@@ -286,14 +96,16 @@ const styles = StyleSheet.create({
     position: "relative",
     zIndex: 20,
   },
-  menuButton: {
+  backHitArea: {
     position: "absolute",
-    left: 12,
-    width: 30,
-    height: 30,
-    borderRadius: 15,
-    alignItems: "center",
+    left: 4,
+    top: 0,
+    bottom: 0,
     justifyContent: "center",
+    alignItems: "center",
+    minWidth: 44,
+    minHeight: 44,
+    paddingHorizontal: 4,
   },
   profileHitArea: {
     position: "absolute",
@@ -317,54 +129,5 @@ const styles = StyleSheet.create({
   image: {
     width: 38,
     height: 38,
-  },
-  overlayWrap: {
-    ...StyleSheet.absoluteFillObject,
-    zIndex: 120,
-  },
-  scrim: {
-    position: "absolute",
-    top: 0,
-    right: 0,
-    bottom: 0,
-  },
-  scrimPressable: {
-    ...StyleSheet.absoluteFillObject,
-  },
-  sidePanel: {
-    position: "absolute",
-    left: 0,
-    top: 0,
-    bottom: 0,
-    width: "74%",
-    maxWidth: 320,
-    borderRightWidth: 1,
-    paddingHorizontal: 16,
-    overflow: "hidden",
-  },
-  sidePanelContent: {
-    flex: 1,
-    backgroundColor: "transparent",
-  },
-  sidePanelHeader: {
-    flexDirection: "row",
-    alignItems: "center",
-    justifyContent: "flex-start",
-    marginBottom: 14,
-  },
-  panelItemList: {
-    gap: 8,
-  },
-  panelItemButton: {
-    minHeight: 44,
-    borderRadius: Radius.md,
-    borderWidth: 0,
-    paddingHorizontal: 10,
-    flexDirection: "row",
-    alignItems: "center",
-    gap: 10,
-  },
-  panelItem: {
-    fontSize: 16,
   },
 });

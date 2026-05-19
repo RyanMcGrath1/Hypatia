@@ -55,6 +55,8 @@ type EconomyDetailShellProps = {
   /** Forwarded to the body scroll view (e.g. `Animated.event` for a shrinking FAB). */
   onScroll?: ScrollViewProps["onScroll"];
   scrollEventThrottle?: number;
+  /** Chevron back control above the header. Default true. */
+  showBackButton?: boolean;
 };
 
 /**
@@ -72,6 +74,7 @@ export function EconomyDetailShell({
   inlineHeaderIcon = "bar-chart-2",
   onScroll,
   scrollEventThrottle = 16,
+  showBackButton = false,
 }: EconomyDetailShellProps) {
   const router = useRouter();
   const insets = useSafeAreaInsets();
@@ -91,7 +94,7 @@ export function EconomyDetailShell({
           contentContainerStyle={[
             styles.scroll,
             {
-              paddingTop: insets.top + Spacing.sm,
+              paddingTop: showBackButton ? insets.top + Spacing.sm : Spacing.sm,
               paddingBottom:
                 insets.bottom +
                 Spacing.xl +
@@ -102,15 +105,17 @@ export function EconomyDetailShell({
           onScroll={onScroll}
           scrollEventThrottle={scrollEventThrottle}
         >
-          <Pressable
-            accessibilityRole="button"
-            accessibilityLabel="Go back"
-            hitSlop={12}
-            onPress={() => router.back()}
-            style={styles.backBtn}
-          >
-            <Ionicons name="chevron-back" size={26} color={theme.text} />
-          </Pressable>
+          {showBackButton ? (
+            <Pressable
+              accessibilityRole="button"
+              accessibilityLabel="Go back"
+              hitSlop={12}
+              onPress={() => router.back()}
+              style={styles.backBtn}
+            >
+              <Ionicons name="chevron-back" size={26} color={theme.text} />
+            </Pressable>
+          ) : null}
 
           {headerLayout === "sectorInline" ? (
             <View style={styles.inlineHeaderRow}>

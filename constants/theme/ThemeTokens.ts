@@ -37,22 +37,9 @@ export function getSemanticColors(colorScheme: AppColorScheme) {
   return {
     /** Scrollable body / stack screens (below banner). */
     screenBackground: getTabScreenCanvasTint(colorScheme),
-    /** Top bar with logo and menu — matches `Colors[scheme].background`. */
+    /** Top bar with logo — matches `Colors[scheme].background`. */
     bannerBackground: theme.background,
     cardBackground: isDark ? Brand.darkSurfaceContainer : Brand.white,
-    /** Level-2 surface (YAML `surface-container-high`) — drawer above canvas. */
-    sidePanelBackground: isDark ? Brand.darkSurfaceContainerHigh : Brand.white,
-    /**
-     * Tints the frosted glass so the drawer matches canvas (light) / dark canvas (dark)
-     * instead of reading as generic system gray.
-     */
-    sidePanelBlurOverlay: isDark
-      ? `rgba(${BrandRgb.darkTabCanvas[0]}, ${BrandRgb.darkTabCanvas[1]}, ${BrandRgb.darkTabCanvas[2]}, 0.5)`
-      : `rgba(${BrandRgb.tabCanvasLight[0]}, ${BrandRgb.tabCanvasLight[1]}, ${BrandRgb.tabCanvasLight[2]}, 0.78)`,
-    /** Active drawer row — primary soft (light) / primary wash (dark). */
-    sidePanelItemActiveBackground: isDark
-      ? "rgba(184, 195, 255, 0.14)"
-      : Brand.primarySoft,
     cardSubtleBackground: isDark
       ? Brand.darkSurfaceContainerLow
       : Brand.primarySoft,
