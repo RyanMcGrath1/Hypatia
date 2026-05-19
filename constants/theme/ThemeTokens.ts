@@ -1,17 +1,17 @@
-import { Platform, type ViewStyle } from 'react-native';
+import { Platform, type ViewStyle } from "react-native";
 
-import { Brand, BrandRgb, Colors } from '@/constants/theme/Colors';
+import { Brand, BrandRgb, Colors } from "@/constants/theme/Colors";
 
-export type AppColorScheme = 'light' | 'dark';
+export type AppColorScheme = "light" | "dark";
 
 /** Shared tab-root fill: lavender-tinted light canvas, primary-hint dark canvas. */
 export function getTabScreenCanvasTint(colorScheme: AppColorScheme): string {
-  return colorScheme === 'dark' ? Brand.darkTabCanvas : '#F4F2FA';
+  return colorScheme === "dark" ? Brand.darkTabCanvas : "#F4F2FA";
 }
 
 /** Pillar wayfinding — growth green, neutral ink, primary blue */
 export function getPillarColors(colorScheme: AppColorScheme) {
-  const isDark = colorScheme === 'dark';
+  const isDark = colorScheme === "dark";
   return {
     economy: Brand.success,
     politician: isDark ? Brand.darkOnSurface : Brand.ink,
@@ -22,14 +22,14 @@ export function getPillarColors(colorScheme: AppColorScheme) {
 /** Ambient card shadow (light): 0 4px 12px rgba(0,0,0,0.05) per DESIGN.md */
 export function getSemanticColors(colorScheme: AppColorScheme) {
   const theme = Colors[colorScheme];
-  const isDark = colorScheme === 'dark';
+  const isDark = colorScheme === "dark";
 
   const cardShadow: ViewStyle = isDark
     ? {}
     : {
-        shadowColor: '#000000',
+        shadowColor: "#000000",
         shadowOffset: { width: 0, height: 4 },
-        shadowOpacity: Platform.OS === 'android' ? 0.06 : 0.05,
+        shadowOpacity: Platform.OS === "android" ? 0.06 : 0.05,
         shadowRadius: 12,
         elevation: 2,
       };
@@ -48,15 +48,17 @@ export function getSemanticColors(colorScheme: AppColorScheme) {
       : `rgba(${BrandRgb.canvas[0]}, ${BrandRgb.canvas[1]}, ${BrandRgb.canvas[2]}, 0.78)`,
     /** Active drawer row — primary soft (light) / primary wash (dark). */
     sidePanelItemActiveBackground: isDark
-      ? 'rgba(184, 195, 255, 0.14)'
+      ? "rgba(184, 195, 255, 0.14)"
       : Brand.primarySoft,
-    cardSubtleBackground: isDark ? Brand.darkSurfaceContainerLow : Brand.primarySoft,
-    cardBorder: isDark ? Brand.darkOutlineVariant : 'transparent',
+    cardSubtleBackground: isDark
+      ? Brand.darkSurfaceContainerLow
+      : Brand.primarySoft,
+    cardBorder: isDark ? Brand.darkOutlineVariant : "transparent",
     cardOutlineWidth: isDark ? 1 : 0,
     mutedText: isDark ? Brand.darkOnSurfaceVariant : Brand.muted,
     accent: theme.tint,
     danger: isDark ? Brand.darkError : Brand.danger,
-    hairline: isDark ? 'rgba(142, 144, 160, 0.22)' : Brand.divider,
+    hairline: isDark ? "rgba(142, 144, 160, 0.22)" : Brand.divider,
     overlayScrim: isDark
       ? `rgba(${BrandRgb.darkCanvas[0]}, ${BrandRgb.darkCanvas[1]}, ${BrandRgb.darkCanvas[2]}, 0.62)`
       : `rgba(${BrandRgb.ink[0]}, ${BrandRgb.ink[1]}, ${BrandRgb.ink[2]}, 0.35)`,

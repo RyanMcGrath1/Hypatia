@@ -2,25 +2,25 @@ import FontAwesome from "@expo/vector-icons/FontAwesome";
 import { useMemo, useState } from "react";
 import { Platform, Pressable, useWindowDimensions, View } from "react-native";
 
-import { LaborSectorLineChart } from "@/components/economy/detail/labor/LaborSectorLineChart";
 import { laborMarketDetailStyles as styles } from "@/components/economy/detail/labor/LaborMarketDetailView.styles";
 import {
-  LaborPayrollJobsCreatedCard,
-  type LaborPrimaryMetric,
+    LaborPayrollJobsCreatedCard,
+    type LaborPrimaryMetric,
 } from "@/components/economy/detail/labor/LaborPayrollJobsCreatedCard";
+import { LaborSectorLineChart } from "@/components/economy/detail/labor/LaborSectorLineChart";
 import { useLaborMarketPayrollSection } from "@/components/economy/detail/labor/useLaborMarketPayrollSection";
 import { EconomyCard } from "@/components/economy/detail/shared/EconomyCard";
 import {
-  ECONOMY_DASHBOARD_POSITIVE_GREEN,
-  EconomyDetailShell,
+    ECONOMY_DASHBOARD_POSITIVE_GREEN,
+    EconomyDetailShell,
 } from "@/components/economy/detail/shared/EconomyDetailShell";
 import { ThemedText } from "@/components/theme/ThemedText";
 import { FilterIconButton } from "@/components/ui/FilterIconButton";
 import { Colors } from "@/constants/theme/Colors";
 import {
-  getSemanticColors,
-  Spacing,
-  type AppColorScheme,
+    getSemanticColors,
+    Spacing,
+    type AppColorScheme,
 } from "@/constants/theme/ThemeTokens";
 import { useColorScheme } from "@/hooks/useColorScheme";
 import { useEconomyDetail } from "@/hooks/useEconomyDetail";
@@ -302,10 +302,7 @@ export function LaborMarketDetailView() {
               ]}
             >
               <ThemedText
-                style={[
-                  styles.sectorRetryText,
-                  { color: interactive.primary },
-                ]}
+                style={[styles.sectorRetryText, { color: interactive.primary }]}
               >
                 RETRY
               </ThemedText>
@@ -318,93 +315,115 @@ export function LaborMarketDetailView() {
           ) : null
         ) : (
           <>
-        {sectorShowEmpty ? (
-          <ThemedText
-            style={[styles.sectorStatusText, { color: semantic.mutedText }]}
-          >
-            No sector data in this window.
-          </ThemedText>
-        ) : null}
-        {rows.length > 0 ? (
-          <>
-            <View style={styles.tableHead}>
-              <ThemedText style={[styles.th, { color: semantic.mutedText }]}>
-                SECTOR
-              </ThemedText>
+            {sectorShowEmpty ? (
               <ThemedText
-                style={[styles.th, styles.thNum, { color: semantic.mutedText }]}
+                style={[styles.sectorStatusText, { color: semantic.mutedText }]}
               >
-                ADDED/LOST
+                No sector data in this window.
               </ThemedText>
-              <ThemedText
-                style={[styles.th, styles.thNum, { color: semantic.mutedText }]}
-              >
-                GROWTH %
-              </ThemedText>
-              <ThemedText
-                style={[styles.th, styles.thDist, { color: semantic.mutedText }]}
-                numberOfLines={1}
-              >
-                DISTRIBUTION
-              </ThemedText>
-            </View>
-            {rows.map((row, index) => (
-              <View
-                key={`${row.sector}-${index}`}
-                style={[styles.tr, { borderTopColor: semantic.hairline }]}
-              >
-                <ThemedText
-                  style={[styles.td, { color: theme.text }]}
-                  numberOfLines={2}
-                >
-                  {row.sector}
-                </ThemedText>
-                <ThemedText
-                  style={[
-                    styles.td,
-                    styles.tdNum,
-                    row.deltaPositive === true && { color: green },
-                    row.deltaPositive === false && { color: interactive.danger },
-                    row.deltaPositive === null && { color: semantic.mutedText },
-                  ]}
-                >
-                  {row.delta}
-                </ThemedText>
-                <ThemedText
-                  style={[
-                    styles.td,
-                    styles.tdNum,
-                    row.growthPositive === true && { color: green },
-                    row.growthPositive === false && { color: interactive.danger },
-                    row.growthPositive === null && { color: semantic.mutedText },
-                  ]}
-                >
-                  {row.growth}
-                </ThemedText>
-                <View style={styles.distCell}>
-                  <View
+            ) : null}
+            {rows.length > 0 ? (
+              <>
+                <View style={styles.tableHead}>
+                  <ThemedText
+                    style={[styles.th, { color: semantic.mutedText }]}
+                  >
+                    SECTOR
+                  </ThemedText>
+                  <ThemedText
                     style={[
-                      styles.distTrack,
-                      { backgroundColor: semantic.cardSubtleBackground },
+                      styles.th,
+                      styles.thNum,
+                      { color: semantic.mutedText },
                     ]}
                   >
-                    <View
+                    ADDED/LOST
+                  </ThemedText>
+                  <ThemedText
+                    style={[
+                      styles.th,
+                      styles.thNum,
+                      { color: semantic.mutedText },
+                    ]}
+                  >
+                    GROWTH %
+                  </ThemedText>
+                  <ThemedText
+                    style={[
+                      styles.th,
+                      styles.thDist,
+                      { color: semantic.mutedText },
+                    ]}
+                    numberOfLines={1}
+                  >
+                    DISTRIBUTION
+                  </ThemedText>
+                </View>
+                {rows.map((row, index) => (
+                  <View
+                    key={`${row.sector}-${index}`}
+                    style={[styles.tr, { borderTopColor: semantic.hairline }]}
+                  >
+                    <ThemedText
+                      style={[styles.td, { color: theme.text }]}
+                      numberOfLines={2}
+                    >
+                      {row.sector}
+                    </ThemedText>
+                    <ThemedText
                       style={[
-                        styles.distFill,
-                        {
-                          width: `${Math.round(row.barFill * 100)}%`,
-                          backgroundColor: row.barNegative
-                            ? interactive.danger
-                            : green,
+                        styles.td,
+                        styles.tdNum,
+                        row.deltaPositive === true && { color: green },
+                        row.deltaPositive === false && {
+                          color: interactive.danger,
+                        },
+                        row.deltaPositive === null && {
+                          color: semantic.mutedText,
                         },
                       ]}
-                    />
+                    >
+                      {row.delta}
+                    </ThemedText>
+                    <ThemedText
+                      style={[
+                        styles.td,
+                        styles.tdNum,
+                        row.growthPositive === true && { color: green },
+                        row.growthPositive === false && {
+                          color: interactive.danger,
+                        },
+                        row.growthPositive === null && {
+                          color: semantic.mutedText,
+                        },
+                      ]}
+                    >
+                      {row.growth}
+                    </ThemedText>
+                    <View style={styles.distCell}>
+                      <View
+                        style={[
+                          styles.distTrack,
+                          { backgroundColor: semantic.cardSubtleBackground },
+                        ]}
+                      >
+                        <View
+                          style={[
+                            styles.distFill,
+                            {
+                              width: `${Math.round(row.barFill * 100)}%`,
+                              backgroundColor: row.barNegative
+                                ? interactive.danger
+                                : green,
+                            },
+                          ]}
+                        />
+                      </View>
+                    </View>
                   </View>
-                </View>
-              </View>
-            ))}
-          </>
-        ) : null}
+                ))}
+              </>
+            ) : null}
           </>
         )}
       </EconomyCard>

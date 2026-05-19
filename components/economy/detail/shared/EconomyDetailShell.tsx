@@ -10,9 +10,9 @@ import { ThemedView } from "@/components/theme/ThemedView";
 import { Colors } from "@/constants/theme/Colors";
 import { Spacing, getSemanticColors } from "@/constants/theme/ThemeTokens";
 import { Fonts } from "@/constants/theme/Typography";
-import { formatUpdatedEst } from "@/lib/economy/detail/formatUpdatedEst";
 import { useColorScheme } from "@/hooks/useColorScheme";
 import { useThemeInteractive } from "@/hooks/useThemeInteractive";
+import { formatUpdatedEst } from "@/lib/economy/detail/formatUpdatedEst";
 
 export const ECONOMY_DASHBOARD_POSITIVE_GREEN = "#16A34A";
 
@@ -62,7 +62,9 @@ export function EconomyDetailShell({
   const updated = useMemo(() => formatUpdatedEst(), []);
 
   return (
-    <ThemedView style={[styles.screen, { backgroundColor: semantic.screenBackground }]}>
+    <ThemedView
+      style={[styles.screen, { backgroundColor: semantic.screenBackground }]}
+    >
       <View style={styles.screenBody}>
         <ScrollView
           style={styles.scrollView}
@@ -71,61 +73,107 @@ export function EconomyDetailShell({
             {
               paddingTop: insets.top + Spacing.sm,
               paddingBottom:
-                insets.bottom + Spacing.xl + (floatingAction ? FAB_SCROLL_CLEARANCE : 0),
+                insets.bottom +
+                Spacing.xl +
+                (floatingAction ? FAB_SCROLL_CLEARANCE : 0),
             },
           ]}
           showsVerticalScrollIndicator={false}
         >
-        <Pressable
-          accessibilityRole="button"
-          accessibilityLabel="Go back"
-          hitSlop={12}
-          onPress={() => router.back()}
-          style={styles.backBtn}
-        >
-          <Ionicons name="chevron-back" size={26} color={theme.text} />
-        </Pressable>
+          <Pressable
+            accessibilityRole="button"
+            accessibilityLabel="Go back"
+            hitSlop={12}
+            onPress={() => router.back()}
+            style={styles.backBtn}
+          >
+            <Ionicons name="chevron-back" size={26} color={theme.text} />
+          </Pressable>
 
-        {headerLayout === "sectorInline" ? (
-          <View style={styles.inlineHeaderRow}>
-            <View style={[styles.inlineHeaderIcon, { backgroundColor: interactive.primarySoft }]}>
-              <Feather name={inlineHeaderIcon} size={20} color={interactive.primary} />
-            </View>
-            <ThemedText style={[styles.inlinePageTitle, { color: theme.text }]} numberOfLines={2}>
-              {pageTitle}
-            </ThemedText>
-            <ThemedText style={[styles.updatedStamp, { color: semantic.mutedText, flexShrink: 0 }]}>
-              UPDATED {updated} EST
-            </ThemedText>
-          </View>
-        ) : (
-          <>
-            <View style={styles.brandRow}>
-              <View style={styles.brandLeft}>
-                <Feather name="bar-chart-2" size={20} color={interactive.primary} />
-                <ThemedText style={[styles.brandWordmark, { color: theme.text }]}>HYPATIA</ThemedText>
+          {headerLayout === "sectorInline" ? (
+            <View style={styles.inlineHeaderRow}>
+              <View
+                style={[
+                  styles.inlineHeaderIcon,
+                  { backgroundColor: interactive.primarySoft },
+                ]}
+              >
+                <Feather
+                  name={inlineHeaderIcon}
+                  size={20}
+                  color={interactive.primary}
+                />
               </View>
-              <ThemedText style={[styles.updatedStamp, { color: semantic.mutedText }]}>
+              <ThemedText
+                style={[styles.inlinePageTitle, { color: theme.text }]}
+                numberOfLines={2}
+              >
+                {pageTitle}
+              </ThemedText>
+              <ThemedText
+                style={[
+                  styles.updatedStamp,
+                  { color: semantic.mutedText, flexShrink: 0 },
+                ]}
+              >
                 UPDATED {updated} EST
               </ThemedText>
             </View>
-
-            <View style={styles.titleBlock}>
-              <View style={[styles.accentBar, { backgroundColor: interactive.primary }]} />
-              <ThemedText style={[styles.pageTitle, { color: theme.text }]}>{pageTitle}</ThemedText>
-              {showLiveFeed ? (
-                <View style={styles.liveFeed}>
-                  <View style={[styles.liveDot, { backgroundColor: ECONOMY_DASHBOARD_POSITIVE_GREEN }]} />
-                  <ThemedText style={[styles.liveText, { color: ECONOMY_DASHBOARD_POSITIVE_GREEN }]}>
-                    LIVE DATA FEED
+          ) : (
+            <>
+              <View style={styles.brandRow}>
+                <View style={styles.brandLeft}>
+                  <Feather
+                    name="bar-chart-2"
+                    size={20}
+                    color={interactive.primary}
+                  />
+                  <ThemedText
+                    style={[styles.brandWordmark, { color: theme.text }]}
+                  >
+                    HYPATIA
                   </ThemedText>
                 </View>
-              ) : null}
-            </View>
-          </>
-        )}
+                <ThemedText
+                  style={[styles.updatedStamp, { color: semantic.mutedText }]}
+                >
+                  UPDATED {updated} EST
+                </ThemedText>
+              </View>
 
-        {children}
+              <View style={styles.titleBlock}>
+                <View
+                  style={[
+                    styles.accentBar,
+                    { backgroundColor: interactive.primary },
+                  ]}
+                />
+                <ThemedText style={[styles.pageTitle, { color: theme.text }]}>
+                  {pageTitle}
+                </ThemedText>
+                {showLiveFeed ? (
+                  <View style={styles.liveFeed}>
+                    <View
+                      style={[
+                        styles.liveDot,
+                        { backgroundColor: ECONOMY_DASHBOARD_POSITIVE_GREEN },
+                      ]}
+                    />
+                    <ThemedText
+                      style={[
+                        styles.liveText,
+                        { color: ECONOMY_DASHBOARD_POSITIVE_GREEN },
+                      ]}
+                    >
+                      LIVE DATA FEED
+                    </ThemedText>
+                  </View>
+                ) : null}
+              </View>
+            </>
+          )}
+
+          {children}
         </ScrollView>
         {floatingAction ? (
           <View

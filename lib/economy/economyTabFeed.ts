@@ -1,16 +1,15 @@
 import {
-  US_ECONOMIC_SECTORS,
-  type SectorTrend,
+    US_ECONOMIC_SECTORS,
+    type SectorTrend,
 } from "@/constants/data/usEconomicData";
 import {
-  isEconomySectionPayload,
-  type EconomyOverviewApiResponse,
+    isEconomySectionPayload,
+    type EconomyOverviewApiResponse,
 } from "@/lib/economy/economyOverviewTypes";
 import {
-  formatObservationMonthYear,
-  formatOverviewMetricValue,
-  getSectorCardDisplay,
-  SECTOR_ID_TO_OVERVIEW_KEY,
+    formatOverviewMetricValue,
+    getSectorCardDisplay,
+    SECTOR_ID_TO_OVERVIEW_KEY
 } from "@/lib/economy/sectorOverviewMerge";
 
 export type FeedRow = {
@@ -28,7 +27,7 @@ export type FeedRow = {
   overviewSectionBound: boolean;
 };
 
-/** Matches `sections` keys from `GET /api/economy/overview` via {@link SECTOR_ID_TO_OVERVIEW_KEY}. */
+/** Matches `sections` keys from `GET /api/economy/dashboard` via {@link SECTOR_ID_TO_OVERVIEW_KEY}. */
 export const ECONOMY_FEED_IDS = ["labor", "inflation", "rates", "gdp"] as const;
 
 export function trendVisual(trend: SectorTrend, isDark: boolean) {
@@ -86,7 +85,10 @@ export function resolveFeedBarSelectionIndex(
   return barCount - 1;
 }
 
-export function formatFeedBarValue(raw: number, unit: string | undefined): string {
+export function formatFeedBarValue(
+  raw: number,
+  unit: string | undefined,
+): string {
   if (unit) {
     return formatOverviewMetricValue(raw, unit);
   }
@@ -131,7 +133,9 @@ export function buildEconomyFeedRows(
         sectionKey && economyOverview?.sections
           ? economyOverview.sections[sectionKey]
           : undefined;
-      const section = isEconomySectionPayload(rawSection) ? rawSection : undefined;
+      const section = isEconomySectionPayload(rawSection)
+        ? rawSection
+        : undefined;
       const sortedObs =
         section && section.observations.length > 0
           ? [...section.observations].sort((a, b) =>

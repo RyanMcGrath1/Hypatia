@@ -3,30 +3,34 @@ import { Image } from "expo-image";
 import { router } from "expo-router";
 import { useCallback, useMemo, useState } from "react";
 import {
-  Pressable,
-  ScrollView,
-  StyleSheet,
-  TextInput,
-  View,
+    Pressable,
+    ScrollView,
+    StyleSheet,
+    TextInput,
+    View,
 } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 
 import { AppBrandBar } from "@/components/layout/AppBrandBar";
 import { ThemedText } from "@/components/theme/ThemedText";
 import { ThemedView } from "@/components/theme/ThemedView";
-import { Brand, Colors } from "@/constants/theme/Colors";
 import { TAB_SCREEN_CONTENT_INSETS } from "@/constants/navigation/tabScreenContentInsets";
+import { Brand, Colors } from "@/constants/theme/Colors";
 import {
-  Radius,
-  Spacing,
-  getSemanticColors,
-  getTabScreenCanvasTint,
+    Radius,
+    Spacing,
+    getSemanticColors,
+    getTabScreenCanvasTint,
 } from "@/constants/theme/ThemeTokens";
 import { Fonts } from "@/constants/theme/Typography";
 import { useColorScheme } from "@/hooks/useColorScheme";
 import { useThemeInteractive } from "@/hooks/useThemeInteractive";
 
-const RECENT_SEARCHES = ["Alex Rivera", "CPI Data", "Semiconductor Trade"] as const;
+const RECENT_SEARCHES = [
+  "Alex Rivera",
+  "CPI Data",
+  "Semiconductor Trade",
+] as const;
 
 const FEATURED_IMAGE =
   "https://images.unsplash.com/photo-1518770660439-4636190af475?w=800&q=80";
@@ -113,7 +117,9 @@ export default function ExploreScreen() {
         </View>
 
         <View style={styles.recentRow}>
-          <ThemedText style={[styles.recentLabel, { color: semantic.mutedText }]}>
+          <ThemedText
+            style={[styles.recentLabel, { color: semantic.mutedText }]}
+          >
             Recent:
           </ThemedText>
           <ScrollView
@@ -134,7 +140,9 @@ export default function ExploreScreen() {
                   },
                 ]}
               >
-                <ThemedText style={[styles.recentChipText, { color: theme.text }]}>
+                <ThemedText
+                  style={[styles.recentChipText, { color: theme.text }]}
+                >
                   {label}
                 </ThemedText>
               </Pressable>
@@ -142,7 +150,10 @@ export default function ExploreScreen() {
           </ScrollView>
         </View>
 
-        <ThemedText type="defaultSemiBold" style={[styles.sectionHeading, { color: theme.text }]}>
+        <ThemedText
+          type="defaultSemiBold"
+          style={[styles.sectionHeading, { color: theme.text }]}
+        >
           Browse by Domain
         </ThemedText>
         <View style={styles.domainList}>
@@ -162,28 +173,48 @@ export default function ExploreScreen() {
                 semantic.cardShadow,
               ]}
             >
-              <View style={[styles.domainIcon, { backgroundColor: domain.iconBg }]}>
-                <Ionicons name={domain.icon} size={22} color={domain.iconColor} />
+              <View
+                style={[styles.domainIcon, { backgroundColor: domain.iconBg }]}
+              >
+                <Ionicons
+                  name={domain.icon}
+                  size={22}
+                  color={domain.iconColor}
+                />
               </View>
               <View style={styles.domainTextCol}>
-                <ThemedText type="defaultSemiBold" style={{ color: theme.text }}>
+                <ThemedText
+                  type="defaultSemiBold"
+                  style={{ color: theme.text }}
+                >
                   {domain.title}
                 </ThemedText>
-                <ThemedText style={[styles.domainSubtitle, { color: semantic.mutedText }]}>
+                <ThemedText
+                  style={[styles.domainSubtitle, { color: semantic.mutedText }]}
+                >
                   {domain.subtitle}
                 </ThemedText>
               </View>
-              <Ionicons name="chevron-forward" size={18} color={semantic.mutedText} />
+              <Ionicons
+                name="chevron-forward"
+                size={18}
+                color={semantic.mutedText}
+              />
             </Pressable>
           ))}
         </View>
 
         <View style={styles.trendingHeader}>
-          <ThemedText type="defaultSemiBold" style={[styles.sectionHeading, { color: theme.text }]}>
+          <ThemedText
+            type="defaultSemiBold"
+            style={[styles.sectionHeading, { color: theme.text }]}
+          >
             Trending Insights
           </ThemedText>
           <Pressable onPress={() => goTab("/(tabs)/economy")} hitSlop={8}>
-            <ThemedText style={[styles.viewAnalysis, { color: interactive.primary }]}>
+            <ThemedText
+              style={[styles.viewAnalysis, { color: interactive.primary }]}
+            >
               View Analysis →
             </ThemedText>
           </Pressable>
@@ -206,32 +237,51 @@ export default function ExploreScreen() {
               contentFit="cover"
               transition={200}
             />
-            <View style={[styles.pill, { backgroundColor: interactive.primaryFill }]}>
+            <View
+              style={[
+                styles.pill,
+                { backgroundColor: interactive.primaryFill },
+              ]}
+            >
               <ThemedText style={styles.pillText}>AI IMPACT REPORT</ThemedText>
             </View>
           </View>
           <View style={styles.featuredBody}>
-            <ThemedText type="defaultSemiBold" style={[styles.featuredTitle, { color: theme.text }]}>
+            <ThemedText
+              type="defaultSemiBold"
+              style={[styles.featuredTitle, { color: theme.text }]}
+            >
               Tech Regulation Impact
             </ThemedText>
-            <ThemedText style={[styles.featuredCopy, { color: semantic.mutedText }]}>
-              Bill HR-842 could reshape semiconductor supply chains. Hypatia models
-              second-order effects on labor and pricing over the next two quarters.
+            <ThemedText
+              style={[styles.featuredCopy, { color: semantic.mutedText }]}
+            >
+              Bill HR-842 could reshape semiconductor supply chains. Hypatia
+              models second-order effects on labor and pricing over the next two
+              quarters.
             </ThemedText>
             <View style={styles.metricsRow}>
               <View style={styles.metricCol}>
-                <ThemedText style={[styles.metricLabel, { color: semantic.mutedText }]}>
+                <ThemedText
+                  style={[styles.metricLabel, { color: semantic.mutedText }]}
+                >
                   POTENTIAL RISK
                 </ThemedText>
-                <ThemedText style={[styles.metricValue, { color: interactive.danger }]}>
+                <ThemedText
+                  style={[styles.metricValue, { color: interactive.danger }]}
+                >
                   High
                 </ThemedText>
               </View>
               <View style={styles.metricCol}>
-                <ThemedText style={[styles.metricLabel, { color: semantic.mutedText }]}>
+                <ThemedText
+                  style={[styles.metricLabel, { color: semantic.mutedText }]}
+                >
                   MARKET CONFIDENCE
                 </ThemedText>
-                <ThemedText style={[styles.metricValue, { color: interactive.info }]}>
+                <ThemedText
+                  style={[styles.metricValue, { color: interactive.info }]}
+                >
                   68%
                 </ThemedText>
               </View>
@@ -243,7 +293,10 @@ export default function ExploreScreen() {
           onPress={() => goTab("/(tabs)/economy")}
           style={({ pressed }) => [
             styles.promoCard,
-            { backgroundColor: interactive.primaryFill, opacity: pressed ? 0.92 : 1 },
+            {
+              backgroundColor: interactive.primaryFill,
+              opacity: pressed ? 0.92 : 1,
+            },
           ]}
         >
           <Ionicons name="analytics" size={28} color={Brand.white} />
@@ -252,7 +305,9 @@ export default function ExploreScreen() {
             Forward-looking signal on fiscal headlines and rate sensitivity.
           </ThemedText>
           <View style={styles.promoCta}>
-            <ThemedText style={[styles.promoCtaText, { color: interactive.primary }]}>
+            <ThemedText
+              style={[styles.promoCtaText, { color: interactive.primary }]}
+            >
               Explore Signal
             </ThemedText>
           </View>
@@ -268,16 +323,25 @@ export default function ExploreScreen() {
           ]}
         >
           <View style={styles.summaryTop}>
-            <Ionicons name="shield-checkmark-outline" size={22} color={semantic.mutedText} />
-            <ThemedText style={[styles.summaryDelta, { color: interactive.danger }]}>
+            <Ionicons
+              name="shield-checkmark-outline"
+              size={22}
+              color={semantic.mutedText}
+            />
+            <ThemedText
+              style={[styles.summaryDelta, { color: interactive.danger }]}
+            >
               -1.2%
             </ThemedText>
           </View>
           <ThemedText type="defaultSemiBold" style={{ color: theme.text }}>
             Trade Tariffs
           </ThemedText>
-          <ThemedText style={[styles.summaryCopy, { color: semantic.mutedText }]}>
-            Watchlist item: import-sensitive sectors and retaliatory risk scenarios.
+          <ThemedText
+            style={[styles.summaryCopy, { color: semantic.mutedText }]}
+          >
+            Watchlist item: import-sensitive sectors and retaliatory risk
+            scenarios.
           </ThemedText>
         </View>
       </ScrollView>

@@ -1,12 +1,12 @@
 import { useCallback, useMemo } from "react";
 import {
-  ActivityIndicator,
-  FlatList,
-  Pressable,
-  RefreshControl,
-  ScrollView,
-  StyleSheet,
-  View,
+    ActivityIndicator,
+    FlatList,
+    Pressable,
+    RefreshControl,
+    ScrollView,
+    StyleSheet,
+    View,
 } from "react-native";
 
 import Ionicons from "@expo/vector-icons/Ionicons";
@@ -25,16 +25,16 @@ import { AppRoutes } from "@/constants/app/routes";
 import { TAB_SCREEN_CONTENT_INSETS } from "@/constants/navigation/tabScreenContentInsets";
 import { Brand } from "@/constants/theme/Colors";
 import {
-  Radius,
-  Spacing,
-  getSemanticColors,
-  getTabScreenCanvasTint,
+    Radius,
+    Spacing,
+    getSemanticColors,
+    getTabScreenCanvasTint,
 } from "@/constants/theme/ThemeTokens";
 import { Fonts } from "@/constants/theme/Typography";
 import { NEWS_TOPIC_OPTIONS, type TopHeadlineItem } from "@/hooks/api/newsApi";
 import {
-  headlineKey,
-  useTopHeadlinesFeed,
+    headlineKey,
+    useTopHeadlinesFeed,
 } from "@/hooks/feed/useTopHeadlinesFeed";
 import { useColorScheme } from "@/hooks/useColorScheme";
 

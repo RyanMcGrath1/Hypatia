@@ -5,62 +5,62 @@
  */
 
 export const Palette = {
-  canvas: '#fbf8ff',
-  white: '#ffffff',
-  ink: '#1a1b23',
-  muted: '#444655',
-  border: '#c4c5d7',
-  divider: '#e2e1ed',
-  outline: '#747686',
-  primary: '#264dd9',
-  primarySoft: '#dde1ff',
-  surfaceTint: '#294fdb',
-  secondary: '#006780',
-  secondarySoft: '#b7eaff',
-  tertiary: '#974300',
-  tertiarySoft: '#ffdbc9',
+  canvas: "#fbf8ff",
+  white: "#ffffff",
+  ink: "#1a1b23",
+  muted: "#444655",
+  border: "#c4c5d7",
+  divider: "#e2e1ed",
+  outline: "#747686",
+  primary: "#264dd9",
+  primarySoft: "#dde1ff",
+  surfaceTint: "#294fdb",
+  secondary: "#006780",
+  secondarySoft: "#b7eaff",
+  tertiary: "#974300",
+  tertiarySoft: "#ffdbc9",
   /** Positive trends / success — calm green (not in YAML; pairs with data viz). */
-  success: '#1d6f52',
-  successSoft: '#d9eee6',
-  warning: '#974300',
-  warningSoft: '#ffdbc9',
-  danger: '#ba1a1a',
-  dangerSoft: '#ffdad6',
-  info: '#006780',
-  infoSoft: '#b7eaff',
+  success: "#1d6f52",
+  successSoft: "#d9eee6",
+  warning: "#974300",
+  warningSoft: "#ffdbc9",
+  danger: "#ba1a1a",
+  dangerSoft: "#ffdad6",
+  info: "#006780",
+  infoSoft: "#b7eaff",
 
   /** Dark — YAML `background` / `surface` (level 0 canvas). */
-  darkCanvas: '#11131b',
+  darkCanvas: "#11131b",
   /**
    * Tab screen roots — same family as `darkCanvas` with a whisper of primary so
    * light `#F4F2FA` vs `canvas` has a dark analogue across News/Economy/Politician/Explore.
    */
-  darkTabCanvas: '#121420',
+  darkTabCanvas: "#121420",
   /** YAML `surface-container-low` — subtle fills below card tier. */
-  darkSurfaceContainerLow: '#1a1b23',
+  darkSurfaceContainerLow: "#1a1b23",
   /** YAML `surface-container` — level 1 cards. */
-  darkSurfaceContainer: '#1e1f27',
+  darkSurfaceContainer: "#1e1f27",
   /** YAML `surface-container-high` — level 2 (drawer, popovers). */
-  darkSurfaceContainerHigh: '#282932',
+  darkSurfaceContainerHigh: "#282932",
   /** YAML `surface-container-highest` / `surface-variant`. */
-  darkSurfaceContainerHighest: '#33343d',
-  darkSurfaceBright: '#373942',
-  darkSurfaceLowest: '#0c0e16',
-  darkOnSurface: '#e2e1ed',
-  darkOnSurfaceVariant: '#c4c5d7',
-  darkOutline: '#8e90a0',
-  darkOutlineVariant: '#444655',
+  darkSurfaceContainerHighest: "#33343d",
+  darkSurfaceBright: "#373942",
+  darkSurfaceLowest: "#0c0e16",
+  darkOnSurface: "#e2e1ed",
+  darkOnSurfaceVariant: "#c4c5d7",
+  darkOutline: "#8e90a0",
+  darkOutlineVariant: "#444655",
   /** YAML `primary` / `surface-tint` on dark. */
-  darkPrimary: '#b8c3ff',
-  darkOnPrimary: '#002388',
+  darkPrimary: "#b8c3ff",
+  darkOnPrimary: "#002388",
   /** YAML `inverse-primary` — solid fills (CTAs) on dark. */
-  darkInversePrimary: '#294fdb',
-  darkSecondary: '#60d4fb',
-  darkOnSecondary: '#003543',
-  darkTertiary: '#ffb68e',
-  darkOnTertiary: '#532200',
-  darkError: '#ffb4ab',
-  darkOnError: '#690005',
+  darkInversePrimary: "#294fdb",
+  darkSecondary: "#60d4fb",
+  darkOnSecondary: "#003543",
+  darkTertiary: "#ffb68e",
+  darkOnTertiary: "#532200",
+  darkError: "#ffb4ab",
+  darkOnError: "#690005",
 } as const;
 
 /** Legacy names mapped to Precision tokens */
@@ -129,8 +129,8 @@ export const Colors = {
     text: Brand.darkOnSurface,
     background: Brand.darkCanvas,
     tint: tintDark,
-    icon: 'rgba(196, 197, 215, 0.55)',
-    tabIconDefault: 'rgba(196, 197, 215, 0.45)',
+    icon: "rgba(196, 197, 215, 0.55)",
+    tabIconDefault: "rgba(196, 197, 215, 0.45)",
     tabIconSelected: tintDark,
   },
 };
@@ -154,22 +154,24 @@ export type ThemeInteractive = {
   warningSoft: string;
 };
 
-export function getThemeInteractive(colorScheme: 'light' | 'dark'): ThemeInteractive {
-  if (colorScheme === 'dark') {
+export function getThemeInteractive(
+  colorScheme: "light" | "dark",
+): ThemeInteractive {
+  if (colorScheme === "dark") {
     return {
       primary: Brand.darkPrimary,
-      primarySoft: 'rgba(184, 195, 255, 0.14)',
+      primarySoft: "rgba(184, 195, 255, 0.14)",
       primaryFill: Brand.darkInversePrimary,
       onPrimaryFill: Brand.white,
       secondary: Brand.darkSecondary,
-      secondarySoft: 'rgba(96, 212, 251, 0.14)',
+      secondarySoft: "rgba(96, 212, 251, 0.14)",
       tertiary: Brand.darkTertiary,
-      tertiarySoft: 'rgba(255, 182, 142, 0.14)',
+      tertiarySoft: "rgba(255, 182, 142, 0.14)",
       info: Brand.darkSecondary,
-      infoSoft: 'rgba(96, 212, 251, 0.14)',
+      infoSoft: "rgba(96, 212, 251, 0.14)",
       danger: Brand.darkError,
-      dangerSoft: 'rgba(255, 180, 171, 0.14)',
-      warningSoft: 'rgba(255, 182, 142, 0.14)',
+      dangerSoft: "rgba(255, 180, 171, 0.14)",
+      warningSoft: "rgba(255, 182, 142, 0.14)",
     };
   }
   return {

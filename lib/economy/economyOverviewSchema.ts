@@ -1,7 +1,7 @@
-import { z } from 'zod';
+import { z } from "zod";
 
 /**
- * Zod contract for `GET /api/economy/overview` (hypatia-backend).
+ * Zod contract for `GET /api/economy/dashboard` (hypatia-backend).
  * Sections may be success payloads or per-series error objects from FRED.
  */
 
@@ -10,17 +10,19 @@ import { z } from 'zod';
  * Invalid values become NaN and are stripped at the section level so one bad row
  * doesn’t fail the whole section.
  */
-const economyObservationValueSchema = z.union([z.number(), z.string()]).transform((raw) => {
-  if (typeof raw === 'number') {
-    return Number.isFinite(raw) ? raw : Number.NaN;
-  }
-  const t = raw.trim();
-  if (t === '' || t === '.' || t === '..') {
-    return Number.NaN;
-  }
-  const n = Number(t);
-  return Number.isFinite(n) ? n : Number.NaN;
-});
+const economyObservationValueSchema = z
+  .union([z.number(), z.string()])
+  .transform((raw) => {
+    if (typeof raw === "number") {
+      return Number.isFinite(raw) ? raw : Number.NaN;
+    }
+    const t = raw.trim();
+    if (t === "" || t === "." || t === "..") {
+      return Number.NaN;
+    }
+    const n = Number(t);
+    return Number.isFinite(n) ? n : Number.NaN;
+  });
 
 const economyObservationSchema = z.object({
   date: z.string(),
@@ -28,9 +30,9 @@ const economyObservationSchema = z.object({
 });
 
 const economySectionSuccessSchema = z.object({
-  label: z.string().optional().default(''),
-  series_id: z.string().optional().default(''),
-  unit: z.string().optional().default(''),
+  label: z.string().optional().default(""),
+  series_id: z.string().optional().default(""),
+  unit: z.string().optional().default(""),
   observations: z
     .array(economyObservationSchema)
     .transform((rows) => rows.filter((r) => Number.isFinite(r.value))),
@@ -47,7 +49,7 @@ const economySectionErrorSchema = z.object({
 export const economySectionSchema = z
   .union([economySectionSuccessSchema, economySectionErrorSchema])
   .catch({
-    error: 'Unrecognized economy section',
+    error: "Unrecognized economy section",
     hint: undefined as string | undefined,
   });
 
@@ -56,4 +58,6 @@ export const economyOverviewResponseSchema = z.object({
   sections: z.record(z.string(), economySectionSchema),
 });
 
-export type EconomyOverviewValidated = z.infer<typeof economyOverviewResponseSchema>;
+export type EconomyOverviewValidated = z.infer<
+  typeof economyOverviewResponseSchema
+>;

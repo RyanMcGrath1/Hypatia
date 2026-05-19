@@ -1,12 +1,12 @@
 /**
  * Main Flask service (hypatia-backend, default port 5001): `/hello`, civic APIs, and sample `/hello` hook.
  */
-import { useEffect, useState } from 'react';
-import { Platform } from 'react-native';
+import { useEffect, useState } from "react";
+import { Platform } from "react-native";
 
-import { fetchApiGet } from '@/hooks/api/httpGet';
-import { getDevApiBaseUrlForPort } from '@/hooks/api/devServerBaseUrl';
-import { getNewsApiBaseUrl } from '@/hooks/api/newsApi';
+import { getDevApiBaseUrlForPort } from "@/hooks/api/devServerBaseUrl";
+import { fetchApiGet } from "@/hooks/api/httpGet";
+import { getNewsApiBaseUrl } from "@/hooks/api/newsApi";
 
 type UseFlaskHelloSearchResult = {
   isLoading: boolean;
@@ -18,14 +18,14 @@ type UseFlaskHelloSearchResult = {
 export function getFlaskApiBaseUrl(): string {
   const fromEnv = process.env.EXPO_PUBLIC_API_BASE_URL?.trim();
   if (fromEnv) {
-    return fromEnv.replace(/\/$/, '');
+    return fromEnv.replace(/\/$/, "");
   }
   return getDevApiBaseUrlForPort(5001);
 }
 
 export function getFlaskHelloNetworkErrorMessage(): string {
-  if (Platform.OS === 'web') {
-    return 'Unable to reach Flask (enable CORS on the server for Expo web — see scripts/flask_cors_local.py)';
+  if (Platform.OS === "web") {
+    return "Unable to reach Flask (enable CORS on the server for Expo web — see scripts/flask_cors_local.py)";
   }
   return `Unable to reach Flask at ${getFlaskApiBaseUrl()}. On a real device, the app uses your dev machine's LAN IP (same as Metro). Run Flask bound to all interfaces, e.g. flask run --host=0.0.0.0 --port=5001, or set EXPO_PUBLIC_API_BASE_URL.`;
 }
@@ -40,12 +40,12 @@ async function fetchFlaskGet(
 
 /** `GET {base}/hello` — same contract as `curl http://127.0.0.1:5001/hello` when using default base on web/simulator. */
 export async function fetchFlaskHello(signal?: AbortSignal): Promise<unknown> {
-  return fetchFlaskGet('/hello', undefined, signal);
+  return fetchFlaskGet("/hello", undefined, signal);
 }
 
 /** Sample address matching `curl "http://127.0.0.1:5001/api/civic/representatives?address=1600%20Pennsylvania%20..."`. */
 export const DEFAULT_CIVIC_SAMPLE_ADDRESS =
-  '1600 Pennsylvania Avenue NW Washington DC';
+  "1600 Pennsylvania Avenue NW Washington DC";
 
 /** `GET {base}/api/civic/representatives?address=...` — base URL follows the same rules as `/hello`. */
 export async function fetchCivicRepresentatives(
@@ -53,14 +53,14 @@ export async function fetchCivicRepresentatives(
   signal?: AbortSignal,
 ): Promise<unknown> {
   return fetchFlaskGet(
-    '/api/civic/representatives',
+    "/api/civic/representatives",
     { address: address.trim() },
     signal,
   );
 }
 
 /** Sample address for divisions-by-address (e.g. ZIP `07834`), matching Postman `?address=07834`. */
-export const DEFAULT_CIVIC_DIVISIONS_SAMPLE_ADDRESS = '07834';
+export const DEFAULT_CIVIC_DIVISIONS_SAMPLE_ADDRESS = "07834";
 
 /** `GET {base}/api/civic/divisions-by-address?address=...` — base URL follows the same rules as `/hello`. */
 export async function fetchCivicDivisionsByAddress(
@@ -68,14 +68,14 @@ export async function fetchCivicDivisionsByAddress(
   signal?: AbortSignal,
 ): Promise<unknown> {
   return fetchFlaskGet(
-    '/api/civic/divisions-by-address',
+    "/api/civic/divisions-by-address",
     { address: address.trim() },
     signal,
   );
 }
 
 /**
- * `GET {base}/api/economy/overview` — full Economy tab snapshot (`as_of`, `sections` for all
+ * `GET {base}/api/economy/dashboard` — full Economy tab snapshot (`as_of`, `sections` for all
  * overview series). Base URL follows `getNewsApiBaseUrl()` (news stack / Metro proxy on web).
  */
 export async function fetchEconomyOverview(
@@ -88,7 +88,7 @@ export async function fetchEconomyOverview(
       : undefined;
   return fetchApiGet(
     getNewsApiBaseUrl(),
-    '/api/economy/overview',
+    "/api/economy/dashboard",
     searchParams,
     signal,
   );
@@ -123,7 +123,7 @@ export function useFlaskHelloSearch(query: string): UseFlaskHelloSearchResult {
           setApiData(data);
         }
       } catch (err) {
-        if (err instanceof Error && err.name === 'AbortError') {
+        if (err instanceof Error && err.name === "AbortError") {
           return;
         }
         if (!cancelled) {

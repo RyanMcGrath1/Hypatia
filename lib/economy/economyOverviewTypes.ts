@@ -1,7 +1,7 @@
 /**
- * `GET /api/economy/overview` payload — `sections` may include per-series FRED error objects.
+ * `GET /api/economy/dashboard` payload — `sections` may include per-series FRED error objects.
  */
-import { economyOverviewResponseSchema } from '@/lib/economy/economyOverviewSchema';
+import { economyOverviewResponseSchema } from "@/lib/economy/economyOverviewSchema";
 
 export type EconomyObservation = {
   date: string;
@@ -39,8 +39,8 @@ export type EconomyOverviewApiResponse = {
 export function isEconomySectionPayload(
   section: unknown,
 ): section is EconomySectionPayload {
-  if (typeof section !== 'object' || section === null) return false;
-  if (!('observations' in section)) return false;
+  if (typeof section !== "object" || section === null) return false;
+  if (!("observations" in section)) return false;
   return Array.isArray((section as EconomySectionPayload).observations);
 }
 

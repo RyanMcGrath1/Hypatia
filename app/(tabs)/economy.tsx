@@ -2,21 +2,21 @@ import { useRouter } from "expo-router";
 import { useMemo, useState } from "react";
 import { ScrollView, View } from "react-native";
 
-import { AppBrandBar } from "@/components/layout/AppBrandBar";
 import { EconomyDashboardInfoSections } from "@/components/economy/tab/EconomyDashboardInfoSections";
 import { economyDashboardStyles as styles } from "@/components/economy/tab/economyDashboardStyles";
 import { EconomySectorFeedList } from "@/components/economy/tab/EconomySectorFeedList";
 import { EconomySentimentHeroCard } from "@/components/economy/tab/EconomySentimentHeroCard";
+import { AppBrandBar } from "@/components/layout/AppBrandBar";
 import { StateNoticeCard } from "@/components/surfaces/StateNoticeCard";
 import { ThemedText } from "@/components/theme/ThemedText";
 import { ThemedView } from "@/components/theme/ThemedView";
 import { Colors } from "@/constants/theme/Colors";
 import {
-  getSemanticColors,
-  getTabScreenCanvasTint,
+    getSemanticColors,
+    getTabScreenCanvasTint,
 } from "@/constants/theme/ThemeTokens";
-import { useEconomyTabDashboard } from "@/hooks/useEconomyTabDashboard";
 import { useColorScheme } from "@/hooks/useColorScheme";
+import { useEconomyTabDashboard } from "@/hooks/useEconomyTabDashboard";
 import { formatOverviewAsOfDisplay } from "@/lib/economy/economyOverviewTypes";
 import { buildEconomyFeedRows } from "@/lib/economy/economyTabFeed";
 
