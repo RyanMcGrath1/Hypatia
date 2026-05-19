@@ -17,6 +17,7 @@ import { WebView } from "react-native-webview";
 
 import { ThemedText } from "@/components/theme/ThemedText";
 import { ThemedView } from "@/components/theme/ThemedView";
+import { TAB_BAR_SCROLL_CLEARANCE } from "@/constants/navigation/floatingTabBar";
 import { Colors } from "@/constants/theme/Colors";
 import {
   Radius,
@@ -60,17 +61,6 @@ function normalizeArticleUrl(raw: string | undefined): string | null {
   return null;
 }
 
-function decodeTitle(raw: string | undefined): string | null {
-  if (!raw || typeof raw !== "string") {
-    return null;
-  }
-  try {
-    return decodeURIComponent(raw);
-  } catch {
-    return raw;
-  }
-}
-
 export default function ArticleWebViewScreen() {
   const params = useLocalSearchParams<{
     url?: string | string[];
@@ -81,19 +71,8 @@ export default function ArticleWebViewScreen() {
   const semantic = getSemanticColors(colorScheme);
 
   const rawUrl = firstParam(params.url);
-  const rawTitle = firstParam(params.title);
 
   const articleUrl = useMemo(() => normalizeArticleUrl(rawUrl), [rawUrl]);
-  const decodedTitle = useMemo(() => decodeTitle(rawTitle), [rawTitle]);
-
-  const headerTitle = useMemo(() => {
-    if (!decodedTitle?.trim()) {
-      return "Article";
-    }
-    const t = decodedTitle.trim();
-    return t.length > 42 ? `${t.slice(0, 42)}…` : t;
-  }, [decodedTitle]);
-
   const [loading, setLoading] = useState(true);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
   const [chatDraft, setChatDraft] = useState("");
@@ -125,21 +104,6 @@ export default function ArticleWebViewScreen() {
       hideSub.remove();
     };
   }, []);
-
-  const sharedHeaderOptions = {
-    gestureEnabled: true,
-    fullScreenGestureEnabled: true,
-    headerBackButtonDisplayMode: "minimal" as const,
-    headerStyle: {
-      backgroundColor: semantic.screenBackground,
-    },
-    headerTintColor: theme.tint,
-    headerTitleStyle: {
-      color: theme.text,
-      fontWeight: "600" as const,
-    },
-    headerShadowVisible: false,
-  };
 
   const onLoadEnd = () => {
     setLoading(false);
@@ -175,7 +139,8 @@ export default function ArticleWebViewScreen() {
   }, [chatDraft]);
 
   /** Extra space above the home indicator so the composer floats higher than edge-to-edge. */
-  const chatBarBottomLift = Spacing.xl + Spacing.sm;
+  const chatBarBottomLift =
+    Spacing.xl + Spacing.sm + TAB_BAR_SCROLL_CLEARANCE;
 
   const renderChatBar = () => (
     <View
@@ -239,12 +204,7 @@ export default function ArticleWebViewScreen() {
   if (!articleUrl) {
     return (
       <ThemedView style={styles.screen}>
-        <Stack.Screen
-          options={{
-            title: "Article",
-            ...sharedHeaderOptions,
-          }}
-        />
+        <Stack.Screen options={{ headerShown: false }} />
         <View style={styles.keyboardAvoid}>
           <View style={styles.fillCenter}>
             <ThemedText type="defaultSemiBold">Invalid link</ThemedText>
@@ -260,28 +220,7 @@ export default function ArticleWebViewScreen() {
 
   return (
     <ThemedView style={styles.screen}>
-      <Stack.Screen
-        options={{
-          title: headerTitle,
-          ...sharedHeaderOptions,
-          headerRight: () => (
-            <Pressable
-              accessibilityRole="button"
-              accessibilityLabel="Open in system browser"
-              onPress={openInSystemBrowser}
-              hitSlop={12}
-              style={({ pressed }) => ({
-                opacity: pressed ? 0.65 : 1,
-                paddingHorizontal: Spacing.sm,
-              })}
-            >
-              <ThemedText style={{ color: theme.tint, fontWeight: "600" }}>
-                Browser
-              </ThemedText>
-            </Pressable>
-          ),
-        }}
-      />
+      <Stack.Screen options={{ headerShown: false }} />
 
       <View style={styles.keyboardAvoid}>
         <View style={styles.webviewWrap}>

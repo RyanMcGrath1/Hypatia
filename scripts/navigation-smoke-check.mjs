@@ -11,27 +11,22 @@ function assertContains(filePath, expected, message) {
 try {
   // Economy tile navigation should route to detail screen.
   assertContains(
-    'app/(tabs)/economy.tsx',
+    'app/(tabs)/economy/index.tsx',
     'pathname: AppRoutes.economyDetail',
     'Economy tile navigation route changed unexpectedly.',
   );
 
-  // Detail screen should enable gesture + minimal back button styling.
+  // Detail stack lives under the Economy tab so the tab bar stays visible.
   assertContains(
-    'app/economy/[sectorId].tsx',
+    'app/(tabs)/economy/_layout.tsx',
     'gestureEnabled: true',
-    'Detail screen gesture navigation is not configured.',
-  );
-  assertContains(
-    'app/economy/[sectorId].tsx',
-    "headerBackButtonDisplayMode: 'minimal'",
-    'Detail header back button display mode changed unexpectedly.',
+    'Economy tab stack gesture navigation is not configured.',
   );
 
   // Route constants should keep tabs + detail route contract centralized.
   assertContains(
     'constants/app/routes.ts',
-    "economyDetail: '/economy/[sectorId]'",
+    "economyDetail: '/(tabs)/economy/[sectorId]'",
     'Route constants do not define economy detail path.',
   );
 

@@ -14,3 +14,7 @@ export const FLOATING_TAB_BAR = {
   /** Extra lift above the bottom safe area (0 = bar flush to screen bottom). */
   bottomOffset: 0,
 } as const;
+
+/** Scroll padding so content clears the docked tab bar (content height + label row). */
+export const TAB_BAR_SCROLL_CLEARANCE =
+  FLOATING_TAB_BAR.contentHeight + 58;

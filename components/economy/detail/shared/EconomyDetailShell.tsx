@@ -15,6 +15,7 @@ import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { ThemedText } from "@/components/theme/ThemedText";
 import { ThemedView } from "@/components/theme/ThemedView";
 import { Colors } from "@/constants/theme/Colors";
+import { TAB_BAR_SCROLL_CLEARANCE } from "@/constants/navigation/floatingTabBar";
 import { Spacing, getSemanticColors } from "@/constants/theme/ThemeTokens";
 import { Fonts } from "@/constants/theme/Typography";
 import { useColorScheme } from "@/hooks/useColorScheme";
@@ -98,6 +99,7 @@ export function EconomyDetailShell({
               paddingBottom:
                 insets.bottom +
                 Spacing.xl +
+                TAB_BAR_SCROLL_CLEARANCE +
                 (floatingAction ? FAB_SCROLL_CLEARANCE : 0),
             },
           ]}

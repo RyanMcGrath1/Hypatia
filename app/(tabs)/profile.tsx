@@ -13,16 +13,7 @@ export default function ProfileScreen() {
 
   return (
     <ThemedView style={styles.screen}>
-      <Stack.Screen
-        options={{
-          title: 'Profile',
-          headerShown: true,
-          headerStyle: { backgroundColor: theme.background },
-          headerTintColor: theme.tint,
-          headerTitleStyle: { color: theme.text, fontWeight: '600' },
-          headerShadowVisible: false,
-        }}
-      />
+      <Stack.Screen options={{ headerShown: false }} />
       <ThemedText style={[styles.lead, { color: theme.icon }]}>
         Account details and settings can go here when you wire up auth.
       </ThemedText>

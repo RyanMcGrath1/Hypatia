@@ -25,7 +25,7 @@ describe("isMainTabPathname", () => {
     "/economy/labor",
     "/economy/inflation",
     "/politician/alex-harper",
-    "/article",
+    "/index/article",
     "/profile",
   ])("returns false for detail route %s", (pathname) => {
     expect(isMainTabPathname(pathname)).toBe(false);
