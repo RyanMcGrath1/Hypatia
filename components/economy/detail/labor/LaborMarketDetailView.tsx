@@ -203,7 +203,6 @@ export function LaborMarketDetailView() {
     <EconomyDetailShell
       pageTitle="LABOR MARKET"
       showHypatiaBrand={false}
-      showUpdatedBelowLiveFeed
       onScroll={onPayrollFabScroll}
       floatingAction={floatingAction}
     >

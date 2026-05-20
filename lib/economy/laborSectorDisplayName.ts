@@ -80,6 +80,19 @@ function shortenFromWords(fullName: string): string {
   return `${tokens[0]} ${tokens[1]}`;
 }
 
+/** PAYEMS / total nonfarm — headline payroll card only, not sector breakdown rows. */
+export function excludeFromLaborSectorBreakdown(series: {
+  id: string;
+  name: string;
+}): boolean {
+  const id = series.id.trim().toUpperCase();
+  if (id === "PAYEMS") {
+    return true;
+  }
+  const nameKey = series.name.trim().toLowerCase();
+  return nameKey === "total nonfarm payrolls";
+}
+
 /** User-facing sector label (max ~2 words) for table and chart legends. */
 export function laborSectorDisplayName(series: {
   id: string;

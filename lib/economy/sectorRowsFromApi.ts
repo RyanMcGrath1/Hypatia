@@ -16,7 +16,10 @@ import type {
   EconomySectorResponse,
   EconomySectorSeries,
 } from "@/hooks/api/economySectorApi";
-import { laborSectorDisplayName } from "@/lib/economy/laborSectorDisplayName";
+import {
+  excludeFromLaborSectorBreakdown,
+  laborSectorDisplayName,
+} from "@/lib/economy/laborSectorDisplayName";
 
 /** Minimum bar width (as a fraction of the largest) so tiny moves are still visible. */
 const MIN_BAR_FILL = 0.06;
@@ -75,7 +78,10 @@ type DerivedRow = {
 };
 
 function deriveRows(response: EconomySectorResponse): DerivedRow[] {
-  return response.series.map((series, index) => {
+  const breakdownSeries = response.series.filter(
+    (series) => !excludeFromLaborSectorBreakdown(series),
+  );
+  return breakdownSeries.map((series, index) => {
     if (series.error) {
       return {
         index,

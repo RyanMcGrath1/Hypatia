@@ -316,13 +316,37 @@ export function clampPayrollRangeIndices(
 }
 
 /** UTC year-to-date: Jan 1 through today (`YYYY-MM-DD`). */
-export function payrollDefaultYtdBoundsUtc(): {
+export function payrollDefaultYtdBoundsUtc(now: Date = new Date()): {
   observationStart: string;
   observationEnd: string;
 } {
-  const now = new Date();
   const y = now.getUTCFullYear();
   const m = String(now.getUTCMonth() + 1).padStart(2, "0");
   const d = String(now.getUTCDate()).padStart(2, "0");
   return { observationStart: `${y}-01-01`, observationEnd: `${y}-${m}-${d}` };
+}
+
+/** Month keys for the YTD quick preset (same window as {@link payrollDefaultYtdBoundsUtc}). */
+export function payrollYtdMonthKeysUtc(now: Date = new Date()): {
+  start: string;
+  end: string;
+} {
+  const { observationStart, observationEnd } = payrollDefaultYtdBoundsUtc(now);
+  return {
+    start: observationStart.slice(0, 7),
+    end: observationEnd.slice(0, 7),
+  };
+}
+
+export function payrollYtdMatchesMonthKeys(
+  monthKeyLo: string,
+  monthKeyHi: string,
+  now: Date = new Date(),
+): boolean {
+  const ytd = payrollYtdMonthKeysUtc(now);
+  const lo = monthKeyLo.trim().slice(0, 7);
+  const hi = monthKeyHi.trim().slice(0, 7);
+  const start = lo <= hi ? lo : hi;
+  const end = lo <= hi ? hi : lo;
+  return start === ytd.start && end === ytd.end;
 }

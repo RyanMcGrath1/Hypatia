@@ -1,6 +1,6 @@
 import { useMemo } from "react";
 import { StyleSheet, View } from "react-native";
-import Svg, { Circle, Line, Polyline, Rect } from "react-native-svg";
+import Svg, { Circle, Line, Polygon, Polyline, Rect } from "react-native-svg";
 
 import { laborMarketDetailStyles as parentStyles } from "@/components/economy/detail/labor/LaborMarketDetailView.styles";
 import { ThemedText } from "@/components/theme/ThemedText";
@@ -128,6 +128,14 @@ export function LaborSectorLineChart({ data, width }: LaborSectorLineChartProps)
                 stroke={semantic.hairline}
                 strokeWidth={StyleSheet.hairlineWidth}
                 opacity={0.85}
+              />
+            ))}
+            {model.lines.map((line) => (
+              <Polygon
+                key={`area-${line.id}`}
+                points={line.areaPolygonPoints}
+                fill={line.color}
+                stroke="none"
               />
             ))}
             {model.baselineY != null && model.dataCrossesZero ? (

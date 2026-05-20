@@ -1,5 +1,8 @@
 import type { EconomySectorResponse } from "@/hooks/api/economySectorApi";
-import { laborSectorDisplayName } from "@/lib/economy/laborSectorDisplayName";
+import {
+  excludeFromLaborSectorBreakdown,
+  laborSectorDisplayName,
+} from "@/lib/economy/laborSectorDisplayName";
 
 /** Distinct strokes for up to ~10 sector lines (light + dark friendly). */
 export const LABOR_SECTOR_LINE_COLORS = [
@@ -20,6 +23,8 @@ export type LaborSectorLineSeries = {
   label: string;
   color: string;
   polylinePoints: string;
+  /** Closed polygon for fill under the line down to the chart baseline. */
+  areaPolygonPoints: string;
   /** % change vs period start (0% at first month). */
   pctChange: number[];
   /** Latest month % change vs period start. */
@@ -121,6 +126,9 @@ function numericPoints(
 function commonTimeline(response: EconomySectorResponse): string[] {
   const dateSets: Set<string>[] = [];
   for (const s of response.series) {
+    if (excludeFromLaborSectorBreakdown(s)) {
+      continue;
+    }
     if (s.error) {
       continue;
     }
@@ -193,6 +201,35 @@ function buildPolylinePoints(
     points: segments.join(" "),
     endDot: { cx: lastX, cy: lastY },
   };
+}
+
+/** Closed path: line vertices, then baseline edge back to the first point. */
+function buildAreaPolygonPoints(
+  pctSeries: readonly number[],
+  yMin: number,
+  yMax: number,
+  innerW: number,
+  innerH: number,
+  padX: number,
+  padTop: number,
+  fillBaselineY: number,
+): string {
+  const n = pctSeries.length;
+  if (n === 0) {
+    return "";
+  }
+  const step = innerW / Math.max(n - 1, 1);
+  const top: string[] = [];
+  for (let i = 0; i < n; i += 1) {
+    const x = padX + i * step;
+    const y = pctToY(pctSeries[i]!, yMin, yMax, innerH, padTop);
+    top.push(`${x},${y}`);
+  }
+  const firstX = padX;
+  const lastX = padX + (n - 1) * step;
+  return [...top, `${lastX},${fillBaselineY}`, `${firstX},${fillBaselineY}`].join(
+    " ",
+  );
 }
 
 function pickNiceStep(span: number): number {
@@ -350,6 +387,9 @@ export function buildLaborSectorLineChartModel(
   let colorIdx = 0;
 
   for (const series of response.series) {
+    if (excludeFromLaborSectorBreakdown(series)) {
+      continue;
+    }
     if (series.error) {
       continue;
     }
@@ -415,27 +455,45 @@ export function buildLaborSectorLineChartModel(
   const usedLen = scratches[0]!.pctChange.length;
   const plotTimeline = timeline.slice(0, usedLen);
 
-  const lines: LaborSectorLineSeries[] = scratches.map((s) => {
-    const { points, endDot } = buildPolylinePoints(
-      s.pctChange,
-      yMin,
-      yMax,
-      innerW,
-      innerH,
-      PAD_X,
-      PAD_TOP,
-    );
-    const latestPctChange = s.pctChange[s.pctChange.length - 1]!;
-    return {
-      id: s.id,
-      label: s.label,
-      color: s.color,
-      polylinePoints: points,
-      pctChange: s.pctChange,
-      latestPctChange,
-      endDot,
-    };
-  });
+  const fillBaselineY = dataCrossesZero
+    ? pctToY(0, yMin, yMax, innerH, PAD_TOP)
+    : PAD_TOP + innerH;
+
+  const lines: LaborSectorLineSeries[] = scratches
+    .map((s) => {
+      const { points, endDot } = buildPolylinePoints(
+        s.pctChange,
+        yMin,
+        yMax,
+        innerW,
+        innerH,
+        PAD_X,
+        PAD_TOP,
+      );
+      const areaPolygonPoints = buildAreaPolygonPoints(
+        s.pctChange,
+        yMin,
+        yMax,
+        innerW,
+        innerH,
+        PAD_X,
+        PAD_TOP,
+        fillBaselineY,
+      );
+      const latestPctChange = s.pctChange[s.pctChange.length - 1]!;
+      return {
+        id: s.id,
+        label: s.label,
+        color: s.color,
+        polylinePoints: points,
+        areaPolygonPoints,
+        pctChange: s.pctChange,
+        latestPctChange,
+        endDot,
+      };
+    })
+    // Draw back → front: largest |% change| first, lines nearest 0% on top.
+    .sort((a, b) => Math.abs(b.latestPctChange) - Math.abs(a.latestPctChange));
 
   return {
     totalWidth: width,

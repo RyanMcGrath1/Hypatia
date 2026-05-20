@@ -1,5 +1,5 @@
 import Feather from "@expo/vector-icons/Feather";
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import {
   Modal,
   Pressable,
@@ -26,6 +26,8 @@ import {
   monthKeyFromPayrollFilterSliderStep,
   payrollFilterSliderStepFromMonthKey,
   payrollObservationWindowFromMonthKeys,
+  payrollYtdMatchesMonthKeys,
+  payrollYtdMonthKeysUtc,
 } from "@/lib/economy/payrollMonthRange";
 
 export type PayrollRangeFilterCloseReason = "confirm" | "dismiss";
@@ -47,7 +49,7 @@ export type PayrollRangeFilterModalProps = {
 };
 
 type ActiveField = "start" | "end";
-type PresetId = "12m" | "5y" | "10y" | "25y" | "max";
+type PresetId = "ytd" | "12m" | "5y" | "10y" | "25y" | "max";
 
 const MONTH_INDEX = [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12] as const;
 
@@ -145,9 +147,10 @@ export function PayrollRangeFilterModal({
     clampPayrollSeriesLastMonthKey(seriesLastMonthKey),
   );
   const [activeField, setActiveField] = useState<ActiveField>("start");
-  const [presetId, setPresetId] = useState<PresetId | null>(null);
+  const [presetId, setPresetId] = useState<PresetId | null>("ytd");
   const [uiDecadeBase, setUiDecadeBase] = useState(2020);
   const [uiYear, setUiYear] = useState(2024);
+  const selectYtdOnNextOpenRef = useRef(true);
 
   const ink = isDark ? Palette.darkOnSurface : Palette.ink;
   const muted = semantic.mutedText;
@@ -179,7 +182,13 @@ export function PayrollRangeFilterModal({
     setRangeStartKey(lo);
     setRangeEndKey(hi);
     setActiveField("start");
-    setPresetId(null);
+    const isYtdRange = payrollYtdMatchesMonthKeys(lo, hi);
+    if (selectYtdOnNextOpenRef.current || isYtdRange) {
+      setPresetId("ytd");
+      selectYtdOnNextOpenRef.current = false;
+    } else {
+      setPresetId(null);
+    }
     const startYear = parseInt(lo.slice(0, 4), 10);
     if (Number.isFinite(startYear)) {
       setUiDecadeBase(Math.floor(startYear / 10) * 10);
@@ -218,8 +227,14 @@ export function PayrollRangeFilterModal({
     (id: PresetId) => {
       const last = clampPayrollSeriesLastMonthKey(seriesLastMonthKey);
       let start: string;
-      const end = last;
+      let end = last;
       switch (id) {
+        case "ytd": {
+          const ytd = payrollYtdMonthKeysUtc();
+          start = ytd.start;
+          end = ytd.end;
+          break;
+        }
         case "12m":
           start = addPayrollMonthsWithinSeries(last, -(12 - 1), seriesLastMonthKey);
           break;
@@ -292,6 +307,7 @@ export function PayrollRangeFilterModal({
   const editingMonthNum = parseInt(activeEditingKey.slice(5, 7), 10);
 
   const presetPills: { id: PresetId; label: string }[] = [
+    { id: "ytd", label: "YTD" },
     { id: "12m", label: "Last 12 Months" },
     { id: "5y", label: "Last 5 Years" },
     { id: "10y", label: "Last 10 Years" },
@@ -342,15 +358,7 @@ export function PayrollRangeFilterModal({
               <ThemedText style={[styles.headerTitle, { color: primary }]}>
                 Select Date Range
               </ThemedText>
-              <Pressable
-                accessibilityRole="button"
-                accessibilityLabel="More options"
-                hitSlop={12}
-                disabled
-                style={[styles.headerSideBtn, styles.headerSideBtnMuted]}
-              >
-                <Feather name="more-vertical" size={22} color={muted} />
-              </Pressable>
+              <View style={styles.headerSideBtn} accessibilityElementsHidden />
             </View>
 
             <View style={styles.dateCardsRow}>
@@ -690,9 +698,6 @@ const styles = StyleSheet.create({
     alignItems: "center",
     justifyContent: "center",
   },
-  headerSideBtnMuted: {
-    opacity: 0.55,
-  },
   headerTitle: {
     flex: 1,
     fontSize: 17,
@@ -721,9 +726,9 @@ const styles = StyleSheet.create({
     paddingTop: 18,
   },
   rangeDash: {
-    fontSize: 20,
+    fontSize: 14,
     fontFamily: Fonts.bodyBold,
-    lineHeight: 24,
+    lineHeight: 16,
   },
   dateCardKicker: {
     fontSize: 10,
