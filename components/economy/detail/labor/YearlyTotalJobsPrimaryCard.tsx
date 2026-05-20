@@ -13,7 +13,7 @@ import { Fonts } from "@/constants/theme/Typography";
  *   │  │    Feather trending-up, low-opacity white                          │
  *   │  └────────────────────────────────────────────────────────────────────│
  *   │  ┌─ content: z=1, full width + right inset so text clears watermark ─│
- *   │  │  ① kicker     — "YEARLY TOTAL JOBS" (uppercase label)              │
+ *   │  │  ① kicker     — "TOTAL JOBS" (uppercase label)                     │
  *   │  │  ② metricRow  — row: net jobs from chart (last−first level shown) + optional YoY pill   │
  *   │  │       OR loadingRow + ActivityIndicator                             │
  *   │  │  ③ footer     — optional caption (regular Inter, muted white)      │
@@ -40,7 +40,7 @@ export type YearlyTotalJobsPrimaryCardProps = {
   subtitle?: string;
   /** When true, ② shows `loadingRow` instead of value + badge. */
   loading?: boolean;
-  /** Overrides ① — default `YEARLY TOTAL JOBS` (PAYEMS). Use API series label in uppercase when set. */
+  /** Overrides ① — default `TOTAL JOBS` (PAYEMS). */
   kickerLabel?: string;
   /**
    * When set, shown as the hero figure instead of formatting `netThousands` (e.g. economy detail headline
@@ -69,7 +69,7 @@ export function YearlyTotalJobsPrimaryCard({
         : fallbackValueLabel;
 
   const a11y = [
-    kickerLabel?.trim() || "Yearly total jobs",
+    kickerLabel?.trim() || "Total jobs",
     valueLabel,
     badgeLabel,
     subtitle,
@@ -92,7 +92,7 @@ export function YearlyTotalJobsPrimaryCard({
       {/* ─── Layer 1: text stack (sits above watermark) ─── */}
       <View style={styles.content}>
         {/* ① Header label */}
-        <Text style={styles.kicker}>{kickerLabel?.trim() || "YEARLY TOTAL JOBS"}</Text>
+        <Text style={styles.kicker}>{kickerLabel?.trim() || "TOTAL JOBS"}</Text>
 
         {loading ? (
           /* Loading branch: same vertical role as `metricRow` */

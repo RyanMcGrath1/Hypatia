@@ -17,7 +17,7 @@ describe('fetchApiGet', () => {
   });
 
   it('sends an X-Request-ID header for server log correlation', async () => {
-    await fetchApiGet('http://127.0.0.1:5001', '/hello', undefined, undefined);
+    await fetchApiGet('http://127.0.0.1:5001', '/health', undefined, undefined);
     const mockFetch = global.fetch as ReturnType<typeof vi.fn>;
     expect(mockFetch).toHaveBeenCalledTimes(1);
     const init = mockFetch.mock.calls[0]![1] as RequestInit;

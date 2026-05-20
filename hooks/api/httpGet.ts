@@ -11,7 +11,7 @@ function createRequestId(): string {
   return `req_${Date.now()}_${Math.random().toString(36).slice(2, 11)}`;
 }
 
-function parseResponseBody(text: string): unknown {
+export function parseResponseBody(text: string): unknown {
   const trimmed = text.trim();
   if (!trimmed) {
     return '';
@@ -20,6 +20,32 @@ function parseResponseBody(text: string): unknown {
     return JSON.parse(trimmed) as unknown;
   } catch {
     return text;
+  }
+}
+
+/** JSON `error` / `hint` fields from hypatia-backend error responses. */
+export function errorMessageFromApiBody(body: unknown, status: number): string {
+  if (body && typeof body === 'object' && 'error' in body) {
+    const raw = (body as { error?: unknown; hint?: unknown }).error;
+    const hint = (body as { hint?: unknown }).hint;
+    let msg =
+      typeof raw === 'string' && raw.trim() !== '' ? raw : `Request failed (${status})`;
+    if (typeof hint === 'string' && hint.trim() !== '') {
+      msg = `${msg} ${hint}`;
+    }
+    return msg;
+  }
+  return `Request failed (${status})`;
+}
+
+export class HttpApiError extends Error {
+  constructor(
+    message: string,
+    public readonly status: number,
+    public readonly body: unknown,
+  ) {
+    super(message);
+    this.name = 'HttpApiError';
   }
 }
 
@@ -55,11 +81,9 @@ export async function fetchApiGet(
   }
 
   const text = await response.text();
+  const body = parseResponseBody(text);
   if (!response.ok) {
-    const snippet = text.trim().slice(0, 400);
-    throw new Error(
-      `HTTP ${response.status} ${response.statusText} for ${url}${snippet ? ` — ${snippet}` : ''}`,
-    );
+    throw new HttpApiError(errorMessageFromApiBody(body, response.status), response.status, body);
   }
-  return parseResponseBody(text);
+  return body;
 }

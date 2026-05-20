@@ -1,7 +1,7 @@
 import { useEffect, useState } from "react";
 
-import { fetchEconomyOverview } from "@/hooks/api/flaskMainApi";
-import { getNewsApiNetworkErrorMessage } from "@/hooks/api/newsApi";
+import { fetchEconomyOverview } from "@/hooks/api/economyDashboardApi";
+import { getHypatiaBackendNetworkErrorMessage } from "@/hooks/api/hypatiaBaseUrl";
 import {
   type EconomyOverviewApiResponse,
   parseEconomyOverviewResponse,
@@ -43,7 +43,7 @@ export function useEconomyTabDashboard() {
           setEconomyOverview(null);
           const message =
             err instanceof Error && err.message.startsWith("Network error")
-              ? getNewsApiNetworkErrorMessage()
+              ? getHypatiaBackendNetworkErrorMessage()
               : err instanceof Error
                 ? err.message
                 : String(err);

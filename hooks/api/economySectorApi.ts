@@ -6,8 +6,9 @@
  * adds it server-side. Per-sector errors come through as `sectors[id].error`
  * strings so a single bad series doesn't fail the whole view.
  */
-import { fetchApiGet } from "@/hooks/api/httpGet";
-import { getNewsApiBaseUrl } from "@/hooks/api/newsApi";
+import { fetchApiGet, HttpApiError } from "@/hooks/api/httpGet";
+import { getHypatiaBackendBaseUrl } from "@/hooks/api/hypatiaBaseUrl";
+import { HYPATIA_API_PATHS } from "@/hooks/api/hypatiaPaths";
 
 export type EconomySectorObservation = {
   date: string;
@@ -289,7 +290,6 @@ export async function fetchEconomySector(
   signal?: AbortSignal,
   params?: EconomySectorFetchParams,
 ): Promise<EconomySectorResponse> {
-  const base = getNewsApiBaseUrl().replace(/\/$/, "");
   const searchParams: Record<string, string> = {};
   if (params?.observationStart?.trim()) {
     searchParams.observation_start = params.observationStart.trim();
@@ -300,8 +300,8 @@ export async function fetchEconomySector(
 
   try {
     const raw = await fetchApiGet(
-      base,
-      "/api/economy/labor/sector",
+      getHypatiaBackendBaseUrl(),
+      HYPATIA_API_PATHS.economyLaborSector,
       Object.keys(searchParams).length > 0 ? searchParams : undefined,
       signal,
     );
@@ -310,12 +310,14 @@ export async function fetchEconomySector(
     if (e instanceof EconomySectorApiError) {
       throw e;
     }
+    if (e instanceof HttpApiError) {
+      const hint =
+        e.body && typeof e.body === "object" && "hint" in e.body
+          ? String((e.body as { hint?: unknown }).hint ?? "")
+          : undefined;
+      throw new EconomySectorApiError(e.status, e.message, hint || undefined);
+    }
     if (e instanceof Error) {
-      if (e.message.startsWith("HTTP ")) {
-        const status = httpStatusFromFetchError(e.message);
-        const { message, hint } = errorBodyFromHttpMessage(e.message);
-        throw new EconomySectorApiError(status, message, hint);
-      }
       throw new EconomySectorApiError(0, e.message);
     }
     throw new EconomySectorApiError(0, String(e));

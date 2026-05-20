@@ -4,15 +4,9 @@
  *
  * Base URL matches {@link fetchEconomyOverview} / news stack so Expo web dev can use the Metro proxy.
  */
-import { getNewsApiBaseUrl } from "@/hooks/api/newsApi";
-
-function createRequestId(): string {
-  const c = globalThis.crypto as Crypto | undefined;
-  if (c?.randomUUID) {
-    return c.randomUUID();
-  }
-  return `req_${Date.now()}_${Math.random().toString(36).slice(2, 11)}`;
-}
+import { fetchApiGet, HttpApiError } from "@/hooks/api/httpGet";
+import { getHypatiaBackendBaseUrl } from "@/hooks/api/hypatiaBaseUrl";
+import { HYPATIA_API_PATHS } from "@/hooks/api/hypatiaPaths";
 
 export type FredObservationRow = {
   date: string;
@@ -168,54 +162,28 @@ export async function getFredObservations(
     searchParams.sort_order = params.sortOrder.trim();
   }
 
-  const base = getNewsApiBaseUrl().replace(/\/$/, "");
-  const qs = new URLSearchParams(searchParams).toString();
-  const url = `${base}/api/economy/fred/series/PAYEMS/delta?${qs}`;
-
-  let response: Response;
+  let parsed: unknown;
   try {
-    response = await fetch(url, {
-      method: "GET",
-      headers: {
-        Accept: "application/json, text/plain, */*",
-        "Cache-Control": "no-cache",
-        Pragma: "no-cache",
-        "X-Request-ID": createRequestId(),
-      },
-      cache: "no-store",
+    parsed = await fetchApiGet(
+      getHypatiaBackendBaseUrl(),
+      HYPATIA_API_PATHS.economyPayemsDelta,
+      Object.keys(searchParams).length > 0 ? searchParams : undefined,
       signal,
-    });
+    );
   } catch (e) {
+    if (e instanceof HttpApiError) {
+      const extracted =
+        e.body && typeof e.body === "object"
+          ? parseErrorMessage(e.body)
+          : { message: e.message };
+      throw new FredObservationsError(e.status, extracted.message, extracted.hint);
+    }
     const msg = e instanceof Error ? e.message : String(e);
     throw new FredObservationsError(0, `Network error: ${msg}`);
   }
 
-  const text = await response.text();
-  const parsed = parseJsonBody(text);
-
-  if (!response.ok) {
-    const extracted =
-      parsed && typeof parsed === "object"
-        ? parseErrorMessage(parsed)
-        : { message: statusFallbackMessage(response.status) };
-    const message =
-      extracted.message &&
-      extracted.message !== "Request failed" &&
-      extracted.message.length > 0
-        ? extracted.message
-        : statusFallbackMessage(response.status);
-    throw new FredObservationsError(
-      response.status,
-      message,
-      extracted.hint,
-    );
-  }
-
   if (parsed == null) {
-    throw new FredObservationsError(
-      502,
-      "Invalid response from FRED API.",
-    );
+    throw new FredObservationsError(502, "Invalid response from FRED API.");
   }
 
   return validateFredObservationsPayload(parsed);

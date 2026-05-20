@@ -1,95 +1,76 @@
 /**
- * Main Flask service (hypatia-backend, default port 5001): `/hello`, civic APIs, and sample `/hello` hook.
+ * Civic + health probes — `hypatia-backend/routes/civic/` and `routes/health.py`.
+ * Economy dashboard lives in {@link economyDashboardApi}.
  */
 import { useEffect, useState } from "react";
-import { Platform } from "react-native";
 
-import { getDevApiBaseUrlForPort } from "@/hooks/api/devServerBaseUrl";
+import { fetchEconomyOverview } from "@/hooks/api/economyDashboardApi";
 import { fetchApiGet } from "@/hooks/api/httpGet";
-import { getNewsApiBaseUrl } from "@/hooks/api/newsApi";
+import {
+  getHypatiaBackendBaseUrl,
+  getHypatiaBackendNetworkErrorMessage,
+} from "@/hooks/api/hypatiaBaseUrl";
+import { HYPATIA_API_PATHS } from "@/hooks/api/hypatiaPaths";
+
+export { fetchEconomyOverview } from "@/hooks/api/economyDashboardApi";
 
 type UseFlaskHelloSearchResult = {
   isLoading: boolean;
   error: string | null;
-  /** Parsed JSON object/array, or raw string if response is not JSON */
   apiData: unknown | null;
 };
 
+/** @deprecated Use {@link getHypatiaBackendBaseUrl} */
 export function getFlaskApiBaseUrl(): string {
-  const fromEnv = process.env.EXPO_PUBLIC_API_BASE_URL?.trim();
-  if (fromEnv) {
-    return fromEnv.replace(/\/$/, "");
-  }
-  return getDevApiBaseUrlForPort(5001);
+  return getHypatiaBackendBaseUrl();
 }
 
+/** @deprecated Use {@link getHypatiaBackendNetworkErrorMessage} */
 export function getFlaskHelloNetworkErrorMessage(): string {
-  if (Platform.OS === "web") {
-    return "Unable to reach Flask (enable CORS on the server for Expo web — see scripts/flask_cors_local.py)";
-  }
-  return `Unable to reach Flask at ${getFlaskApiBaseUrl()}. On a real device, the app uses your dev machine's LAN IP (same as Metro). Run Flask bound to all interfaces, e.g. flask run --host=0.0.0.0 --port=5001, or set EXPO_PUBLIC_API_BASE_URL.`;
+  return getHypatiaBackendNetworkErrorMessage();
 }
 
-async function fetchFlaskGet(
+async function fetchHypatiaGet(
   path: string,
   searchParams: Record<string, string> | undefined,
   signal: AbortSignal | undefined,
 ): Promise<unknown> {
-  return fetchApiGet(getFlaskApiBaseUrl(), path, searchParams, signal);
+  return fetchApiGet(getHypatiaBackendBaseUrl(), path, searchParams, signal);
 }
 
-/** `GET {base}/hello` — same contract as `curl http://127.0.0.1:5001/hello` when using default base on web/simulator. */
+/** `GET {base}/health` — liveness check (same JSON as legacy `/hello`). */
+export async function fetchBackendHealth(signal?: AbortSignal): Promise<unknown> {
+  return fetchHypatiaGet(HYPATIA_API_PATHS.health, undefined, signal);
+}
+
+/** @deprecated Use {@link fetchBackendHealth} */
 export async function fetchFlaskHello(signal?: AbortSignal): Promise<unknown> {
-  return fetchFlaskGet("/hello", undefined, signal);
+  return fetchBackendHealth(signal);
 }
 
-/** Sample address matching `curl "http://127.0.0.1:5001/api/civic/representatives?address=1600%20Pennsylvania%20..."`. */
 export const DEFAULT_CIVIC_SAMPLE_ADDRESS =
   "1600 Pennsylvania Avenue NW Washington DC";
 
-/** `GET {base}/api/civic/representatives?address=...` — base URL follows the same rules as `/hello`. */
 export async function fetchCivicRepresentatives(
   address: string,
   signal?: AbortSignal,
 ): Promise<unknown> {
-  return fetchFlaskGet(
-    "/api/civic/representatives",
+  return fetchHypatiaGet(
+    HYPATIA_API_PATHS.civicRepresentatives,
     { address: address.trim() },
     signal,
   );
 }
 
-/** Sample address for divisions-by-address (e.g. ZIP `07834`), matching Postman `?address=07834`. */
 export const DEFAULT_CIVIC_DIVISIONS_SAMPLE_ADDRESS = "07834";
 
-/** `GET {base}/api/civic/divisions-by-address?address=...` — base URL follows the same rules as `/hello`. */
 export async function fetchCivicDivisionsByAddress(
   address: string,
   signal?: AbortSignal,
 ): Promise<unknown> {
-  return fetchFlaskGet(
-    "/api/civic/divisions-by-address",
+  return fetchHypatiaGet(
+    HYPATIA_API_PATHS.civicDivisionsByAddress,
     { address: address.trim() },
-    signal,
-  );
-}
-
-/**
- * `GET {base}/api/economy/dashboard` — full Economy tab snapshot (`as_of`, `sections` for all
- * overview series). Base URL follows `getNewsApiBaseUrl()` (news stack / Metro proxy on web).
- */
-export async function fetchEconomyOverview(
-  signal?: AbortSignal,
-  observationEnd?: string,
-): Promise<unknown> {
-  const searchParams: Record<string, string> | undefined =
-    observationEnd?.trim()
-      ? { observation_end: observationEnd.trim() }
-      : undefined;
-  return fetchApiGet(
-    getNewsApiBaseUrl(),
-    "/api/economy/dashboard",
-    searchParams,
     signal,
   );
 }
@@ -98,7 +79,7 @@ export function useFlaskHelloSearch(query: string): UseFlaskHelloSearchResult {
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [apiData, setApiData] = useState<unknown | null>(null);
-  const apiBaseUrl = getFlaskApiBaseUrl();
+  const apiBaseUrl = getHypatiaBackendBaseUrl();
 
   useEffect(() => {
     const trimmedQuery = query.trim();
@@ -113,12 +94,12 @@ export function useFlaskHelloSearch(query: string): UseFlaskHelloSearchResult {
     const controller = new AbortController();
     let cancelled = false;
 
-    (async () => {
+    void (async () => {
       try {
         setIsLoading(true);
         setError(null);
 
-        const data = await fetchFlaskHello(controller.signal);
+        const data = await fetchBackendHealth(controller.signal);
         if (!cancelled) {
           setApiData(data);
         }
@@ -127,7 +108,7 @@ export function useFlaskHelloSearch(query: string): UseFlaskHelloSearchResult {
           return;
         }
         if (!cancelled) {
-          setError(getFlaskHelloNetworkErrorMessage());
+          setError(getHypatiaBackendNetworkErrorMessage());
         }
       } finally {
         if (!cancelled) {

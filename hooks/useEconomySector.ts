@@ -11,7 +11,7 @@ import {
   type EconomySectorFetchParams,
   type EconomySectorResponse,
 } from "@/hooks/api/economySectorApi";
-import { getNewsApiNetworkErrorMessage } from "@/hooks/api/newsApi";
+import { getHypatiaBackendNetworkErrorMessage } from "@/hooks/api/hypatiaBaseUrl";
 
 const STALE_TIME_MS = 60 * 60 * 1000;
 
@@ -45,7 +45,7 @@ function errorMessageFromCaught(e: unknown): string {
   }
   if (e instanceof Error) {
     if (e.message.startsWith("Network error")) {
-      return getNewsApiNetworkErrorMessage();
+      return getHypatiaBackendNetworkErrorMessage();
     }
     return e.message;
   }

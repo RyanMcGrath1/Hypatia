@@ -6,6 +6,7 @@ import { Platform } from 'react-native';
 import { WEB_NEWS_DEV_PROXY_PREFIX } from '@/constants/app/newsDevProxy';
 import { fetchApiGet } from '@/hooks/api/httpGet';
 import { getDevApiBaseUrlForPort } from '@/hooks/api/devServerBaseUrl';
+import { HYPATIA_API_PATHS } from '@/hooks/api/hypatiaPaths';
 import { parseTopHeadlinesPage } from '@/hooks/api/newsParse';
 import type { TopHeadlinesPageResult } from '@/hooks/api/newsParse';
 
@@ -112,6 +113,6 @@ export async function fetchNewsTopHeadlines(
   if (options?.bustCache) {
     params._ = String(Date.now());
   }
-  const raw = await fetchApiGet(getNewsApiBaseUrl(), '/api/news/top-headlines', params, signal);
+  const raw = await fetchApiGet(getNewsApiBaseUrl(), HYPATIA_API_PATHS.newsTopHeadlines, params, signal);
   return parseTopHeadlinesPage(raw);
 }

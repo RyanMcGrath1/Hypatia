@@ -230,15 +230,19 @@ export function useLaborMarketPayrollSection(heroTheme: LaborMarketPayrollHeroTh
   }, [payrollLoading, payrollChart]);
 
   const yearlyTotalJobsSubtitle = useMemo(() => {
-    if (!payrollChart || payrollObservationsRaw.length === 0) {
+    const bars = payrollChart?.bars;
+    if (!bars?.length) {
       return undefined;
     }
-    const a = formatMonthYearShortDisplay(payrollObservationsRaw[0]?.date);
-    const b = formatMonthYearShortDisplay(
-      payrollObservationsRaw[payrollObservationsRaw.length - 1]?.date,
+    const start = formatMonthYearShortDisplay(bars[0]?.observationDate);
+    const end = formatMonthYearShortDisplay(
+      bars[bars.length - 1]?.observationDate,
     );
-    return `Accumulated growth from payroll MoM prints in the selected window (${a}–${b}).`;
-  }, [payrollChart, payrollObservationsRaw]);
+    if (!start || !end) {
+      return undefined;
+    }
+    return `${start} - ${end}`;
+  }, [payrollChart]);
 
   const yearlyTotalJobsBadgeLabel = useMemo(() => {
     if (

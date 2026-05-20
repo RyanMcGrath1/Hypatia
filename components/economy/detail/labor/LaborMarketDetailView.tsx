@@ -23,10 +23,8 @@ import {
     type AppColorScheme,
 } from "@/constants/theme/ThemeTokens";
 import { useColorScheme } from "@/hooks/useColorScheme";
-import { useEconomyDetail } from "@/hooks/useEconomyDetail";
 import { useEconomySector } from "@/hooks/useEconomySector";
 import { useThemeInteractive } from "@/hooks/useThemeInteractive";
-import { laborPrimaryFromEconomyDetail } from "@/lib/economy/laborPrimaryFromEconomyDetail";
 import { sectorRowsFromApi } from "@/lib/economy/sectorRowsFromApi";
 
 const PAYROLL_FAB_SCROLL_RANGE = 96;
@@ -126,58 +124,19 @@ export function LaborMarketDetailView() {
     sectorApi != null &&
     rows.length === 0;
 
-  const { data: laborEconomyDetail, isLoading: laborEconomyLoading } =
-    useEconomyDetail("labor");
-  const laborApiPrimary = useMemo(
-    () => laborPrimaryFromEconomyDetail(laborEconomyDetail),
-    [laborEconomyDetail],
-  );
-
   const primaryMetricCard: LaborPrimaryMetric = useMemo(() => {
-    const fredReady = !payrollLoading && (payrollChart?.bars?.length ?? 0) > 0;
-    if (laborApiPrimary) {
-      return {
-        show: true,
-        loading: false,
-        kickerLabel: laborApiPrimary.kickerLabel,
-        heroValueLabel: laborApiPrimary.heroValueLabel,
-        badgeLabel: laborApiPrimary.badgeLabel,
-        subtitle: laborApiPrimary.subtitle,
-        netThousands: null as number | null,
-      };
+    if (payrollLoading || !(payrollChart?.bars?.length ?? 0)) {
+      return { show: false };
     }
-    if (laborEconomyLoading && !fredReady) {
-      return {
-        show: true,
-        loading: true,
-        kickerLabel: "LABOR MARKET",
-        heroValueLabel: undefined as string | undefined,
-        badgeLabel: undefined as string | undefined,
-        subtitle: undefined as string | undefined,
-        netThousands: null as number | null,
-      };
-    }
-    if (fredReady) {
-      const fredSubtitle =
-        yearlyTotalJobsNetThousands == null
-          ? yearlyTotalJobsSubtitle
-            ? `${yearlyTotalJobsSubtitle} Payroll prints in the selected window are needed to compute net change.`
-            : "Payroll prints in the selected window are needed to compute net change."
-          : yearlyTotalJobsSubtitle;
-      return {
-        show: true,
-        loading: false,
-        kickerLabel: "YEARLY TOTAL JOBS",
-        heroValueLabel: undefined as string | undefined,
-        netThousands: yearlyTotalJobsNetThousands,
-        badgeLabel: yearlyTotalJobsBadgeLabel,
-        subtitle: fredSubtitle,
-      };
-    }
-    return { show: false };
+    return {
+      show: true,
+      loading: false,
+      kickerLabel: "TOTAL JOBS",
+      netThousands: yearlyTotalJobsNetThousands,
+      badgeLabel: yearlyTotalJobsBadgeLabel,
+      subtitle: yearlyTotalJobsSubtitle,
+    };
   }, [
-    laborApiPrimary,
-    laborEconomyLoading,
     payrollLoading,
     payrollChart,
     yearlyTotalJobsNetThousands,
