@@ -7,7 +7,7 @@ import {
     LaborPayrollJobsCreatedCard,
     type LaborPrimaryMetric,
 } from "@/components/economy/detail/labor/LaborPayrollJobsCreatedCard";
-import { LaborSectorLineChart } from "@/components/economy/detail/labor/LaborSectorLineChart";
+import { LaborSectorRadarChart } from "@/components/economy/detail/labor/LaborSectorRadarChart";
 import { useLaborMarketPayrollSection } from "@/components/economy/detail/labor/useLaborMarketPayrollSection";
 import { EconomyCard } from "@/components/economy/detail/shared/EconomyCard";
 import {
@@ -23,8 +23,10 @@ import {
     type AppColorScheme,
 } from "@/constants/theme/ThemeTokens";
 import { useColorScheme } from "@/hooks/useColorScheme";
+import { useEconomyLaborEarningsInflation } from "@/hooks/useEconomyLaborEarningsInflation";
 import { useEconomySector } from "@/hooks/useEconomySector";
 import { useThemeInteractive } from "@/hooks/useThemeInteractive";
+import { wagesInflationCardFromApi } from "@/lib/economy/laborEarningsInflationViewModel";
 import { sectorRowsFromApi } from "@/lib/economy/sectorRowsFromApi";
 
 const PAYROLL_FAB_SCROLL_RANGE = 96;
@@ -44,7 +46,7 @@ export function LaborMarketDetailView() {
   const interactive = useThemeInteractive();
   const green = ECONOMY_DASHBOARD_POSITIVE_GREEN;
 
-  const [sectorView, setSectorView] = useState<"bars" | "line">("bars");
+  const [sectorView, setSectorView] = useState<"bars" | "radar">("bars");
   const scrollY = useRef(new Animated.Value(0)).current;
 
   const fabScale = useMemo(
@@ -108,6 +110,27 @@ export function LaborMarketDetailView() {
     observationStart: payrollFetchWindow.observationStart,
     observationEnd: payrollFetchWindow.observationEnd,
   });
+
+  const {
+    data: earningsInflationApi,
+    isLoading: earningsInflationLoading,
+    error: earningsInflationError,
+  } = useEconomyLaborEarningsInflation({
+    observationStart: payrollFetchWindow.observationStart,
+    observationEnd: payrollFetchWindow.observationEnd,
+  });
+
+  const wagesInflationCard = useMemo(
+    () => wagesInflationCardFromApi(earningsInflationApi),
+    [earningsInflationApi],
+  );
+
+  const wagesInflationShowLoading =
+    earningsInflationLoading && earningsInflationApi == null;
+  const wagesInflationShowError =
+    !earningsInflationLoading &&
+    earningsInflationError != null &&
+    earningsInflationApi == null;
 
   const rows = useMemo(() => {
     if (!sectorApi) {
@@ -270,23 +293,23 @@ export function LaborMarketDetailView() {
             </Pressable>
             <Pressable
               accessibilityRole="tab"
-              accessibilityState={{ selected: sectorView === "line" }}
-              accessibilityLabel="Line chart view"
+              accessibilityState={{ selected: sectorView === "radar" }}
+              accessibilityLabel="Radar chart view"
               hitSlop={6}
-              onPress={() => setSectorView("line")}
+              onPress={() => setSectorView("radar")}
               style={({ pressed }) => [
                 styles.sectorViewSeg,
-                sectorView === "line" && {
+                sectorView === "radar" && {
                   backgroundColor: interactive.primary,
                 },
                 pressed && { opacity: 0.85 },
               ]}
             >
               <FontAwesome
-                name="line-chart"
+                name="bullseye"
                 size={11}
                 color={
-                  sectorView === "line" ? theme.background : semantic.mutedText
+                  sectorView === "radar" ? theme.background : semantic.mutedText
                 }
               />
             </Pressable>
@@ -328,9 +351,9 @@ export function LaborMarketDetailView() {
             </Pressable>
           </View>
         ) : null}
-        {sectorView === "line" ? (
+        {sectorView === "radar" ? (
           sectorApi != null && !sectorShowError ? (
-            <LaborSectorLineChart data={sectorApi} width={sectorChartWidth} />
+            <LaborSectorRadarChart data={sectorApi} width={sectorChartWidth} />
           ) : null
         ) : (
           <>
@@ -447,35 +470,121 @@ export function LaborMarketDetailView() {
         )}
       </EconomyCard>
 
-      <EconomyCard>
+      <EconomyCard style={styles.metricTileCard}>
         <ThemedText style={[styles.cardKicker, { color: semantic.mutedText }]}>
-          AVG HOURLY EARNINGS
+          WAGES VS. INFLATION
         </ThemedText>
-        <View style={styles.inlineMetricRow}>
-          <ThemedText style={[styles.midMetric, { color: theme.text }]}>
-            +0.4%
+        {wagesInflationShowError ? (
+          <ThemedText style={[styles.footerNote, { color: interactive.danger }]}>
+            {earningsInflationError}
           </ThemedText>
-          <ThemedText style={[styles.momBadge, { color: green }]}>
-            MoM
-          </ThemedText>
-        </View>
-        <View
-          style={[styles.cardDivider, { backgroundColor: semantic.hairline }]}
-        />
-        <ThemedText style={[styles.footerNote, { color: semantic.mutedText }]}>
-          Prior: +0.3% | Est: +0.3%
-        </ThemedText>
+        ) : (
+          <>
+            <View style={styles.splitMetricRow}>
+              <View style={styles.splitMetricSection}>
+                <ThemedText
+                  style={[styles.splitMetricKicker, { color: semantic.mutedText }]}
+                >
+                  WAGES
+                </ThemedText>
+                <View style={styles.inlineMetricRow}>
+                  <ThemedText
+                    style={[styles.splitMidMetric, { color: theme.text }]}
+                    numberOfLines={1}
+                    adjustsFontSizeToFit
+                    minimumFontScale={0.65}
+                  >
+                    {wagesInflationShowLoading
+                      ? "…"
+                      : wagesInflationCard.wages.valueLabel}
+                  </ThemedText>
+                  <ThemedText
+                    style={[
+                      styles.momBadge,
+                      {
+                        color: wagesInflationCard.wages.unavailable
+                          ? semantic.mutedText
+                          : wagesInflationCard.wages.deltaPositive === true
+                            ? green
+                            : wagesInflationCard.wages.deltaPositive === false
+                              ? interactive.danger
+                              : semantic.mutedText,
+                      },
+                    ]}
+                  >
+                    YoY
+                  </ThemedText>
+                </View>
+              </View>
+              <View
+                style={[
+                  styles.splitMetricDivider,
+                  { backgroundColor: semantic.hairline },
+                ]}
+              />
+              <View style={styles.splitMetricSection}>
+                <ThemedText
+                  style={[styles.splitMetricKicker, { color: semantic.mutedText }]}
+                >
+                  INFLATION
+                </ThemedText>
+                <View style={styles.inlineMetricRow}>
+                  <ThemedText
+                    style={[styles.splitMidMetric, { color: theme.text }]}
+                    numberOfLines={1}
+                    adjustsFontSizeToFit
+                    minimumFontScale={0.65}
+                  >
+                    {wagesInflationShowLoading
+                      ? "…"
+                      : wagesInflationCard.inflation.valueLabel}
+                  </ThemedText>
+                  <ThemedText
+                    style={[
+                      styles.momBadge,
+                      {
+                        color: wagesInflationCard.inflation.unavailable
+                          ? semantic.mutedText
+                          : wagesInflationCard.inflation.deltaPositive === true
+                            ? interactive.danger
+                            : wagesInflationCard.inflation.deltaPositive === false
+                              ? green
+                              : semantic.mutedText,
+                      },
+                    ]}
+                  >
+                    YoY
+                  </ThemedText>
+                </View>
+              </View>
+            </View>
+            <View
+              style={[styles.cardDivider, { backgroundColor: semantic.hairline }]}
+            />
+            <ThemedText style={[styles.footerNote, { color: semantic.mutedText }]}>
+              {wagesInflationCard.footerNote}
+            </ThemedText>
+          </>
+        )}
       </EconomyCard>
 
-      <EconomyCard>
+      <EconomyCard style={styles.metricTileCard}>
         <ThemedText style={[styles.cardKicker, { color: semantic.mutedText }]}>
           PARTICIPATION RATE
         </ThemedText>
         <View style={styles.inlineMetricRow}>
-          <ThemedText style={[styles.midMetric, { color: theme.text }]}>
+          <ThemedText
+            style={[styles.midMetric, { color: theme.text }]}
+            numberOfLines={1}
+            adjustsFontSizeToFit
+            minimumFontScale={0.65}
+          >
             62.5%
           </ThemedText>
-          <ThemedText style={[styles.deltaNeg, { color: interactive.danger }]}>
+          <ThemedText
+            style={[styles.deltaNeg, { color: interactive.danger }]}
+            numberOfLines={1}
+          >
             -0.3%
           </ThemedText>
         </View>
