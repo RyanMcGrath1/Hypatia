@@ -1,9 +1,5 @@
 import Feather from "@expo/vector-icons/Feather";
-import {
-  ActivityIndicator,
-  Pressable,
-  View,
-} from "react-native";
+import { Pressable, View } from "react-native";
 
 import { laborMarketDetailStyles as styles } from "@/components/economy/detail/labor/LaborMarketDetailView.styles";
 import {
@@ -21,6 +17,10 @@ import {
   type PayrollRangeFilterCloseReason,
 } from "@/components/economy/detail/labor/PayrollRangeFilterModal";
 import type { PayrollChartFromFred } from "@/components/economy/detail/labor/payrollChartFromFred";
+import {
+  LaborPayrollChartSkeleton,
+  LaborPayrollHeroSkeleton,
+} from "@/components/economy/detail/labor/LaborDetailSkeletons";
 import { YearlyTotalJobsPrimaryCard } from "@/components/economy/detail/labor/YearlyTotalJobsPrimaryCard";
 import { EconomyCard } from "@/components/economy/detail/shared/EconomyCard";
 import { ThemedText } from "@/components/theme/ThemedText";
@@ -88,18 +88,20 @@ export function LaborPayrollJobsCreatedCard({
 
   return (
     <EconomyCard style={styles.payrollCard}>
-      <View style={styles.cardTopRow}>
-        <ThemedText
-          style={[styles.cardKicker, { color: semantic.mutedText }]}
-        >
-          JOBS CREATED/LOST
-        </ThemedText>
-        <ThemedText style={[styles.periodLabel, { color: theme.text }]}>
-          {payrollLoading ? "—" : payrollHeroDisplay.periodLabel}
-        </ThemedText>
-      </View>
-      {!payrollLoading && payrollChart != null ? (
+      {payrollLoading ? (
+        <LaborPayrollHeroSkeleton />
+      ) : (
         <>
+          <View style={styles.cardTopRow}>
+            <ThemedText
+              style={[styles.cardKicker, { color: semantic.mutedText }]}
+            >
+              JOBS CREATED/LOST
+            </ThemedText>
+            <ThemedText style={[styles.periodLabel, { color: theme.text }]}>
+              {payrollHeroDisplay.periodLabel}
+            </ThemedText>
+          </View>
           <View style={styles.heroMetricRow}>
             <View style={styles.heroMetricWithTrend}>
               <ThemedText
@@ -129,62 +131,10 @@ export function LaborPayrollJobsCreatedCard({
             </ThemedText>
           </View>
         </>
-      ) : (
-        <>
-          <View style={styles.heroMetricRow}>
-            <View style={styles.heroMetricWithTrend}>
-              <ThemedText
-                style={[styles.heroMetric, { color: theme.text }]}
-                adjustsFontSizeToFit
-                minimumFontScale={0.7}
-                numberOfLines={1}
-              >
-                {payrollLoading ? "…" : payrollHeroDisplay.heroMetric}
-              </ThemedText>
-              {!payrollLoading ? (
-                <Feather
-                  name={payrollHeroDisplay.trend.icon}
-                  size={26}
-                  color={payrollHeroDisplay.trend.color}
-                  style={styles.heroTrendIcon}
-                />
-              ) : null}
-            </View>
-          </View>
-          {payrollLoading ? (
-            <View style={styles.consensusRow}>
-              <ThemedText
-                style={[styles.consensusText, { color: semantic.mutedText }]}
-              >
-                Loading FRED data…
-              </ThemedText>
-            </View>
-          ) : (
-            <View style={styles.consensusRow}>
-              <ThemedText
-                style={[
-                  styles.consensusText,
-                  { color: payrollHeroDisplay.trend.color },
-                ]}
-              >
-                {payrollHeroDisplay.trend.label}
-              </ThemedText>
-            </View>
-          )}
-        </>
       )}
-      {payrollError != null ? (
-        <ThemedText
-          style={[styles.payrollError, { color: interactive.danger }]}
-        >
-          {payrollError}
-        </ThemedText>
-      ) : null}
       <View style={styles.chartArea}>
         {payrollLoading ? (
-          <View style={styles.chartLoading}>
-            <ActivityIndicator color={interactive.primary} />
-          </View>
+          <LaborPayrollChartSkeleton />
         ) : payrollChart?.bars?.length ? (
           <View
             style={[

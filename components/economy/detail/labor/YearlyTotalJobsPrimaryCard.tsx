@@ -1,6 +1,7 @@
 import Feather from "@expo/vector-icons/Feather";
-import { ActivityIndicator, StyleSheet, Text, View } from "react-native";
+import { StyleSheet, Text, View } from "react-native";
 
+import { YearlyTotalJobsMetricSkeleton } from "@/components/economy/detail/labor/LaborDetailSkeletons";
 import { formatPayemsMomDeltaShort } from "@/components/economy/detail/labor/payrollChartFromFred";
 import { Radius, Spacing } from "@/constants/theme/ThemeTokens";
 import { Fonts } from "@/constants/theme/Typography";
@@ -95,10 +96,7 @@ export function YearlyTotalJobsPrimaryCard({
         <Text style={styles.kicker}>{kickerLabel?.trim() || "TOTAL JOBS"}</Text>
 
         {loading ? (
-          /* Loading branch: same vertical role as `metricRow` */
-          <View style={styles.loadingRow}>
-            <ActivityIndicator color="#FFFFFF" />
-          </View>
+          <YearlyTotalJobsMetricSkeleton />
         ) : (
           /* ② Hero row: headline figure + optional YoY pill */
           <View style={styles.metricRow}>

@@ -1,12 +1,11 @@
 import { useCallback, useMemo } from "react";
 import {
-    ActivityIndicator,
-    FlatList,
-    Pressable,
-    RefreshControl,
-    ScrollView,
-    StyleSheet,
-    View,
+  FlatList,
+  Pressable,
+  RefreshControl,
+  ScrollView,
+  StyleSheet,
+  View,
 } from "react-native";
 
 import Ionicons from "@expo/vector-icons/Ionicons";
@@ -15,9 +14,12 @@ import { router } from "expo-router";
 
 import { AppBrandBar } from "@/components/layout/AppBrandBar";
 import { ScreenHeader } from "@/components/layout/ScreenHeader";
+import {
+  NewsFeedSkeletonList,
+  NewsHeadlineCardSkeleton,
+} from "@/components/news/NewsHeadlineCardSkeleton";
 import { EmptyState } from "@/components/surfaces/EmptyState";
 import { SectionCard } from "@/components/surfaces/SectionCard";
-import { StateNoticeCard } from "@/components/surfaces/StateNoticeCard";
 import { ThemedText } from "@/components/theme/ThemedText";
 import { ThemedView } from "@/components/theme/ThemedView";
 import { NEWS_TOPIC_ICON_NAMES } from "@/constants/app/newsTopicIcons";
@@ -32,6 +34,7 @@ import {
     useTopHeadlinesFeed,
 } from "@/hooks/feed/useTopHeadlinesFeed";
 import { useColorScheme } from "@/hooks/useColorScheme";
+import { isEconomyDataPending } from "@/lib/economy/economyDataPending";
 
 const FEED_LANG = "en";
 
@@ -99,12 +102,22 @@ export default function HomeScreen() {
     paginationError,
     onRefresh,
     onEndReached,
-    loadMoreHeadlines,
-    retryInitialLoad,
   } = useTopHeadlinesFeed({ lang: FEED_LANG });
 
   const colorScheme = useColorScheme() ?? "light";
   const semantic = getSemanticColors(colorScheme);
+
+  const feedPending = isEconomyDataPending({
+    isLoading,
+    error,
+    hasData: headlines.length > 0,
+  });
+
+  const paginationPending = isEconomyDataPending({
+    isLoading: loadingMore,
+    error: paginationError,
+    hasData: false,
+  });
 
   const openArticle = useCallback((url: string, title: string) => {
     router.push({
@@ -297,34 +310,15 @@ export default function HomeScreen() {
           </ScrollView>
         </View>
 
-        {isLoading && headlines.length === 0 ? (
-          <SectionCard
-            backgroundColor={semantic.cardBackground}
+        {feedPending ? (
+          <NewsFeedSkeletonList
+            count={4}
             borderColor={semantic.cardBorder}
-          >
-            <View style={styles.loadingRow}>
-              <ActivityIndicator color={semantic.accent} />
-              <ThemedText style={{ color: semantic.mutedText }}>
-                Loading headlines…
-              </ThemedText>
-            </View>
-          </SectionCard>
-        ) : null}
-
-        {error !== null && !isLoading ? (
-          <StateNoticeCard
-            title="Unable to load headlines"
-            message={error}
-            borderColor={semantic.danger}
             backgroundColor={semantic.cardBackground}
-            messageColor={semantic.danger}
-            actionLabel="Retry"
-            actionColor={semantic.accent}
-            onActionPress={retryInitialLoad}
           />
         ) : null}
 
-        {!isLoading && error === null && headlines.length === 0 ? (
+        {!feedPending && headlines.length === 0 ? (
           <EmptyState
             title="No headlines"
             body="The API returned no stories to display."
@@ -336,15 +330,11 @@ export default function HomeScreen() {
       </View>
     ),
     [
-      error,
+      feedPending,
       headlines.length,
-      isLoading,
-      retryInitialLoad,
-      semantic.accent,
       semantic.cardBackground,
       semantic.cardBorder,
       semantic.cardSubtleBackground,
-      semantic.danger,
       semantic.mutedText,
       selectedTopicId,
       setSelectedTopicId,
@@ -352,45 +342,21 @@ export default function HomeScreen() {
   );
 
   const listFooter = useMemo(() => {
-    if (loadingMore) {
+    if (paginationPending) {
       return (
-        <View style={styles.footerLoading}>
-          <ActivityIndicator color={semantic.accent} />
-          <ThemedText
-            style={[styles.footerHint, { color: semantic.mutedText }]}
-          >
-            Loading more…
-          </ThemedText>
-        </View>
-      );
-    }
-    if (paginationError) {
-      return (
-        <View style={styles.footerError}>
-          <ThemedText style={[styles.footerHint, { color: semantic.danger }]}>
-            {paginationError}
-          </ThemedText>
-          <Pressable
-            accessibilityRole="button"
-            accessibilityLabel="Retry loading more headlines"
-            hitSlop={8}
-            onPress={() => void loadMoreHeadlines()}
-          >
-            <ThemedText style={{ color: semantic.accent, fontWeight: "600" }}>
-              Try again
-            </ThemedText>
-          </Pressable>
+        <View style={styles.footerSkeleton}>
+          <NewsHeadlineCardSkeleton
+            borderColor={semantic.cardBorder}
+            backgroundColor={semantic.cardBackground}
+          />
         </View>
       );
     }
     return null;
   }, [
-    loadingMore,
-    paginationError,
-    loadMoreHeadlines,
-    semantic.accent,
-    semantic.danger,
-    semantic.mutedText,
+    paginationPending,
+    semantic.cardBackground,
+    semantic.cardBorder,
   ]);
 
   return (
@@ -505,26 +471,7 @@ const styles = StyleSheet.create({
     fontSize: 13,
     lineHeight: 18,
   },
-  loadingRow: {
-    flexDirection: "row",
-    alignItems: "center",
-    gap: Spacing.sm,
-    minHeight: 44,
-  },
-  footerLoading: {
-    flexDirection: "row",
-    alignItems: "center",
-    justifyContent: "center",
-    gap: Spacing.sm,
-    paddingVertical: Spacing.lg,
-  },
-  footerError: {
-    alignItems: "center",
-    gap: Spacing.sm,
-    paddingVertical: Spacing.md,
-  },
-  footerHint: {
-    fontSize: 13,
-    textAlign: "center",
+  footerSkeleton: {
+    paddingTop: Spacing.md,
   },
 });

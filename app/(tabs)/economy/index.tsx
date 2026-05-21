@@ -4,10 +4,10 @@ import { ScrollView, View } from "react-native";
 
 import { EconomyDashboardInfoSections } from "@/components/economy/tab/EconomyDashboardInfoSections";
 import { economyDashboardStyles as styles } from "@/components/economy/tab/economyDashboardStyles";
+import { EconomyFeedSkeletonList } from "@/components/economy/tab/EconomyFeedCardSkeleton";
 import { EconomySectorFeedList } from "@/components/economy/tab/EconomySectorFeedList";
 import { EconomySentimentHeroCard } from "@/components/economy/tab/EconomySentimentHeroCard";
 import { AppBrandBar } from "@/components/layout/AppBrandBar";
-import { StateNoticeCard } from "@/components/surfaces/StateNoticeCard";
 import { ThemedText } from "@/components/theme/ThemedText";
 import { ThemedView } from "@/components/theme/ThemedView";
 import { Colors } from "@/constants/theme/Colors";
@@ -15,6 +15,7 @@ import { getSemanticColors } from "@/constants/theme/ThemeTokens";
 import { useColorScheme } from "@/hooks/useColorScheme";
 import { useEconomyTabDashboard } from "@/hooks/useEconomyTabDashboard";
 import { formatOverviewAsOfDisplay } from "@/lib/economy/economyOverviewTypes";
+import { isEconomyDataPending } from "@/lib/economy/economyDataPending";
 import { buildEconomyFeedRows } from "@/lib/economy/economyTabFeed";
 
 const sentimentScore = 74;
@@ -53,6 +54,12 @@ export default function EconomyDashboardScreen() {
     () => buildEconomyFeedRows(economyOverview),
     [economyOverview],
   );
+
+  const overviewPending = isEconomyDataPending({
+    isLoading: isEconomyOverviewLoading,
+    error: economyOverviewError,
+    hasData: economyOverview != null,
+  });
 
   const overviewAsOf = useMemo(
     () =>
@@ -94,42 +101,26 @@ export default function EconomyDashboardScreen() {
           sentimentStability={sentimentStability}
         />
 
-        {isEconomyOverviewLoading && (
-          <StateNoticeCard
-            title="Loading"
-            message="Fetching economy overview…"
-            borderColor={semantic.cardBorder}
-            backgroundColor={semantic.cardBackground}
-            messageColor={semantic.mutedText}
+        {overviewPending ? (
+          <EconomyFeedSkeletonList count={4} semantic={semantic} />
+        ) : (
+          <EconomySectorFeedList
+            router={router}
+            feedRows={feedRows}
+            semantic={semantic}
+            theme={theme}
+            isDark={isDark}
+            isEconomyOverviewLoading={isEconomyOverviewLoading}
+            economyOverview={economyOverview}
+            selectedBarIndexBySector={selectedBarIndexBySector}
+            onSelectBarIndex={(sectorId, index) =>
+              setSelectedBarIndexBySector((prev) => ({
+                ...prev,
+                [sectorId]: index,
+              }))
+            }
           />
         )}
-
-        {economyOverviewError !== null && (
-          <StateNoticeCard
-            title="Something went wrong"
-            message={economyOverviewError}
-            borderColor={semantic.danger}
-            backgroundColor={semantic.cardBackground}
-            messageColor={semantic.danger}
-          />
-        )}
-
-        <EconomySectorFeedList
-          router={router}
-          feedRows={feedRows}
-          semantic={semantic}
-          theme={theme}
-          isDark={isDark}
-          isEconomyOverviewLoading={isEconomyOverviewLoading}
-          economyOverview={economyOverview}
-          selectedBarIndexBySector={selectedBarIndexBySector}
-          onSelectBarIndex={(sectorId, index) =>
-            setSelectedBarIndexBySector((prev) => ({
-              ...prev,
-              [sectorId]: index,
-            }))
-          }
-        />
 
         <EconomyDashboardInfoSections
           semantic={semantic}

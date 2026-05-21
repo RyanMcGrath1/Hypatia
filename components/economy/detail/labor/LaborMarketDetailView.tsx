@@ -7,6 +7,10 @@ import {
     LaborPayrollJobsCreatedCard,
     type LaborPrimaryMetric,
 } from "@/components/economy/detail/labor/LaborPayrollJobsCreatedCard";
+import {
+  LaborSectorSectionSkeleton,
+  WagesInflationCardSkeleton,
+} from "@/components/economy/detail/labor/LaborDetailSkeletons";
 import { LaborSectorHeatmap } from "@/components/economy/detail/labor/LaborSectorHeatmap";
 import { useLaborMarketPayrollSection } from "@/components/economy/detail/labor/useLaborMarketPayrollSection";
 import { EconomyCard } from "@/components/economy/detail/shared/EconomyCard";
@@ -28,6 +32,7 @@ import { useEconomySector } from "@/hooks/useEconomySector";
 import { useThemeInteractive } from "@/hooks/useThemeInteractive";
 import { laborEarningsInflationFetchWindow } from "@/lib/economy/laborEarningsInflationWindow";
 import { wagesInflationCardFromApi } from "@/lib/economy/laborEarningsInflationViewModel";
+import { isEconomyDataPending } from "@/lib/economy/economyDataPending";
 import { sectorRowsFromApi } from "@/lib/economy/sectorRowsFromApi";
 
 const PAYROLL_FAB_SCROLL_RANGE = 96;
@@ -106,7 +111,6 @@ export function LaborMarketDetailView() {
     data: sectorApi,
     isLoading: sectorLoading,
     error: sectorError,
-    refetch: refetchSector,
   } = useEconomySector({
     observationStart: payrollFetchWindow.observationStart,
     observationEnd: payrollFetchWindow.observationEnd,
@@ -132,11 +136,24 @@ export function LaborMarketDetailView() {
     ],
   );
 
-  const wagesInflationShowLoading = earningsInflationLoading;
-  const wagesInflationShowError =
-    !earningsInflationLoading &&
-    earningsInflationError != null &&
-    earningsInflationApi == null;
+  const payrollHasChart = (payrollChart?.bars?.length ?? 0) > 0;
+  const payrollPending = isEconomyDataPending({
+    isLoading: payrollLoading,
+    error: payrollError,
+    hasData: payrollHasChart,
+  });
+
+  const sectorPending = isEconomyDataPending({
+    isLoading: sectorLoading,
+    error: sectorError,
+    hasData: sectorApi != null,
+  });
+
+  const wagesInflationPending = isEconomyDataPending({
+    isLoading: earningsInflationLoading,
+    error: earningsInflationError,
+    hasData: earningsInflationApi != null,
+  });
 
   const rows = useMemo(() => {
     if (!sectorApi) {
@@ -144,17 +161,19 @@ export function LaborMarketDetailView() {
     }
     return sectorRowsFromApi(sectorApi);
   }, [sectorApi]);
-  const sectorShowLoading = sectorLoading && sectorApi == null;
-  const sectorShowError =
-    !sectorLoading && sectorError != null && sectorApi == null;
   const sectorShowEmpty =
-    !sectorLoading &&
-    sectorError == null &&
-    sectorApi != null &&
-    rows.length === 0;
+    !sectorPending && sectorApi != null && rows.length === 0;
 
   const primaryMetricCard: LaborPrimaryMetric = useMemo(() => {
-    if (payrollLoading || !(payrollChart?.bars?.length ?? 0)) {
+    if (payrollPending) {
+      return {
+        show: true,
+        loading: true,
+        kickerLabel: "TOTAL JOBS",
+        netThousands: null,
+      };
+    }
+    if (!payrollHasChart) {
       return { show: false };
     }
     return {
@@ -166,8 +185,8 @@ export function LaborMarketDetailView() {
       subtitle: yearlyTotalJobsSubtitle,
     };
   }, [
-    payrollLoading,
-    payrollChart,
+    payrollPending,
+    payrollHasChart,
     yearlyTotalJobsNetThousands,
     yearlyTotalJobsBadgeLabel,
     yearlyTotalJobsSubtitle,
@@ -244,8 +263,8 @@ export function LaborMarketDetailView() {
           primary: interactive.primary,
           dangerSoft: interactive.dangerSoft,
         }}
-        payrollLoading={payrollLoading}
-        payrollError={payrollError}
+        payrollLoading={payrollPending}
+        payrollError={null}
         payrollObservationsRaw={payrollObservationsRaw}
         payrollCommittedObservationStart={payrollFetchWindow.observationStart}
         payrollCommittedObservationEnd={payrollFetchWindow.observationEnd}
@@ -324,41 +343,14 @@ export function LaborMarketDetailView() {
         <View
           style={[styles.tableRule, { backgroundColor: semantic.hairline }]}
         />
-        {sectorShowLoading ? (
-          <ThemedText
-            style={[styles.sectorStatusText, { color: semantic.mutedText }]}
-          >
-            Loading sector data…
-          </ThemedText>
-        ) : null}
-        {sectorShowError ? (
-          <View style={styles.sectorStatusRow}>
-            <ThemedText
-              style={[styles.sectorStatusText, { color: interactive.danger }]}
-            >
-              {sectorError ?? "Economy data unavailable."}
-            </ThemedText>
-            <Pressable
-              accessibilityRole="button"
-              accessibilityLabel="Retry loading sector data"
-              hitSlop={6}
-              onPress={refetchSector}
-              style={({ pressed }) => [
-                styles.sectorRetryBtn,
-                { borderColor: interactive.primary },
-                pressed && { opacity: 0.75 },
-              ]}
-            >
-              <ThemedText
-                style={[styles.sectorRetryText, { color: interactive.primary }]}
-              >
-                RETRY
-              </ThemedText>
-            </Pressable>
-          </View>
+        {sectorPending ? (
+          <LaborSectorSectionSkeleton
+            mode={sectorView === "heatmap" ? "heatmap" : "list"}
+            width={sectorChartWidth}
+          />
         ) : null}
         {sectorView === "heatmap" ? (
-          sectorApi != null && !sectorShowError ? (
+          sectorApi != null ? (
             <LaborSectorHeatmap data={sectorApi} width={sectorChartWidth} />
           ) : null
         ) : (
@@ -477,20 +469,18 @@ export function LaborMarketDetailView() {
       </EconomyCard>
 
       <EconomyCard style={styles.metricTileCard}>
-        <View style={styles.cardTopRow}>
-          <ThemedText style={[styles.cardKicker, { color: semantic.mutedText }]}>
-            WAGES VS. INFLATION
-          </ThemedText>
-          <ThemedText style={[styles.periodLabel, { color: theme.text }]}>
-            {wagesInflationShowLoading ? "…" : wagesInflationCard.periodLabel}
-          </ThemedText>
-        </View>
-        {wagesInflationShowError ? (
-          <ThemedText style={[styles.footerNote, { color: interactive.danger }]}>
-            {earningsInflationError}
-          </ThemedText>
+        {wagesInflationPending ? (
+          <WagesInflationCardSkeleton />
         ) : (
           <>
+            <View style={styles.cardTopRow}>
+              <ThemedText style={[styles.cardKicker, { color: semantic.mutedText }]}>
+                WAGES VS. INFLATION
+              </ThemedText>
+              <ThemedText style={[styles.periodLabel, { color: theme.text }]}>
+                {wagesInflationCard.periodLabel}
+              </ThemedText>
+            </View>
             <View style={styles.splitMetricRow}>
               <View style={styles.splitMetricSection}>
                 <ThemedText
@@ -505,9 +495,7 @@ export function LaborMarketDetailView() {
                     adjustsFontSizeToFit
                     minimumFontScale={0.65}
                   >
-                    {wagesInflationShowLoading
-                      ? "…"
-                      : wagesInflationCard.wages.valueLabel}
+                    {wagesInflationCard.wages.valueLabel}
                   </ThemedText>
                   <ThemedText
                     style={[
@@ -546,9 +534,7 @@ export function LaborMarketDetailView() {
                     adjustsFontSizeToFit
                     minimumFontScale={0.65}
                   >
-                    {wagesInflationShowLoading
-                      ? "…"
-                      : wagesInflationCard.inflation.valueLabel}
+                    {wagesInflationCard.inflation.valueLabel}
                   </ThemedText>
                   <ThemedText
                     style={[
