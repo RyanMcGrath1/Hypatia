@@ -333,14 +333,13 @@ export function PayrollRangeFilterModal({
           style={[
             styles.sheet,
             {
-              paddingBottom: insets.bottom + Spacing.sm,
               backgroundColor: semantic.cardBackground,
               borderTopColor: semantic.hairline,
-              maxHeight: "92%",
             },
           ]}
         >
           <ScrollView
+            style={styles.scroll}
             keyboardShouldPersistTaps="handled"
             showsVerticalScrollIndicator={false}
             contentContainerStyle={styles.scrollContent}
@@ -646,7 +645,18 @@ export function PayrollRangeFilterModal({
                 })}
               </View>
             </View>
+          </ScrollView>
 
+          <View
+            style={[
+              styles.footer,
+              {
+                paddingBottom: insets.bottom + Spacing.sm,
+                borderTopColor: semantic.hairline,
+                backgroundColor: semantic.cardBackground,
+              },
+            ]}
+          >
             <Pressable
               accessibilityRole="button"
               accessibilityLabel="Apply date range"
@@ -661,7 +671,7 @@ export function PayrollRangeFilterModal({
             >
               <ThemedText style={styles.doneBtnText}>Apply</ThemedText>
             </Pressable>
-          </ScrollView>
+          </View>
         </View>
       </View>
     </Modal>
@@ -677,15 +687,30 @@ const styles = StyleSheet.create({
     ...StyleSheet.absoluteFillObject,
   },
   sheet: {
+    position: "absolute",
+    left: 0,
+    right: 0,
+    bottom: 0,
+    height: "92%",
+    maxHeight: "92%",
     borderTopLeftRadius: Radius.xl,
     borderTopRightRadius: Radius.xl,
     borderTopWidth: StyleSheet.hairlineWidth,
     paddingHorizontal: Spacing.md,
     paddingTop: Spacing.sm,
+    flexDirection: "column",
+  },
+  scroll: {
+    flex: 1,
+    minHeight: 0,
   },
   scrollContent: {
-    paddingBottom: Spacing.md,
+    paddingBottom: Spacing.sm,
     gap: Spacing.sm,
+  },
+  footer: {
+    paddingTop: Spacing.sm,
+    borderTopWidth: StyleSheet.hairlineWidth,
   },
   headerRow: {
     flexDirection: "row",
@@ -849,7 +874,6 @@ const styles = StyleSheet.create({
     justifyContent: "center",
     paddingVertical: 15,
     borderRadius: Radius.md,
-    marginTop: Spacing.md,
   },
   doneBtnText: {
     fontSize: 16,
