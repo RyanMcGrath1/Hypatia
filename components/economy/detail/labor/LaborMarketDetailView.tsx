@@ -7,7 +7,7 @@ import {
     LaborPayrollJobsCreatedCard,
     type LaborPrimaryMetric,
 } from "@/components/economy/detail/labor/LaborPayrollJobsCreatedCard";
-import { LaborSectorRadarChart } from "@/components/economy/detail/labor/LaborSectorRadarChart";
+import { LaborSectorHeatmap } from "@/components/economy/detail/labor/LaborSectorHeatmap";
 import { useLaborMarketPayrollSection } from "@/components/economy/detail/labor/useLaborMarketPayrollSection";
 import { EconomyCard } from "@/components/economy/detail/shared/EconomyCard";
 import {
@@ -46,7 +46,7 @@ export function LaborMarketDetailView() {
   const interactive = useThemeInteractive();
   const green = ECONOMY_DASHBOARD_POSITIVE_GREEN;
 
-  const [sectorView, setSectorView] = useState<"bars" | "radar">("bars");
+  const [sectorView, setSectorView] = useState<"heatmap" | "list">("heatmap");
   const scrollY = useRef(new Animated.Value(0)).current;
 
   const fabScale = useMemo(
@@ -271,13 +271,35 @@ export function LaborMarketDetailView() {
           >
             <Pressable
               accessibilityRole="tab"
-              accessibilityState={{ selected: sectorView === "bars" }}
-              accessibilityLabel="Bars view"
+              accessibilityState={{ selected: sectorView === "heatmap" }}
+              accessibilityLabel="Heatmap view"
               hitSlop={6}
-              onPress={() => setSectorView("bars")}
+              onPress={() => setSectorView("heatmap")}
               style={({ pressed }) => [
                 styles.sectorViewSeg,
-                sectorView === "bars" && {
+                sectorView === "heatmap" && {
+                  backgroundColor: interactive.primary,
+                },
+                pressed && { opacity: 0.85 },
+              ]}
+            >
+              <FontAwesome
+                name="th"
+                size={11}
+                color={
+                  sectorView === "heatmap" ? theme.background : semantic.mutedText
+                }
+              />
+            </Pressable>
+            <Pressable
+              accessibilityRole="tab"
+              accessibilityState={{ selected: sectorView === "list" }}
+              accessibilityLabel="List view"
+              hitSlop={6}
+              onPress={() => setSectorView("list")}
+              style={({ pressed }) => [
+                styles.sectorViewSeg,
+                sectorView === "list" && {
                   backgroundColor: interactive.primary,
                 },
                 pressed && { opacity: 0.85 },
@@ -287,29 +309,7 @@ export function LaborMarketDetailView() {
                 name="bars"
                 size={11}
                 color={
-                  sectorView === "bars" ? theme.background : semantic.mutedText
-                }
-              />
-            </Pressable>
-            <Pressable
-              accessibilityRole="tab"
-              accessibilityState={{ selected: sectorView === "radar" }}
-              accessibilityLabel="Radar chart view"
-              hitSlop={6}
-              onPress={() => setSectorView("radar")}
-              style={({ pressed }) => [
-                styles.sectorViewSeg,
-                sectorView === "radar" && {
-                  backgroundColor: interactive.primary,
-                },
-                pressed && { opacity: 0.85 },
-              ]}
-            >
-              <FontAwesome
-                name="bullseye"
-                size={11}
-                color={
-                  sectorView === "radar" ? theme.background : semantic.mutedText
+                  sectorView === "list" ? theme.background : semantic.mutedText
                 }
               />
             </Pressable>
@@ -351,9 +351,9 @@ export function LaborMarketDetailView() {
             </Pressable>
           </View>
         ) : null}
-        {sectorView === "radar" ? (
+        {sectorView === "heatmap" ? (
           sectorApi != null && !sectorShowError ? (
-            <LaborSectorRadarChart data={sectorApi} width={sectorChartWidth} />
+            <LaborSectorHeatmap data={sectorApi} width={sectorChartWidth} />
           ) : null
         ) : (
           <>
