@@ -395,8 +395,10 @@ export const laborMarketDetailStyles = StyleSheet.create({
     justifyContent: "center",
   },
   distTrack: {
+    width: "100%",
     height: 8,
     overflow: "hidden",
+    borderRadius: Radius.sm,
   },
   distFill: {
     height: "100%",

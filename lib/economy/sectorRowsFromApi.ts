@@ -21,8 +21,8 @@ import {
   laborSectorDisplayName,
 } from "@/lib/economy/laborSectorDisplayName";
 
-/** Minimum bar width (as a fraction of the largest) so tiny moves are still visible. */
-const MIN_BAR_FILL = 0.06;
+/** Minimum bar width when a row has non-zero change but would otherwise be invisible. */
+const MIN_BAR_FILL = 0.04;
 
 type PeriodBounds = {
   start: { date: string; value: number };
@@ -182,16 +182,28 @@ export function deriveLaborSectorBreakdown(
   });
 }
 
+/** Greatest period growth % first; unavailable rows sink to the bottom. */
+export function sortDerivedByPeriodGrowth(
+  derived: LaborSectorDerivedRow[],
+): LaborSectorDerivedRow[] {
+  return [...derived].sort((a, b) => {
+    const av = a.growthPct ?? -Infinity;
+    const bv = b.growthPct ?? -Infinity;
+    return bv - av;
+  });
+}
+
 /** Build display rows for the EMPLOYMENT BY SECTOR table from the API payload. */
 export function sectorRowsFromApi(
   response: EconomySectorResponse,
 ): LaborEmploymentSectorRow[] {
-  const derived = deriveLaborSectorBreakdown(response);
+  const derived = sortDerivedByPeriodGrowth(deriveLaborSectorBreakdown(response));
 
-  const magnitudes = derived
-    .map((r) => (r.deltaThousands != null ? Math.abs(r.deltaThousands) : 0))
-    .filter((m) => m > 0);
-  const maxMagnitude = magnitudes.length > 0 ? Math.max(...magnitudes) : 0;
+  const totalAbsDelta = derived.reduce(
+    (sum, r) =>
+      sum + (r.deltaThousands != null ? Math.abs(r.deltaThousands) : 0),
+    0,
+  );
 
   return derived.map((row) => {
     const sectorLabel = laborSectorDisplayName(row.series);
@@ -217,10 +229,15 @@ export function sectorRowsFromApi(
     }
     const isPositive = row.deltaThousands > 0;
     const isNegative = row.deltaThousands < 0;
+    const absDelta = Math.abs(row.deltaThousands);
     const fillRaw =
-      maxMagnitude > 0 ? Math.abs(row.deltaThousands) / maxMagnitude : 0;
+      totalAbsDelta > 0 ? absDelta / totalAbsDelta : 0;
     const barFill =
-      fillRaw === 0 ? 0 : Math.max(MIN_BAR_FILL, Math.min(1, fillRaw));
+      fillRaw === 0
+        ? 0
+        : fillRaw < MIN_BAR_FILL
+          ? MIN_BAR_FILL
+          : Math.min(1, fillRaw);
     return {
       sector: sectorLabel,
       delta: formatLaborSectorDeltaThousands(row.deltaThousands),

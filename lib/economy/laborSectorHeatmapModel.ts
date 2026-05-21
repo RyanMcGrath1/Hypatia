@@ -8,6 +8,7 @@ import {
   laborSectorNumericPoints,
   laborSectorPeriodRangeLabel,
   periodGrowthPctSeries,
+  sortDerivedByPeriodGrowth,
 } from "@/lib/economy/sectorRowsFromApi";
 
 export type LaborSectorHeatmapTile = {
@@ -113,7 +114,7 @@ function periodSparklineNorm(seriesId: string, response: EconomySectorResponse):
 export function buildLaborSectorHeatmapModel(
   response: EconomySectorResponse,
 ): LaborSectorHeatmapModel | null {
-  const derived = deriveLaborSectorBreakdown(response);
+  const derived = sortDerivedByPeriodGrowth(deriveLaborSectorBreakdown(response));
   if (derived.length === 0) {
     return null;
   }
@@ -170,12 +171,6 @@ export function buildLaborSectorHeatmapModel(
       growthPositive: deltaPositive,
       sparklineNorm: periodSparklineNorm(row.series.id, response),
     };
-  });
-
-  tiles.sort((a, b) => {
-    const av = a.pctChange ?? -Infinity;
-    const bv = b.pctChange ?? -Infinity;
-    return bv - av;
   });
 
   const best = tiles.find((t) => t.pctChange != null && !t.unavailable);

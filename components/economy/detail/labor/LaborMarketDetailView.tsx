@@ -26,6 +26,7 @@ import { useColorScheme } from "@/hooks/useColorScheme";
 import { useEconomyLaborEarningsInflation } from "@/hooks/useEconomyLaborEarningsInflation";
 import { useEconomySector } from "@/hooks/useEconomySector";
 import { useThemeInteractive } from "@/hooks/useThemeInteractive";
+import { laborEarningsInflationFetchWindow } from "@/lib/economy/laborEarningsInflationWindow";
 import { wagesInflationCardFromApi } from "@/lib/economy/laborEarningsInflationViewModel";
 import { sectorRowsFromApi } from "@/lib/economy/sectorRowsFromApi";
 
@@ -111,22 +112,27 @@ export function LaborMarketDetailView() {
     observationEnd: payrollFetchWindow.observationEnd,
   });
 
+  const earningsInflationFetchWindow = useMemo(
+    () => laborEarningsInflationFetchWindow(payrollFetchWindow),
+    [payrollFetchWindow.observationStart, payrollFetchWindow.observationEnd],
+  );
+
   const {
     data: earningsInflationApi,
     isLoading: earningsInflationLoading,
     error: earningsInflationError,
-  } = useEconomyLaborEarningsInflation({
-    observationStart: payrollFetchWindow.observationStart,
-    observationEnd: payrollFetchWindow.observationEnd,
-  });
+  } = useEconomyLaborEarningsInflation(earningsInflationFetchWindow);
 
   const wagesInflationCard = useMemo(
-    () => wagesInflationCardFromApi(earningsInflationApi),
-    [earningsInflationApi],
+    () => wagesInflationCardFromApi(earningsInflationApi, payrollFetchWindow),
+    [
+      earningsInflationApi,
+      payrollFetchWindow.observationStart,
+      payrollFetchWindow.observationEnd,
+    ],
   );
 
-  const wagesInflationShowLoading =
-    earningsInflationLoading && earningsInflationApi == null;
+  const wagesInflationShowLoading = earningsInflationLoading;
   const wagesInflationShowError =
     !earningsInflationLoading &&
     earningsInflationError != null &&
@@ -471,9 +477,14 @@ export function LaborMarketDetailView() {
       </EconomyCard>
 
       <EconomyCard style={styles.metricTileCard}>
-        <ThemedText style={[styles.cardKicker, { color: semantic.mutedText }]}>
-          WAGES VS. INFLATION
-        </ThemedText>
+        <View style={styles.cardTopRow}>
+          <ThemedText style={[styles.cardKicker, { color: semantic.mutedText }]}>
+            WAGES VS. INFLATION
+          </ThemedText>
+          <ThemedText style={[styles.periodLabel, { color: theme.text }]}>
+            {wagesInflationShowLoading ? "…" : wagesInflationCard.periodLabel}
+          </ThemedText>
+        </View>
         {wagesInflationShowError ? (
           <ThemedText style={[styles.footerNote, { color: interactive.danger }]}>
             {earningsInflationError}
@@ -512,7 +523,7 @@ export function LaborMarketDetailView() {
                       },
                     ]}
                   >
-                    YoY
+                    Period
                   </ThemedText>
                 </View>
               </View>
@@ -553,7 +564,7 @@ export function LaborMarketDetailView() {
                       },
                     ]}
                   >
-                    YoY
+                    Period
                   </ThemedText>
                 </View>
               </View>

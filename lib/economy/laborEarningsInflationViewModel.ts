@@ -1,9 +1,13 @@
 import type { EconomySectorSeries } from "@/hooks/api/economySectorApi";
 import type { LaborEarningsInflationResponse } from "@/hooks/api/economyLaborEarningsInflationApi";
 import { formatSectorPctChange } from "@/lib/economy/laborSectorLineChartModel";
+import type { PayrollObservationWindow } from "@/lib/economy/laborEarningsInflationWindow";
+import { wagesInflationPeriodLabel } from "@/lib/economy/laborEarningsInflationWindow";
 
 export const LABOR_AHE_SERIES_ID = "CES0500000003";
 export const LABOR_CPI_SERIES_ID = "CPIAUCSL";
+
+export type WagesInflationDisplayWindow = PayrollObservationWindow;
 
 export type WagesInflationSideView = {
   valueLabel: string;
@@ -15,6 +19,7 @@ export type WagesInflationCardView = {
   wages: WagesInflationSideView;
   inflation: WagesInflationSideView;
   footerNote: string;
+  periodLabel: string;
 };
 
 function findSeries(
@@ -34,47 +39,53 @@ function findSeries(
   );
 }
 
-/** YoY % from level series: latest print vs same calendar month one year earlier. */
-export function yoyPercentFromLevelSeries(
+function numericPointsInWindow(
+  series: EconomySectorSeries,
+  window: WagesInflationDisplayWindow,
+): { date: string; value: number }[] {
+  const startKey = window.observationStart.trim().slice(0, 10);
+  const endKey = window.observationEnd.trim().slice(0, 10);
+  const numeric: { date: string; value: number }[] = [];
+  for (const p of series.points) {
+    if (p.value == null || !Number.isFinite(p.value)) {
+      continue;
+    }
+    const d = p.date.slice(0, 10);
+    if (startKey && d < startKey) {
+      continue;
+    }
+    if (endKey && d > endKey) {
+      continue;
+    }
+    numeric.push({ date: p.date, value: p.value });
+  }
+  numeric.sort((a, b) => a.date.localeCompare(b.date));
+  return numeric;
+}
+
+/** % change from first to last level in the payroll filter window. */
+export function periodPercentFromLevelSeries(
   series: EconomySectorSeries | undefined,
+  window: WagesInflationDisplayWindow,
 ): number | null {
   if (!series || series.error) {
     return null;
   }
-  const numeric = series.points
-    .filter(
-      (p): p is { date: string; value: number } =>
-        p.value != null && Number.isFinite(p.value),
-    )
-    .sort((a, b) => a.date.localeCompare(b.date));
-  if (numeric.length === 0) {
+  const numeric = numericPointsInWindow(series, window);
+  if (numeric.length < 2) {
     return null;
   }
-  const latest = numeric[numeric.length - 1]!;
-  const latestDate = new Date(`${latest.date.slice(0, 10)}T12:00:00Z`);
-  if (Number.isNaN(latestDate.getTime())) {
+  const start = numeric[0]!;
+  const end = numeric[numeric.length - 1]!;
+  if (start.value === 0) {
     return null;
   }
-  const priorKey = `${latestDate.getUTCFullYear() - 1}-${String(
-    latestDate.getUTCMonth() + 1,
-  ).padStart(2, "0")}`;
-  let prior = numeric.find((p) => p.date.slice(0, 7) === priorKey);
-  if (!prior) {
-    const cutoff = new Date(latestDate);
-    cutoff.setUTCMonth(cutoff.getUTCMonth() - 11);
-    const cutoffIso = cutoff.toISOString().slice(0, 10);
-    const candidates = numeric.filter((p) => p.date.slice(0, 10) <= cutoffIso);
-    prior = candidates[candidates.length - 1];
-  }
-  if (!prior || prior.value === 0) {
-    return null;
-  }
-  return ((latest.value - prior.value) / Math.abs(prior.value)) * 100;
+  return ((end.value - start.value) / Math.abs(start.value)) * 100;
 }
 
 function sideView(
   series: EconomySectorSeries | undefined,
-  fallbackName: string,
+  window: WagesInflationDisplayWindow,
 ): WagesInflationSideView {
   if (series?.error) {
     return {
@@ -83,8 +94,8 @@ function sideView(
       unavailable: true,
     };
   }
-  const yoy = yoyPercentFromLevelSeries(series);
-  if (yoy == null) {
+  const pct = periodPercentFromLevelSeries(series, window);
+  if (pct == null) {
     return {
       valueLabel: "—",
       deltaPositive: null,
@@ -92,54 +103,45 @@ function sideView(
     };
   }
   return {
-    valueLabel: formatSectorPctChange(yoy),
-    deltaPositive: yoy > 0 ? true : yoy < 0 ? false : null,
+    valueLabel: formatSectorPctChange(pct),
+    deltaPositive: pct > 0 ? true : pct < 0 ? false : null,
     unavailable: false,
   };
 }
 
-function formatMonthYearShort(iso: string): string {
-  const d = new Date(`${iso.slice(0, 10)}T12:00:00Z`);
-  if (Number.isNaN(d.getTime())) {
-    return iso.slice(0, 10);
-  }
-  return d.toLocaleDateString("en-US", {
-    month: "short",
-    year: "numeric",
-    timeZone: "UTC",
-  });
-}
-
-function footerNoteFromResponse(
-  response: LaborEarningsInflationResponse | null,
+function footerNoteFromWindow(
+  window: WagesInflationDisplayWindow,
   wages: WagesInflationSideView,
   inflation: WagesInflationSideView,
 ): string {
-  if (!response?.startDate || !response.endDate) {
-    if (wages.unavailable && inflation.unavailable) {
-      return "Earnings and CPI data unavailable for this window.";
-    }
-    return "Year-over-year change vs. the same month one year ago.";
+  const period = wagesInflationPeriodLabel(window);
+  if (wages.unavailable && inflation.unavailable) {
+    return period
+      ? `No earnings or CPI data in ${period}.`
+      : "Earnings and CPI data unavailable for this range.";
   }
-  const a = formatMonthYearShort(response.startDate);
-  const b = formatMonthYearShort(response.endDate);
-  return `YoY vs. prior year · window ${a} – ${b}`;
+  return period
+    ? `Change vs. start of selected period · ${period}`
+    : "Change vs. start of selected period.";
 }
 
 export function wagesInflationCardFromApi(
   response: LaborEarningsInflationResponse | null,
+  window: WagesInflationDisplayWindow,
 ): WagesInflationCardView {
   const wagesSeries = response
     ? findSeries(response, LABOR_AHE_SERIES_ID)
     : undefined;
   const cpiSeries = response ? findSeries(response, LABOR_CPI_SERIES_ID) : undefined;
 
-  const wages = sideView(wagesSeries, "Average Hourly Earnings");
-  const inflation = sideView(cpiSeries, "CPI Inflation");
+  const wages = sideView(wagesSeries, window);
+  const inflation = sideView(cpiSeries, window);
 
   return {
     wages,
     inflation,
-    footerNote: footerNoteFromResponse(response, wages, inflation),
+    footerNote: footerNoteFromWindow(window, wages, inflation),
+    periodLabel: wagesInflationPeriodLabel(window),
   };
 }
+

@@ -86,6 +86,7 @@ export function useEconomyLaborEarningsInflation(
     }
 
     const ac = new AbortController();
+    setData(null);
     setIsLoading(true);
     setError(null);
 
