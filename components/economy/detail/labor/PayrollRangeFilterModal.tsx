@@ -437,6 +437,7 @@ export function PayrollRangeFilterModal({
             </ThemedText>
             <ScrollView
               horizontal
+              directionalLockEnabled
               showsHorizontalScrollIndicator={false}
               contentContainerStyle={styles.presetScroll}
               nestedScrollEnabled
@@ -483,6 +484,7 @@ export function PayrollRangeFilterModal({
             >
               <ScrollView
                 horizontal
+                directionalLockEnabled
                 showsHorizontalScrollIndicator={false}
                 contentContainerStyle={styles.decadeScroll}
                 nestedScrollEnabled
@@ -528,6 +530,7 @@ export function PayrollRangeFilterModal({
 
               <ScrollView
                 horizontal
+                directionalLockEnabled
                 showsHorizontalScrollIndicator={false}
                 contentContainerStyle={styles.yearStrip}
                 nestedScrollEnabled

@@ -9,6 +9,7 @@ import { ThemedView } from '@/components/theme/ThemedView';
 import { Colors } from '@/constants/theme/Colors';
 import { Spacing, getSemanticColors } from '@/constants/theme/ThemeTokens';
 import { getEconomicSectorById } from '@/constants/data/usEconomicData';
+import { forgivingStackScreenOptions } from '@/constants/navigation/stackScreenOptions';
 import { useColorScheme } from '@/hooks/useColorScheme';
 
 export default function EconomicSectorDetailScreen() {
@@ -17,8 +18,7 @@ export default function EconomicSectorDetailScreen() {
   const theme = Colors[colorScheme];
   const semantic = getSemanticColors(colorScheme);
   const sharedHeaderOptions = {
-    gestureEnabled: true,
-    fullScreenGestureEnabled: true,
+    ...forgivingStackScreenOptions,
     headerBackButtonDisplayMode: 'minimal' as const,
     headerStyle: {
       backgroundColor: semantic.screenBackground,
