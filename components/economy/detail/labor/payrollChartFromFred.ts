@@ -1,4 +1,5 @@
 import type { FredObservationRow } from "@/hooks/api/fredObservations";
+import { payrollYtdMatchesMonthKeys } from "@/lib/economy/payrollMonthRange";
 
 /** UI presets: YTD or trailing month window ending at the latest observation in the payload. */
 export const PAYROLL_CHART_RANGE_PRESETS = [
@@ -18,6 +19,9 @@ export const PAYROLL_CHART_RANGE_PRESETS = [
 
 export type PayrollChartRangePreset = (typeof PAYROLL_CHART_RANGE_PRESETS)[number];
 export type PayrollChartRangeKey = PayrollChartRangePreset["key"];
+
+/** Fixed payroll chart viewport: each month slot is 1/7 of plot width; wider ranges scroll horizontally. */
+export const PAYROLL_CHART_VIEWPORT_MONTH_COUNT = 7;
 
 export type PayrollBarPoint = {
   label: string;
@@ -376,6 +380,33 @@ export function buildPayrollYearToDateChartWithSkeleton(
     heroMetric,
     calendarContextYear: calendarYear,
   };
+}
+
+export type PayrollObservationWindow = {
+  observationStart: string;
+  observationEnd: string;
+};
+
+/**
+ * Builds the payroll chart for a committed filter window. YTD uses a fixed Jan–Dec skeleton
+ * (empty slots for months without a print yet); other ranges show one bar per month with data.
+ */
+export function buildPayrollChartForObservationWindow(
+  observations: FredObservationRow[],
+  fetchWindow: PayrollObservationWindow,
+): PayrollChartFromFred | null {
+  if (observations.length === 0) {
+    return null;
+  }
+  const startKey = fetchWindow.observationStart.trim().slice(0, 7);
+  const endKey = fetchWindow.observationEnd.trim().slice(0, 7);
+  if (payrollYtdMatchesMonthKeys(startKey, endKey)) {
+    const calendarYear = resolvePayrollYtdCalendarYear(observations);
+    if (calendarYear != null) {
+      return buildPayrollYearToDateChartWithSkeleton(calendarYear, observations);
+    }
+  }
+  return buildPayrollChartFromFredObservations(observations, observations.length);
 }
 
 export function filterPayemsObservationsByRangeKey(

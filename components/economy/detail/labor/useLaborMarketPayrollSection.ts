@@ -10,7 +10,7 @@ import type {
   PayrollRangeFilterCloseReason,
 } from "@/components/economy/detail/labor/PayrollRangeFilterModal";
 import {
-  buildPayrollChartFromFredObservations,
+  buildPayrollChartForObservationWindow,
   computeCalendarYearPayrollNetLevelDeltaThousands,
   computeDisplayedChartNetLevelDeltaThousands,
 } from "@/components/economy/detail/labor/payrollChartFromFred";
@@ -51,12 +51,11 @@ export function useLaborMarketPayrollSection(heroTheme: LaborMarketPayrollHeroTh
   const [rangeFilterOpen, setRangeFilterOpen] = useState(false);
 
   const payrollChart = useMemo(() => {
-    if (payrollObservationsRaw.length === 0) {
-      return null;
-    }
-    const n = payrollObservationsRaw.length;
-    return buildPayrollChartFromFredObservations(payrollObservationsRaw, n);
-  }, [payrollObservationsRaw]);
+    return buildPayrollChartForObservationWindow(
+      payrollObservationsRaw,
+      payrollFetchWindow,
+    );
+  }, [payrollObservationsRaw, payrollFetchWindow]);
 
   useEffect(() => {
     const ac = new AbortController();
@@ -230,19 +229,26 @@ export function useLaborMarketPayrollSection(heroTheme: LaborMarketPayrollHeroTh
   }, [payrollLoading, payrollChart]);
 
   const yearlyTotalJobsSubtitle = useMemo(() => {
-    const bars = payrollChart?.bars;
-    if (!bars?.length) {
+    if (payrollChart?.calendarContextYear != null) {
+      const y = payrollChart.calendarContextYear;
+      const start = formatMonthYearShortDisplay(`${y}-01-01`);
+      const end = formatMonthYearShortDisplay(`${y}-12-01`);
+      if (start && end) {
+        return `${start} - ${end}`;
+      }
+    }
+    if (payrollObservationsRaw.length === 0) {
       return undefined;
     }
-    const start = formatMonthYearShortDisplay(bars[0]?.observationDate);
+    const start = formatMonthYearShortDisplay(payrollObservationsRaw[0]?.date);
     const end = formatMonthYearShortDisplay(
-      bars[bars.length - 1]?.observationDate,
+      payrollObservationsRaw[payrollObservationsRaw.length - 1]?.date,
     );
     if (!start || !end) {
       return undefined;
     }
     return `${start} - ${end}`;
-  }, [payrollChart]);
+  }, [payrollChart, payrollObservationsRaw]);
 
   const yearlyTotalJobsBadgeLabel = useMemo(() => {
     if (

@@ -1,7 +1,12 @@
 import Feather from "@expo/vector-icons/Feather";
-import { Pressable, View } from "react-native";
+import { useEffect, useRef, useState } from "react";
+import { Pressable, ScrollView, View } from "react-native";
 
-import { laborMarketDetailStyles as styles } from "@/components/economy/detail/labor/LaborMarketDetailView.styles";
+import {
+  laborMarketDetailStyles as styles,
+  PAYROLL_BARS_ROW_GAP,
+  PAYROLL_BARS_ROW_PAD_H,
+} from "@/components/economy/detail/labor/LaborMarketDetailView.styles";
 import {
   PAYROLL_BARS_ROW_PAD_TOP,
   PAYROLL_DIVERGE_HALF_PX,
@@ -17,6 +22,7 @@ import {
   type PayrollRangeFilterCloseReason,
 } from "@/components/economy/detail/labor/PayrollRangeFilterModal";
 import type { PayrollChartFromFred } from "@/components/economy/detail/labor/payrollChartFromFred";
+import { PAYROLL_CHART_VIEWPORT_MONTH_COUNT } from "@/components/economy/detail/labor/payrollChartFromFred";
 import {
   LaborPayrollChartSkeleton,
   LaborPayrollHeroSkeleton,
@@ -85,6 +91,122 @@ export function LaborPayrollJobsCreatedCard({
   primaryMetricCard,
 }: LaborPayrollJobsCreatedCardProps) {
   const theme = Colors[colorScheme];
+  const [plotWidth, setPlotWidth] = useState(0);
+  const barsScrollRef = useRef<ScrollView>(null);
+  const barCount = payrollChart?.bars.length ?? 0;
+  const plotInnerWidth = Math.max(0, plotWidth - PAYROLL_BARS_ROW_PAD_H * 2);
+  const barSlotWidth =
+    plotInnerWidth > 0
+      ? (plotInnerWidth -
+          PAYROLL_BARS_ROW_GAP * (PAYROLL_CHART_VIEWPORT_MONTH_COUNT - 1)) /
+        PAYROLL_CHART_VIEWPORT_MONTH_COUNT
+      : 0;
+  const barsContentWidth =
+    barCount > 0 && barSlotWidth > 0
+      ? PAYROLL_BARS_ROW_PAD_H * 2 +
+        barCount * barSlotWidth +
+        PAYROLL_BARS_ROW_GAP * Math.max(0, barCount - 1)
+      : 0;
+  const barsScrollable = barCount > PAYROLL_CHART_VIEWPORT_MONTH_COUNT;
+  const maxBarsScrollX = Math.max(0, barsContentWidth - plotWidth);
+  const isYtdCalendarChart = payrollChart?.calendarContextYear != null;
+  const initialBarsScrollX = isYtdCalendarChart ? 0 : maxBarsScrollX;
+
+  useEffect(() => {
+    if (!barsScrollable || barCount === 0) {
+      return;
+    }
+    if (!isYtdCalendarChart && maxBarsScrollX <= 0) {
+      return;
+    }
+    const id = requestAnimationFrame(() => {
+      barsScrollRef.current?.scrollTo({ x: initialBarsScrollX, animated: false });
+    });
+    return () => cancelAnimationFrame(id);
+  }, [
+    barsScrollable,
+    barCount,
+    initialBarsScrollX,
+    isYtdCalendarChart,
+    maxBarsScrollX,
+    payrollChart?.bars,
+  ]);
+
+  const renderPayrollBars = () => {
+    if (!payrollChart?.bars.length) {
+      return null;
+    }
+    return payrollChart.bars.map((bar, i) => {
+      const delta = bar.momVsPriorThousands;
+      const isSelectable = delta != null;
+      const isSelected = selectedBarIndex === i;
+      const magnitude = delta == null ? 0 : Math.abs(delta);
+      const scaledHeight =
+        magnitude === 0
+          ? 0
+          : payrollAxis.scaleMax === 0
+            ? 54
+            : Math.max(
+                12,
+                Math.round((magnitude / payrollAxis.scaleMax) * 54),
+              );
+      const isPositive = (delta ?? 0) >= 0;
+      const barFill = payrollMomBarFillColor(
+        isPositive,
+        isSelected,
+        colorScheme,
+        interactive.primary,
+        interactive.danger,
+      );
+      return (
+        <Pressable
+          key={`${bar.observationDate}-${i}`}
+          disabled={!isSelectable}
+          onPress={() => onSelectBarIndex(i)}
+          style={({ pressed }) => [
+            styles.barCol,
+            barSlotWidth > 0 && { width: barSlotWidth, flex: 0 },
+            { opacity: pressed && isSelectable ? 0.86 : 1 },
+          ]}
+        >
+          <View style={styles.barHalfTop}>
+            {isSelectable && isPositive ? (
+              <View
+                style={[
+                  styles.barFill,
+                  {
+                    height: scaledHeight,
+                    backgroundColor: barFill,
+                  },
+                ]}
+              />
+            ) : null}
+          </View>
+          <View style={styles.barHalfBottom}>
+            {isSelectable && !isPositive ? (
+              <View
+                style={[
+                  styles.barFill,
+                  {
+                    height: scaledHeight,
+                    backgroundColor: barFill,
+                  },
+                ]}
+              />
+            ) : null}
+          </View>
+          <ThemedText
+            style={[styles.monthLabel, { color: theme.text }]}
+            numberOfLines={1}
+            adjustsFontSizeToFit
+            minimumFontScale={0.6}
+          >
+            {bar.label}
+          </ThemedText>
+        </Pressable>
+      );
+    });
+  };
 
   return (
     <EconomyCard style={styles.payrollCard}>
@@ -170,7 +292,15 @@ export function LaborPayrollJobsCreatedCard({
                   ))}
                 </View>
               </View>
-              <View style={styles.chartPlotMain}>
+              <View
+                style={styles.chartPlotMain}
+                onLayout={(e) => {
+                  const w = e.nativeEvent.layout.width;
+                  if (w > 0 && w !== plotWidth) {
+                    setPlotWidth(w);
+                  }
+                }}
+              >
                 <View
                   pointerEvents="none"
                   style={[
@@ -219,79 +349,25 @@ export function LaborPayrollJobsCreatedCard({
                     },
                   ]}
                 />
-                <View style={styles.barsRow}>
-                  {payrollChart.bars.map((bar, i) => {
-                    const delta = bar.momVsPriorThousands;
-                    const isSelectable = delta != null;
-                    const isSelected = selectedBarIndex === i;
-                    const magnitude = delta == null ? 0 : Math.abs(delta);
-                    const scaledHeight =
-                      magnitude === 0
-                        ? 0
-                        : payrollAxis.scaleMax === 0
-                          ? 54
-                          : Math.max(
-                              12,
-                              Math.round(
-                                (magnitude / payrollAxis.scaleMax) * 54,
-                              ),
-                            );
-                    const isPositive = (delta ?? 0) >= 0;
-                    const barFill = payrollMomBarFillColor(
-                      isPositive,
-                      isSelected,
-                      colorScheme,
-                      interactive.primary,
-                      interactive.danger,
-                    );
-                    return (
-                      <Pressable
-                        key={`${bar.observationDate}-${i}`}
-                        disabled={!isSelectable}
-                        onPress={() => onSelectBarIndex(i)}
-                        style={({ pressed }) => [
-                          styles.barCol,
-                          { opacity: pressed && isSelectable ? 0.86 : 1 },
-                        ]}
-                      >
-                        <View style={styles.barHalfTop}>
-                          {isSelectable && isPositive ? (
-                            <View
-                              style={[
-                                styles.barFill,
-                                {
-                                  height: scaledHeight,
-                                  backgroundColor: barFill,
-                                },
-                              ]}
-                            />
-                          ) : null}
-                        </View>
-                        <View style={styles.barHalfBottom}>
-                          {isSelectable && !isPositive ? (
-                            <View
-                              style={[
-                                styles.barFill,
-                                {
-                                  height: scaledHeight,
-                                  backgroundColor: barFill,
-                                },
-                              ]}
-                            />
-                          ) : null}
-                        </View>
-                        <ThemedText
-                          style={[styles.monthLabel, { color: theme.text }]}
-                          numberOfLines={1}
-                          adjustsFontSizeToFit
-                          minimumFontScale={0.6}
-                        >
-                          {bar.label}
-                        </ThemedText>
-                      </Pressable>
-                    );
-                  })}
-                </View>
+                {barSlotWidth > 0 && barsScrollable ? (
+                  <ScrollView
+                    ref={barsScrollRef}
+                    horizontal
+                    nestedScrollEnabled
+                    directionalLockEnabled
+                    showsHorizontalScrollIndicator
+                    scrollEventThrottle={16}
+                    contentContainerStyle={[
+                      styles.barsRow,
+                      barsContentWidth > 0 ? { width: barsContentWidth } : null,
+                    ]}
+                    style={styles.barsScroll}
+                  >
+                    {renderPayrollBars()}
+                  </ScrollView>
+                ) : (
+                  <View style={styles.barsRow}>{renderPayrollBars()}</View>
+                )}
               </View>
             </View>
           </View>

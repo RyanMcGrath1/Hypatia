@@ -8,6 +8,9 @@ import {
 import { Radius, Spacing } from "@/constants/theme/ThemeTokens";
 import { Fonts } from "@/constants/theme/Typography";
 
+export const PAYROLL_BARS_ROW_PAD_H = 8;
+export const PAYROLL_BARS_ROW_GAP = 4;
+
 export const laborMarketDetailStyles = StyleSheet.create({
   payrollCard: {
     overflow: "visible",
@@ -181,13 +184,16 @@ export const laborMarketDetailStyles = StyleSheet.create({
   barsRow: {
     flexDirection: "row",
     alignItems: "flex-end",
-    width: "100%",
-    paddingHorizontal: 8,
+    paddingHorizontal: PAYROLL_BARS_ROW_PAD_H,
     paddingTop: PAYROLL_BARS_ROW_PAD_TOP,
     paddingBottom: 10,
-    gap: 4,
+    gap: PAYROLL_BARS_ROW_GAP,
     minHeight: 170,
     zIndex: 2,
+  },
+  barsScroll: {
+    zIndex: 2,
+    alignSelf: "stretch",
   },
   barCol: {
     flex: 1,
