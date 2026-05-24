@@ -162,11 +162,7 @@ export function useLaborMarketPayrollSection(heroTheme: LaborMarketPayrollHeroTh
       setSelectedBarIndex(null);
       return;
     }
-    const withData = payrollChart.bars
-      .map((b, i) => (b.hasObservation ? i : -1))
-      .filter((i) => i >= 0);
-    const lastIdx = withData.length > 0 ? withData[withData.length - 1]! : null;
-    setSelectedBarIndex(lastIdx);
+    setSelectedBarIndex(null);
   }, [payrollChart]);
 
   const payrollRangeA11yLabel = useMemo(() => {

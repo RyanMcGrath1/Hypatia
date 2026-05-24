@@ -82,52 +82,9 @@ function niceSymmetricScaleThousands(maxAbs: number): number {
   return nf * pow;
 }
 
-function clampByte(n: number): number {
-  return Math.max(0, Math.min(255, Math.round(n)));
-}
-
-function parseHexRgb(hex: string): { r: number; g: number; b: number } | null {
-  const s = hex.trim();
-  const m6 = /^#?([a-f\d]{2})([a-f\d]{2})([a-f\d]{2})$/i.exec(s);
-  if (m6) {
-    return {
-      r: parseInt(m6[1], 16),
-      g: parseInt(m6[2], 16),
-      b: parseInt(m6[3], 16),
-    };
-  }
-  const m3 = /^#?([a-f\d])([a-f\d])([a-f\d])$/i.exec(s);
-  if (m3) {
-    return {
-      r: parseInt(m3[1] + m3[1], 16),
-      g: parseInt(m3[2] + m3[2], 16),
-      b: parseInt(m3[3] + m3[3], 16),
-    };
-  }
-  return null;
-}
-
-function rgbToHex(r: number, g: number, b: number): string {
-  return `#${[r, g, b]
-    .map((c) => clampByte(c).toString(16).padStart(2, "0"))
-    .join("")}`;
-}
-
-function shadeForSelectedBar(baseHex: string, scheme: "light" | "dark"): string {
-  const rgb = parseHexRgb(baseHex);
-  if (!rgb) {
-    return baseHex;
-  }
-  if (scheme === "dark") {
-    const t = 0.22;
-    return rgbToHex(
-      rgb.r + (255 - rgb.r) * t,
-      rgb.g + (255 - rgb.g) * t,
-      rgb.b + (255 - rgb.b) * t,
-    );
-  }
-  const t = 0.2;
-  return rgbToHex(rgb.r * (1 - t), rgb.g * (1 - t), rgb.b * (1 - t));
+/** Neutral fill for MoM bars until the user selects a month. */
+export function payrollMomBarUnselectedFill(scheme: "light" | "dark"): string {
+  return scheme === "dark" ? "#64748B" : "#CBD5E1";
 }
 
 export function payrollMomBarFillColor(
@@ -137,11 +94,10 @@ export function payrollMomBarFillColor(
   positiveBase: string,
   negativeBase: string,
 ): string {
-  const base = isPositive ? positiveBase : negativeBase;
   if (!isSelected) {
-    return base;
+    return payrollMomBarUnselectedFill(scheme);
   }
-  return shadeForSelectedBar(base, scheme);
+  return isPositive ? positiveBase : negativeBase;
 }
 
 function trendFromPayrollDelta(
