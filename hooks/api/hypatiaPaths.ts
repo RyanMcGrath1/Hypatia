@@ -12,6 +12,7 @@ export const HYPATIA_API_PATHS = {
   economyDetail: "/api/economy/detail",
   economyLaborSector: "/api/economy/labor/sector",
   economyLaborEarningsInflation: "/api/economy/labor/earnings-inflation",
+  economyLaborAgeMetrics: "/api/economy/labor/age-metrics",
   economyFredObservations: "/api/economy/fred/observations",
   economyPayemsDelta: "/api/economy/fred/series/PAYEMS/delta",
   newsTopHeadlines: "/api/news/top-headlines",

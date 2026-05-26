@@ -7,6 +7,7 @@ import {
     LaborPayrollJobsCreatedCard,
     type LaborPrimaryMetric,
 } from "@/components/economy/detail/labor/LaborPayrollJobsCreatedCard";
+import { LaborDemographicAnalysisCard } from "@/components/economy/detail/labor/LaborDemographicAnalysisCard";
 import {
   LaborSectorSectionSkeleton,
   WagesInflationCardSkeleton,
@@ -565,33 +566,15 @@ export function LaborMarketDetailView() {
         )}
       </EconomyCard>
 
-      <EconomyCard style={styles.metricTileCard}>
-        <ThemedText style={[styles.cardKicker, { color: semantic.mutedText }]}>
-          PARTICIPATION RATE
-        </ThemedText>
-        <View style={styles.inlineMetricRow}>
-          <ThemedText
-            style={[styles.midMetric, { color: theme.text }]}
-            numberOfLines={1}
-            adjustsFontSizeToFit
-            minimumFontScale={0.65}
-          >
-            62.5%
-          </ThemedText>
-          <ThemedText
-            style={[styles.deltaNeg, { color: interactive.danger }]}
-            numberOfLines={1}
-          >
-            -0.3%
-          </ThemedText>
-        </View>
-        <View
-          style={[styles.cardDivider, { backgroundColor: semantic.hairline }]}
-        />
-        <ThemedText style={[styles.footerNote, { color: semantic.mutedText }]}>
-          Multi-year low in labor force entry.
-        </ThemedText>
-      </EconomyCard>
+      <LaborDemographicAnalysisCard
+        colorScheme={colorScheme}
+        semantic={semantic}
+        interactive={{
+          primary: interactive.primary,
+          danger: interactive.danger,
+        }}
+        payrollFetchWindow={payrollFetchWindow}
+      />
     </EconomyDetailShell>
   );
 }

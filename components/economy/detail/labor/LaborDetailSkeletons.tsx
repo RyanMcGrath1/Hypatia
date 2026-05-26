@@ -188,6 +188,39 @@ export function WagesInflationCardSkeleton() {
   );
 }
 
+export function LaborDemographicAnalysisSkeleton() {
+  return (
+    <View
+      style={{ gap: Spacing.md }}
+      accessibilityLabel="Loading demographic analysis"
+      accessibilityRole="progressbar"
+    >
+      <View style={{ flexDirection: "row", justifyContent: "space-between", gap: Spacing.sm }}>
+        <Skeleton width="55%" height={28} borderRadius={Radius.sm} />
+        <Skeleton width={120} height={28} borderRadius={Radius.full} />
+      </View>
+      <Skeleton width="100%" height={52} borderRadius={Radius.lg} />
+      <View
+        style={{
+          borderRadius: Radius.xl,
+          padding: Spacing.lg,
+          gap: Spacing.md,
+        }}
+      >
+        <Skeleton width="70%" height={20} borderRadius={4} />
+        <Skeleton width="90%" height={14} borderRadius={4} />
+        <View style={{ flexDirection: "row", flexWrap: "wrap", justifyContent: "space-between", rowGap: Spacing.sm }}>
+          {[0, 1, 2, 3].map((i) => (
+            <Skeleton key={i} width="48%" height={108} borderRadius={Radius.lg} />
+          ))}
+        </View>
+        <Skeleton width="100%" height={148} borderRadius={Radius.lg} />
+        <Skeleton width="100%" height={220} borderRadius={Radius.xl} />
+      </View>
+    </View>
+  );
+}
+
 const skeletonStyles = StyleSheet.create({
   heatmapGrid: {
     flexDirection: "row",
