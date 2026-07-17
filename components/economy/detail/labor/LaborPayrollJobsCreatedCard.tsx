@@ -215,9 +215,7 @@ export function LaborPayrollJobsCreatedCard({
       ) : (
         <>
           <View style={styles.cardTopRow}>
-            <ThemedText
-              style={[styles.cardKicker, { color: semantic.mutedText }]}
-            >
+            <ThemedText style={[styles.tableTitle, { color: theme.text }]}>
               JOBS CREATED/LOST
             </ThemedText>
             <ThemedText style={[styles.periodLabel, { color: theme.text }]}>

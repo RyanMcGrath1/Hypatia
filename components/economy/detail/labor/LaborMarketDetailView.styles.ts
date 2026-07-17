@@ -24,14 +24,6 @@ export const laborMarketDetailStyles = StyleSheet.create({
     columnGap: Spacing.sm,
     marginBottom: Spacing.sm,
   },
-  cardKicker: {
-    fontSize: 11,
-    fontFamily: Fonts.bodyBold,
-    letterSpacing: 0.5,
-    flexGrow: 1,
-    flexShrink: 1,
-    minWidth: 0,
-  },
   periodLabel: {
     fontSize: 10,
     fontFamily: Fonts.bodySemiBold,

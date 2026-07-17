@@ -486,7 +486,7 @@ export function LaborMarketDetailView() {
         ) : (
           <>
             <View style={styles.cardTopRow}>
-              <ThemedText style={[styles.cardKicker, { color: semantic.mutedText }]}>
+              <ThemedText style={[styles.tableTitle, { color: theme.text }]}>
                 WAGES VS. INFLATION
               </ThemedText>
               <ThemedText style={[styles.periodLabel, { color: theme.text }]}>

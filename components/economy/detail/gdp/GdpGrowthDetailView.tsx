@@ -6,6 +6,7 @@ import Svg, { Path } from "react-native-svg";
 
 import { EconomyCard } from "@/components/economy/detail/shared/EconomyCard";
 import { EconomyDetailShell } from "@/components/economy/detail/shared/EconomyDetailShell";
+import { laborMarketDetailStyles as laborStyles } from "@/components/economy/detail/labor/LaborMarketDetailView.styles";
 import { ThemedText } from "@/components/theme/ThemedText";
 import { Colors } from "@/constants/theme/Colors";
 import { Radius, Spacing, getSemanticColors } from "@/constants/theme/ThemeTokens";
@@ -70,7 +71,7 @@ export function GdpGrowthDetailView() {
     >
       <EconomyCard style={styles.heroCard}>
         <View style={styles.heroTop}>
-          <ThemedText style={[styles.kicker, { color: semantic.mutedText }]}>
+          <ThemedText style={[laborStyles.tableTitle, { color: theme.text }]}>
             REAL GDP GROWTH RATE
           </ThemedText>
           <View style={styles.heroIcons}>
@@ -108,7 +109,7 @@ export function GdpGrowthDetailView() {
         >
           <View style={styles.forecastKickerRow}>
             <Ionicons name="sparkles" size={12} color={interactive.primary} />
-            <ThemedText style={[styles.forecastKicker, { color: interactive.primary }]}>
+            <ThemedText style={[laborStyles.tableTitle, { color: theme.text }]}>
               AI ECONOMIC FORECAST
             </ThemedText>
           </View>
@@ -135,7 +136,9 @@ export function GdpGrowthDetailView() {
 
       <EconomyCard>
         <View style={styles.sectionHeadRow}>
-          <ThemedText style={[styles.kicker, { color: semantic.mutedText }]}>SECTOR CONTRIBUTION</ThemedText>
+          <ThemedText style={[laborStyles.tableTitle, { color: theme.text }]}>
+            SECTOR CONTRIBUTION
+          </ThemedText>
           <Ionicons name="information-circle-outline" size={14} color={semantic.mutedText} />
         </View>
         {[
@@ -157,7 +160,9 @@ export function GdpGrowthDetailView() {
 
       <EconomyCard>
         <View style={styles.sectionHeadRow}>
-          <ThemedText style={[styles.kicker, { color: semantic.mutedText }]}>GROWTH HEADWINDS & RISKS</ThemedText>
+          <ThemedText style={[laborStyles.tableTitle, { color: theme.text }]}>
+            GROWTH HEADWINDS & RISKS
+          </ThemedText>
           <Ionicons name="warning-outline" size={14} color={isDark ? "#FCA5A5" : "#991B1B"} />
         </View>
         {[
@@ -176,7 +181,9 @@ export function GdpGrowthDetailView() {
       </EconomyCard>
 
       <EconomyCard>
-        <ThemedText style={[styles.historyTitle, { color: theme.text }]}>Historical Performance</ThemedText>
+        <ThemedText style={[laborStyles.tableTitle, { color: theme.text }]}>
+          HISTORICAL PERFORMANCE
+        </ThemedText>
         <ThemedText style={[styles.historySub, { color: semantic.mutedText }]}>
           Real vs. Nominal GDP Growth (5-Year Horizon)
         </ThemedText>
@@ -215,11 +222,6 @@ const styles = StyleSheet.create({
     flexDirection: "row",
     alignItems: "center",
     gap: 6,
-  },
-  kicker: {
-    fontSize: 10,
-    fontFamily: Fonts.bodySemiBold,
-    letterSpacing: 0.4,
   },
   heroValue: {
     marginTop: 2,
@@ -263,11 +265,6 @@ const styles = StyleSheet.create({
     flexDirection: "row",
     alignItems: "center",
     gap: 6,
-  },
-  forecastKicker: {
-    fontSize: 9,
-    fontFamily: Fonts.bodySemiBold,
-    letterSpacing: 0.4,
   },
   forecastTitle: {
     fontSize: 30,
@@ -345,11 +342,6 @@ const styles = StyleSheet.create({
     marginTop: 4,
     fontSize: 11,
     fontFamily: Fonts.bodyMedium,
-  },
-  historyTitle: {
-    fontSize: 28,
-    lineHeight: 32,
-    fontFamily: Fonts.displaySemibold,
   },
   historySub: {
     marginTop: 4,

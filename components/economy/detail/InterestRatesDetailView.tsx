@@ -3,8 +3,10 @@ import { StyleSheet, View } from "react-native";
 
 import { EconomyCard } from "@/components/economy/detail/shared/EconomyCard";
 import { EconomyDetailShell } from "@/components/economy/detail/shared/EconomyDetailShell";
+import { laborMarketDetailStyles as laborStyles } from "@/components/economy/detail/labor/LaborMarketDetailView.styles";
 import { ThemedText } from "@/components/theme/ThemedText";
 import { getEconomicSectorById } from "@/constants/data/usEconomicData";
+import { Colors } from "@/constants/theme/Colors";
 import { Spacing, getSemanticColors } from "@/constants/theme/ThemeTokens";
 import { Fonts } from "@/constants/theme/Typography";
 import { useColorScheme } from "@/hooks/useColorScheme";
@@ -16,6 +18,7 @@ const RATES_SECTOR = getEconomicSectorById("rates");
 export function InterestRatesDetailView() {
   const colorScheme = useColorScheme() ?? "light";
   const semantic = getSemanticColors(colorScheme);
+  const theme = Colors[colorScheme];
 
   const { economyOverview } = useEconomyTabDashboard();
   const updatedDisplay = useMemo(
@@ -36,7 +39,7 @@ export function InterestRatesDetailView() {
       updatedDisplay={updatedDisplay}
     >
       <EconomyCard style={styles.heroCard}>
-        <ThemedText style={[styles.kicker, { color: semantic.mutedText }]}>
+        <ThemedText style={[laborStyles.tableTitle, { color: theme.text }]}>
           {RATES_SECTOR.headlineLabel.toUpperCase()}
         </ThemedText>
         <ThemedText style={styles.heroValue}>{RATES_SECTOR.headlineValue}</ThemedText>
@@ -46,14 +49,24 @@ export function InterestRatesDetailView() {
       </EconomyCard>
 
       <EconomyCard>
-        <ThemedText style={[styles.sectionTitle, { color: semantic.mutedText }]}>
+        <ThemedText
+          style={[
+            laborStyles.tableTitle,
+            { color: theme.text, marginBottom: Spacing.sm },
+          ]}
+        >
           INTERPRETATION
         </ThemedText>
         <ThemedText style={styles.copy}>{RATES_SECTOR.interpretation}</ThemedText>
       </EconomyCard>
 
       <EconomyCard>
-        <ThemedText style={[styles.sectionTitle, { color: semantic.mutedText }]}>
+        <ThemedText
+          style={[
+            laborStyles.tableTitle,
+            { color: theme.text, marginBottom: Spacing.sm },
+          ]}
+        >
           KEY METRICS
         </ThemedText>
         {RATES_SECTOR.metrics.map((metric) => (
@@ -79,11 +92,6 @@ const styles = StyleSheet.create({
   heroCard: {
     gap: 6,
   },
-  kicker: {
-    fontSize: 11,
-    fontFamily: Fonts.bodySemiBold,
-    letterSpacing: 0.6,
-  },
   heroValue: {
     fontSize: 28,
     lineHeight: 32,
@@ -92,12 +100,6 @@ const styles = StyleSheet.create({
   copy: {
     lineHeight: 20,
     fontFamily: Fonts.body,
-  },
-  sectionTitle: {
-    fontSize: 11,
-    fontFamily: Fonts.bodySemiBold,
-    letterSpacing: 0.6,
-    marginBottom: Spacing.sm,
   },
   metricRow: {
     borderTopWidth: StyleSheet.hairlineWidth,
