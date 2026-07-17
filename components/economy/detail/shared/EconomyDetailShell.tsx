@@ -45,6 +45,11 @@ type EconomyDetailShellProps = {
   floatingAction?: ReactNode;
   /** Show green “LIVE DATA FEED” next to the title. Default true. */
   showLiveFeed?: boolean;
+  /**
+   * Economy-tab style “UPDATED …” stamp next to the title (replaces live feed when set).
+   * Pass {@link resolveEconomyOverviewUpdatedDisplay} from overview `as_of`.
+   */
+  updatedDisplay?: string;
   /** Show HYPATIA wordmark row above the title. Default true. */
   showHypatiaBrand?: boolean;
   /** Stack “UPDATED … EST” under the live-feed line in the title block. */
@@ -72,6 +77,7 @@ export function EconomyDetailShell({
   children,
   floatingAction,
   showLiveFeed = true,
+  updatedDisplay,
   showHypatiaBrand = true,
   showUpdatedBelowLiveFeed = false,
   headerLayout = "hypatia",
@@ -87,6 +93,7 @@ export function EconomyDetailShell({
   const theme = Colors[colorScheme];
   const interactive = useThemeInteractive();
   const updated = useMemo(() => formatUpdatedEst(), []);
+  const showTitleLiveFeed = showLiveFeed && updatedDisplay == null;
 
   return (
     <ThemedView
@@ -144,11 +151,15 @@ export function EconomyDetailShell({
               </ThemedText>
               <ThemedText
                 style={[
-                  styles.updatedStamp,
+                  updatedDisplay != null
+                    ? styles.overviewUpdatedStamp
+                    : styles.updatedStamp,
                   { color: semantic.mutedText, flexShrink: 0 },
                 ]}
               >
-                UPDATED {updated} EST
+                {updatedDisplay != null
+                  ? `UPDATED ${updatedDisplay}`
+                  : `UPDATED ${updated} EST`}
               </ThemedText>
             </View>
           ) : (
@@ -198,7 +209,7 @@ export function EconomyDetailShell({
                         {pageTitle}
                       </ThemedText>
                       <View style={styles.liveFeedMetaColumn}>
-                        {showLiveFeed ? (
+                        {showTitleLiveFeed ? (
                           <View style={styles.liveFeed}>
                             <View
                               style={[
@@ -236,7 +247,16 @@ export function EconomyDetailShell({
                     <ThemedText style={[styles.pageTitle, { color: theme.text }]}>
                       {pageTitle}
                     </ThemedText>
-                    {showLiveFeed ? (
+                    {updatedDisplay != null ? (
+                      <ThemedText
+                        style={[
+                          styles.overviewUpdatedStamp,
+                          { color: semantic.mutedText },
+                        ]}
+                      >
+                        UPDATED {updatedDisplay}
+                      </ThemedText>
+                    ) : showTitleLiveFeed ? (
                       <View style={styles.liveFeed}>
                         <View
                           style={[
@@ -333,6 +353,11 @@ const styles = StyleSheet.create({
     fontSize: 11,
     fontFamily: Fonts.bodySemiBold,
     letterSpacing: 0.3,
+  },
+  overviewUpdatedStamp: {
+    fontSize: 10,
+    textTransform: "uppercase",
+    flexShrink: 0,
   },
   titleBlock: {
     flexDirection: "row",

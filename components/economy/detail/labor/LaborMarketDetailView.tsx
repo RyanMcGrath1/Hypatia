@@ -28,9 +28,11 @@ import {
     type AppColorScheme,
 } from "@/constants/theme/ThemeTokens";
 import { useColorScheme } from "@/hooks/useColorScheme";
+import { useEconomyTabDashboard } from "@/hooks/useEconomyTabDashboard";
 import { useEconomyLaborEarningsInflation } from "@/hooks/useEconomyLaborEarningsInflation";
 import { useEconomySector } from "@/hooks/useEconomySector";
 import { useThemeInteractive } from "@/hooks/useThemeInteractive";
+import { resolveEconomyOverviewUpdatedDisplay } from "@/lib/economy/economyOverviewUpdatedDisplay";
 import { laborEarningsInflationFetchWindow } from "@/lib/economy/laborEarningsInflationWindow";
 import { wagesInflationCardFromApi } from "@/lib/economy/laborEarningsInflationViewModel";
 import { isEconomyDataPending } from "@/lib/economy/economyDataPending";
@@ -52,6 +54,12 @@ export function LaborMarketDetailView() {
   const theme = Colors[colorScheme];
   const interactive = useThemeInteractive();
   const green = ECONOMY_DASHBOARD_POSITIVE_GREEN;
+
+  const { economyOverview } = useEconomyTabDashboard();
+  const updatedDisplay = useMemo(
+    () => resolveEconomyOverviewUpdatedDisplay(economyOverview?.as_of),
+    [economyOverview?.as_of],
+  );
 
   const [sectorView, setSectorView] = useState<"heatmap" | "list">("heatmap");
   const scrollY = useRef(new Animated.Value(0)).current;
@@ -251,7 +259,10 @@ export function LaborMarketDetailView() {
   return (
     <EconomyDetailShell
       pageTitle="LABOR MARKET"
-      showHypatiaBrand={false}
+      showLiveFeed={false}
+      headerLayout="sectorInline"
+      inlineHeaderIcon="users"
+      updatedDisplay={updatedDisplay}
       onScroll={onPayrollFabScroll}
       floatingAction={floatingAction}
     >

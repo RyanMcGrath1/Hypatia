@@ -1,5 +1,6 @@
 import Feather from "@expo/vector-icons/Feather";
 import Ionicons from "@expo/vector-icons/Ionicons";
+import { useMemo } from "react";
 import { Pressable, StyleSheet, View } from "react-native";
 
 import { InflationCpiChart } from "@/components/economy/detail/inflation/InflationCpiChart";
@@ -22,7 +23,9 @@ import { Brand, Colors } from "@/constants/theme/Colors";
 import { Radius, Spacing, getSemanticColors } from "@/constants/theme/ThemeTokens";
 import { Fonts } from "@/constants/theme/Typography";
 import { useColorScheme } from "@/hooks/useColorScheme";
+import { useEconomyTabDashboard } from "@/hooks/useEconomyTabDashboard";
 import { useThemeInteractive } from "@/hooks/useThemeInteractive";
+import { resolveEconomyOverviewUpdatedDisplay } from "@/lib/economy/economyOverviewUpdatedDisplay";
 
 const RED = "#DC2626";
 
@@ -52,11 +55,18 @@ export function InflationDetailView() {
   const corePct = (INFLATION_PCE_CORE / INFLATION_PCE_SCALE_MAX) * 100;
   const targetPct = (INFLATION_PCE_TARGET / INFLATION_PCE_SCALE_MAX) * 100;
 
+  const { economyOverview } = useEconomyTabDashboard();
+  const updatedDisplay = useMemo(
+    () => resolveEconomyOverviewUpdatedDisplay(economyOverview?.as_of),
+    [economyOverview?.as_of],
+  );
+
   return (
     <EconomyDetailShell
       pageTitle="INFLATION & PRICES"
       showLiveFeed={false}
       headerLayout="sectorInline"
+      updatedDisplay={updatedDisplay}
     >
       <EconomyCard>
         <ThemedText style={[styles.kicker, { color: semantic.mutedText }]}>CONSUMER PRICE INDEX (YOY)</ThemedText>

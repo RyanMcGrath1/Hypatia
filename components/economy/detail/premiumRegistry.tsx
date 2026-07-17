@@ -4,6 +4,7 @@ import { GdpGrowthDetailView } from "@/components/economy/detail/gdp/GdpGrowthDe
 import { InflationDetailView } from "@/components/economy/detail/inflation/InflationDetailView";
 import { LaborMarketDetailView } from "@/components/economy/detail/labor/LaborMarketDetailView";
 import { MarketReactionDetailView } from "@/components/economy/detail/markets/MarketReactionDetailView";
+import { InterestRatesDetailView } from "@/components/economy/detail/InterestRatesDetailView";
 import {
   type EconomyPremiumDetailId,
   isEconomyPremiumDetailId,
@@ -12,6 +13,7 @@ import {
 const ECONOMY_PREMIUM_DETAIL_SCREENS: Record<EconomyPremiumDetailId, ComponentType> = {
   labor: LaborMarketDetailView,
   inflation: InflationDetailView,
+  rates: InterestRatesDetailView,
   markets: MarketReactionDetailView,
   gdp: GdpGrowthDetailView,
 };
