@@ -127,33 +127,11 @@ export const laborDemographicAnalysisStyles = StyleSheet.create({
     height: "100%",
     borderRadius: Radius.full,
   },
-  varianceChartWrap: {
+  comparisonChartWrap: {
     marginTop: Spacing.md,
     borderRadius: Radius.lg,
     borderWidth: StyleSheet.hairlineWidth,
-    minHeight: 148,
     overflow: "hidden",
-    position: "relative",
-  },
-  varianceGridLine: {
-    position: "absolute",
-    left: 0,
-    right: 0,
-    height: StyleSheet.hairlineWidth,
-  },
-  varianceChartLabel: {
-    position: "absolute",
-    alignSelf: "center",
-    top: "38%",
-    paddingHorizontal: 12,
-    paddingVertical: 6,
-    borderRadius: Radius.full,
-    maxWidth: "88%",
-  },
-  varianceChartLabelText: {
-    fontSize: 11,
-    fontFamily: Fonts.bodyMedium,
-    textAlign: "center",
   },
   insightCard: {
     marginTop: Spacing.md,

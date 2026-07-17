@@ -214,8 +214,7 @@ export function LaborDemographicAnalysisSkeleton() {
             <Skeleton key={i} width="48%" height={108} borderRadius={Radius.lg} />
           ))}
         </View>
-        <Skeleton width="100%" height={148} borderRadius={Radius.lg} />
-        <Skeleton width="100%" height={220} borderRadius={Radius.xl} />
+        <Skeleton width="100%" height={220} borderRadius={Radius.lg} />
       </View>
     </View>
   );

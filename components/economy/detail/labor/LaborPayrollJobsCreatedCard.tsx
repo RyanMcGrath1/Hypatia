@@ -218,9 +218,6 @@ export function LaborPayrollJobsCreatedCard({
             <ThemedText style={[styles.tableTitle, { color: theme.text }]}>
               JOBS CREATED/LOST
             </ThemedText>
-            <ThemedText style={[styles.periodLabel, { color: theme.text }]}>
-              {payrollHeroDisplay.periodLabel}
-            </ThemedText>
           </View>
           <View style={styles.heroMetricRow}>
             <View style={styles.heroMetricWithTrend}>

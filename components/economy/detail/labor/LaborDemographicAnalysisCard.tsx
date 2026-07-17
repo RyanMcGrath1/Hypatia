@@ -2,6 +2,7 @@ import { useMemo, useState } from "react";
 import { Pressable, View, useWindowDimensions } from "react-native";
 import Svg, { Polyline } from "react-native-svg";
 
+import { LaborDemographicComparisonChart } from "@/components/economy/detail/labor/LaborDemographicComparisonChart";
 import { laborDemographicAnalysisStyles as styles } from "@/components/economy/detail/labor/LaborDemographicAnalysisCard.styles";
 import { laborMarketDetailStyles as laborStyles } from "@/components/economy/detail/labor/LaborMarketDetailView.styles";
 import {
@@ -23,9 +24,6 @@ import type { PayrollObservationWindow } from "@/lib/economy/laborEarningsInflat
 
 const BUCKET_SPARK_W = 120;
 const BUCKET_SPARK_H = 28;
-const VARIANCE_CHART_H = 148;
-const VARIANCE_PAD_X = 12;
-const VARIANCE_PAD_Y = 16;
 
 type Semantic = ReturnType<
   typeof import("@/constants/theme/ThemeTokens").getSemanticColors
@@ -154,9 +152,10 @@ export function LaborDemographicAnalysisCard({
   payrollFetchWindow,
 }: LaborDemographicAnalysisCardProps) {
   const theme = Colors[colorScheme];
-  const isDark = colorScheme === "dark";
   const { width: windowWidth } = useWindowDimensions();
   const [tab, setTab] = useState<LaborDemographicTab>("unemployment");
+
+  const comparisonChartWidth = Math.max(windowWidth - Spacing.lg * 4, 280);
 
   const fetchParams = useMemo(
     () => laborEarningsInflationFetchWindow(payrollFetchWindow),
@@ -180,26 +179,12 @@ export function LaborDemographicAnalysisCard({
     if (!ageMetricsApi) {
       return null;
     }
-    return laborDemographicModelFromAgeMetrics(ageMetricsApi, tab);
-  }, [ageMetricsApi, tab]);
-
-  const varianceChartWidth = Math.max(windowWidth - Spacing.lg * 4, 280);
-  const varianceLine = useMemo(() => {
-    if (!model?.varianceNorm.length) {
-      return "";
-    }
-    const innerW = varianceChartWidth - VARIANCE_PAD_X * 2;
-    const innerH = VARIANCE_CHART_H - VARIANCE_PAD_Y * 2;
-    return buildSparklinePoints(
-      model.varianceNorm,
-      innerW + VARIANCE_PAD_X * 2,
-      innerH + VARIANCE_PAD_Y * 2,
-      VARIANCE_PAD_X,
-      VARIANCE_PAD_Y,
+    return laborDemographicModelFromAgeMetrics(
+      ageMetricsApi,
+      tab,
+      comparisonChartWidth,
     );
-  }, [model?.varianceNorm, varianceChartWidth]);
-
-  const gridLines = [0.25, 0.5, 0.75];
+  }, [ageMetricsApi, tab, comparisonChartWidth]);
 
   if (pending) {
     return <LaborDemographicAnalysisSkeleton />;
@@ -324,132 +309,19 @@ export function LaborDemographicAnalysisCard({
               ))}
             </View>
 
-            <View
-              style={[
-                styles.varianceChartWrap,
-                {
-                  borderColor: semantic.hairline,
-                  backgroundColor: semantic.cardSubtleBackground,
-                },
-              ]}
-            >
-              {gridLines.map((pct) => (
-                <View
-                  key={pct}
-                  pointerEvents="none"
-                  style={[
-                    styles.varianceGridLine,
-                    {
-                      top:
-                        VARIANCE_PAD_Y +
-                        pct * (VARIANCE_CHART_H - VARIANCE_PAD_Y * 2),
-                      backgroundColor: semantic.hairline,
-                      opacity: 0.65,
-                    },
-                  ]}
-                />
-              ))}
-              <Svg width={varianceChartWidth} height={VARIANCE_CHART_H}>
-                {varianceLine ? (
-                  <Polyline
-                    points={varianceLine}
-                    fill="none"
-                    stroke={interactive.primary}
-                    strokeWidth={2.5}
-                    strokeLinejoin="round"
-                    strokeLinecap="round"
-                  />
-                ) : null}
-              </Svg>
-              <View
-                style={[
-                  styles.varianceChartLabel,
-                  {
-                    backgroundColor: isDark
-                      ? "rgba(255,255,255,0.08)"
-                      : "rgba(0,0,0,0.06)",
-                  },
-                ]}
-              >
-                <ThemedText
-                  style={[
-                    styles.varianceChartLabelText,
-                    { color: semantic.mutedText },
-                  ]}
-                >
-                  Live Visualization: Relative Variance
-                </ThemedText>
-              </View>
-            </View>
-
-            <View
-              style={[
-                styles.insightCard,
-                { backgroundColor: interactive.primary },
-              ]}
-            >
+            {model.comparisonChart ? (
+              <LaborDemographicComparisonChart
+                model={model.comparisonChart}
+                colorScheme={colorScheme}
+                semantic={semantic}
+              />
+            ) : (
               <ThemedText
-                style={[styles.insightKicker, { color: "rgba(255,255,255,0.82)" }]}
+                style={[styles.metricCardSubtitle, { color: semantic.mutedText }]}
               >
-                ✦ {model.insight.kicker}
+                Not enough history to compare age cohorts.
               </ThemedText>
-              <ThemedText style={[styles.insightTitle, { color: Brand.paper }]}>
-                {model.insight.title}
-              </ThemedText>
-              <ThemedText
-                style={[styles.insightBody, { color: "rgba(255,255,255,0.92)" }]}
-              >
-                {model.insight.body}
-              </ThemedText>
-              <View style={styles.resilienceRow}>
-                <ThemedText
-                  style={[
-                    styles.resilienceLabel,
-                    { color: "rgba(255,255,255,0.88)" },
-                  ]}
-                >
-                  {model.insight.resilienceLabel}
-                </ThemedText>
-                <ThemedText
-                  style={[styles.resilienceLevel, { color: Brand.paper }]}
-                >
-                  {model.insight.resilienceLevel}
-                </ThemedText>
-              </View>
-              <View
-                style={[
-                  styles.resilienceTrack,
-                  { backgroundColor: "rgba(255,255,255,0.22)" },
-                ]}
-              >
-                <View
-                  style={[
-                    styles.resilienceFill,
-                    {
-                      width: `${Math.round(model.insight.resilienceFill * 100)}%`,
-                      backgroundColor: Brand.paper,
-                    },
-                  ]}
-                />
-              </View>
-              <Pressable
-                accessibilityRole="button"
-                accessibilityLabel="View detailed demographic report"
-                style={({ pressed }) => [
-                  styles.insightCta,
-                  {
-                    backgroundColor: Brand.paper,
-                    opacity: pressed ? 0.92 : 1,
-                  },
-                ]}
-              >
-                <ThemedText
-                  style={[styles.insightCtaText, { color: interactive.primary }]}
-                >
-                  View Detailed Report
-                </ThemedText>
-              </Pressable>
-            </View>
+            )}
           </>
         )}
       </EconomyCard>
