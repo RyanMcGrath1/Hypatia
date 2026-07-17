@@ -1,7 +1,6 @@
 import Feather from "@expo/vector-icons/Feather";
 import Ionicons from "@expo/vector-icons/Ionicons";
-import { useMemo } from "react";
-import { Pressable, StyleSheet, View, useWindowDimensions } from "react-native";
+import { Pressable, StyleSheet, View } from "react-native";
 
 import { InflationCpiChart } from "@/components/economy/detail/inflation/InflationCpiChart";
 import {
@@ -43,8 +42,6 @@ function componentIcon(name: InflationComponentCard["icon"]) {
 }
 
 export function InflationDetailView() {
-  const { width: windowWidth } = useWindowDimensions();
-  const chartWidth = useMemo(() => Math.min(windowWidth - Spacing.lg * 2 - Spacing.lg * 2, 360), [windowWidth]);
   const colorScheme = useColorScheme() ?? "light";
   const semantic = getSemanticColors(colorScheme);
   const theme = Colors[colorScheme];
@@ -73,7 +70,7 @@ export function InflationDetailView() {
             </View>
           </View>
         </View>
-        <InflationCpiChart width={chartWidth} />
+        <InflationCpiChart />
       </EconomyCard>
 
       <EconomyCard>
