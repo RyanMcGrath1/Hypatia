@@ -11,7 +11,9 @@ import { Colors } from "@/constants/theme/Colors";
 import { Radius, Spacing, getSemanticColors } from "@/constants/theme/ThemeTokens";
 import { Fonts } from "@/constants/theme/Typography";
 import { useColorScheme } from "@/hooks/useColorScheme";
+import { useEconomyTabDashboard } from "@/hooks/useEconomyTabDashboard";
 import { useThemeInteractive } from "@/hooks/useThemeInteractive";
+import { resolveEconomyOverviewUpdatedDisplay } from "@/lib/economy/economyOverviewUpdatedDisplay";
 
 const GDP_SPARK = [0.3, 0.34, 0.31, 0.38, 0.55, 0.63, 0.57, 0.43, 0.36, 0.42, 0.7];
 const GDP_SPARK_LABELS = ["Q1 23", "Q1 24", "Q2 24", "Q3 24"];
@@ -52,12 +54,19 @@ export function GdpGrowthDetailView() {
     };
   }, []);
 
+  const { economyOverview } = useEconomyTabDashboard();
+  const updatedDisplay = useMemo(
+    () => resolveEconomyOverviewUpdatedDisplay(economyOverview?.as_of),
+    [economyOverview?.as_of],
+  );
+
   return (
     <EconomyDetailShell
-      pageTitle="ECONOMICA"
+      pageTitle="GDP GROWTH"
       showLiveFeed={false}
       headerLayout="sectorInline"
       inlineHeaderIcon="trending-up"
+      updatedDisplay={updatedDisplay}
     >
       <EconomyCard style={styles.heroCard}>
         <View style={styles.heroTop}>

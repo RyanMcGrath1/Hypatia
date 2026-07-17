@@ -14,7 +14,7 @@ import { Colors } from "@/constants/theme/Colors";
 import { getSemanticColors } from "@/constants/theme/ThemeTokens";
 import { useColorScheme } from "@/hooks/useColorScheme";
 import { useEconomyTabDashboard } from "@/hooks/useEconomyTabDashboard";
-import { formatOverviewAsOfDisplay } from "@/lib/economy/economyOverviewTypes";
+import { resolveEconomyOverviewUpdatedDisplay } from "@/lib/economy/economyOverviewUpdatedDisplay";
 import { isEconomyDataPending } from "@/lib/economy/economyDataPending";
 import { buildEconomyFeedRows } from "@/lib/economy/economyTabFeed";
 
@@ -61,23 +61,10 @@ export default function EconomyDashboardScreen() {
     hasData: economyOverview != null,
   });
 
-  const overviewAsOf = useMemo(
-    () =>
-      new Date().toLocaleDateString("en-US", {
-        month: "long",
-        day: "numeric",
-        year: "numeric",
-      }),
-    [],
+  const displayAsOf = useMemo(
+    () => resolveEconomyOverviewUpdatedDisplay(economyOverview?.as_of),
+    [economyOverview?.as_of],
   );
-
-  const displayAsOf = useMemo(() => {
-    const iso = economyOverview?.as_of;
-    if (typeof iso === "string" && iso.trim() !== "") {
-      return formatOverviewAsOfDisplay(iso);
-    }
-    return overviewAsOf;
-  }, [economyOverview, overviewAsOf]);
 
   return (
     <ThemedView style={styles.screen}>
