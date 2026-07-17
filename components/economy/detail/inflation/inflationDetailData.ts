@@ -1,7 +1,15 @@
-export const INFLATION_CPI_CHART_LABELS = ["MAR 23", "JUN 23", "SEP 23", "DEC 23", "MAR 24"] as const;
+export type InflationCpiObservation = {
+  date: string;
+  value: number;
+};
 
-/** Normalized 0–1 mapping to chart Y (higher value = lower on screen = higher CPI level). */
-export const INFLATION_CPI_SERIES = [0.24, 0.3, 0.36, 0.42, 0.4];
+export type InflationCpiResponse = {
+  as_of: string;
+  label: string;
+  observations: InflationCpiObservation[];
+  series_id: string;
+  unit: string;
+};
 
 export type InflationMetricRow = {
   metric: string;
