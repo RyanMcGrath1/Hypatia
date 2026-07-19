@@ -31,6 +31,9 @@ import { resolveEconomyOverviewUpdatedDisplay } from "@/lib/economy/economyOverv
 
 const RED = "#DC2626";
 
+/** Set to true to show the Live Fed Terminal promo widget again. */
+const SHOW_LIVE_FED_TERMINAL = false;
+
 function componentIcon(name: InflationComponentCard["icon"]) {
   switch (name) {
     case "home":
@@ -190,19 +193,23 @@ export function InflationDetailView() {
         </View>
       </EconomyCard>
 
-      <Pressable
-        accessibilityRole="button"
-        style={({ pressed }) => [
-          styles.promoCard,
-          {
-            backgroundColor: isDark ? Brand.darkSurfaceContainerHigh : "#334155",
-            opacity: pressed ? 0.92 : 1,
-          },
-        ]}
-      >
-        <ThemedText style={[styles.promoKicker, { color: interactive.primary }]}>LIVE FED TERMINAL</ThemedText>
-        <ThemedText style={styles.promoTitle}>Access Premium Real-Time Datasets</ThemedText>
-      </Pressable>
+      {SHOW_LIVE_FED_TERMINAL ? (
+        <Pressable
+          accessibilityRole="button"
+          style={({ pressed }) => [
+            styles.promoCard,
+            {
+              backgroundColor: isDark ? Brand.darkSurfaceContainerHigh : "#334155",
+              opacity: pressed ? 0.92 : 1,
+            },
+          ]}
+        >
+          <ThemedText style={[styles.promoKicker, { color: interactive.primary }]}>
+            LIVE FED TERMINAL
+          </ThemedText>
+          <ThemedText style={styles.promoTitle}>Access Premium Real-Time Datasets</ThemedText>
+        </Pressable>
+      ) : null}
 
       <View style={styles.sectionHeader}>
         <Feather name="list" size={18} color={interactive.primary} />
