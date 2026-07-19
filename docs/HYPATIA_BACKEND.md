@@ -12,6 +12,7 @@ The Expo app talks to a single Flask service (`hypatia-backend`, default **port 
 | `economyDetailApi.ts` | `routes/economy/detail.py` |
 | `economyCpiApi.ts` | `routes/economy/cpi.py` |
 | `economyInflationPceVsTargetApi.ts` | `routes/economy/inflation_pce_vs_target.py` |
+| `economyInflationCpiComponentsApi.ts` | `routes/economy/inflation_cpi_components.py` |
 | `economySectorApi.ts` | `routes/economy/labor_sector.py` |
 | `fredObservations.ts` | `routes/economy/fred.py` |
 | `flaskMainApi.ts` | `routes/civic/`, `routes/health.py` |
