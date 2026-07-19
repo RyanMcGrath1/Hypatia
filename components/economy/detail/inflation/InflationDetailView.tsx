@@ -8,10 +8,6 @@ import { laborMarketDetailStyles as laborStyles } from "@/components/economy/det
 import {
   INFLATION_CPI_COMPONENTS,
   INFLATION_METRIC_TABLE,
-  INFLATION_PCE_CORE,
-  INFLATION_PCE_HEADLINE,
-  INFLATION_PCE_SCALE_MAX,
-  INFLATION_PCE_TARGET,
   type InflationComponentCard,
 } from "@/components/economy/detail/inflation/inflationDetailData";
 import { EconomyCard } from "@/components/economy/detail/shared/EconomyCard";
@@ -24,8 +20,13 @@ import { Brand, Colors } from "@/constants/theme/Colors";
 import { Radius, Spacing, getSemanticColors } from "@/constants/theme/ThemeTokens";
 import { Fonts } from "@/constants/theme/Typography";
 import { useColorScheme } from "@/hooks/useColorScheme";
+import { useEconomyCpi } from "@/hooks/useEconomyCpi";
+import { useEconomyInflationPceVsTarget } from "@/hooks/useEconomyInflationPceVsTarget";
 import { useEconomyTabDashboard } from "@/hooks/useEconomyTabDashboard";
 import { useThemeInteractive } from "@/hooks/useThemeInteractive";
+import { isEconomyDataPending } from "@/lib/economy/economyDataPending";
+import { inflationCpiHeadlineFromApi } from "@/lib/economy/inflationCpiViewModel";
+import { inflationPceVsTargetFromApi } from "@/lib/economy/inflationPceVsTargetViewModel";
 import { resolveEconomyOverviewUpdatedDisplay } from "@/lib/economy/economyOverviewUpdatedDisplay";
 
 const RED = "#DC2626";
@@ -52,15 +53,46 @@ export function InflationDetailView() {
   const interactive = useThemeInteractive();
   const isDark = colorScheme === "dark";
 
-  const headlinePct = (INFLATION_PCE_HEADLINE / INFLATION_PCE_SCALE_MAX) * 100;
-  const corePct = (INFLATION_PCE_CORE / INFLATION_PCE_SCALE_MAX) * 100;
-  const targetPct = (INFLATION_PCE_TARGET / INFLATION_PCE_SCALE_MAX) * 100;
-
   const { economyOverview } = useEconomyTabDashboard();
+  const { data: cpiApi, isLoading: cpiLoading, error: cpiError } = useEconomyCpi();
+  const {
+    data: pceApi,
+    isLoading: pceLoading,
+    error: pceError,
+  } = useEconomyInflationPceVsTarget();
+  const cpiHeadline = useMemo(
+    () => inflationCpiHeadlineFromApi(cpiApi),
+    [cpiApi],
+  );
+  const pceWidget = useMemo(() => inflationPceVsTargetFromApi(pceApi), [pceApi]);
+  const cpiPending = isEconomyDataPending({
+    isLoading: cpiLoading,
+    error: cpiError,
+    hasData: cpiApi != null,
+  });
+  const pcePending = isEconomyDataPending({
+    isLoading: pceLoading,
+    error: pceError,
+    hasData: pceApi != null,
+  });
   const updatedDisplay = useMemo(
     () => resolveEconomyOverviewUpdatedDisplay(economyOverview?.as_of),
     [economyOverview?.as_of],
   );
+
+  const lastSegmentDelta = cpiHeadline.lastSegmentDelta;
+  const segmentTrendColor =
+    lastSegmentDelta.trendsUp === true
+      ? RED
+      : lastSegmentDelta.trendsUp === false
+        ? ECONOMY_DASHBOARD_POSITIVE_GREEN
+        : semantic.mutedText;
+  const segmentTrendIcon =
+    lastSegmentDelta.trendsUp === true
+      ? ("trending-up" as const)
+      : lastSegmentDelta.trendsUp === false
+        ? ("trending-down" as const)
+        : ("minus" as const);
 
   return (
     <EconomyDetailShell
@@ -73,19 +105,33 @@ export function InflationDetailView() {
         <ThemedText
           style={[laborStyles.tableTitle, { color: theme.text, marginBottom: Spacing.sm }]}
         >
-          CONSUMER PRICE INDEX (YOY)
+          CONSUMER PRICE INDEX
         </ThemedText>
         <View style={styles.cpiTopRow}>
-          <ThemedText style={[styles.cpiHero, { color: interactive.primary }]}>3.1%</ThemedText>
+          <ThemedText style={[styles.cpiHero, { color: interactive.primary }]}>
+            {cpiPending ? "—" : cpiHeadline.valueLabel}
+          </ThemedText>
           <View style={styles.trendCol}>
-            <ThemedText style={[styles.trendLabel, { color: semantic.mutedText }]}>12-MONTH TREND</ThemedText>
-            <View style={styles.trendDeltaRow}>
-              <Feather name="trending-down" size={14} color={RED} />
-              <ThemedText style={[styles.trendDelta, { color: RED }]}>~ −0.1% FROM PREV</ThemedText>
-            </View>
+            <ThemedText style={[styles.trendLabel, { color: semantic.mutedText }]}>
+              {cpiPending
+                ? "PERIOD CHANGE"
+                : cpiHeadline.periodLabel.toUpperCase() || "PERIOD CHANGE"}
+            </ThemedText>
+            {!cpiPending && lastSegmentDelta.label ? (
+              <View style={styles.trendDeltaRow}>
+                <Feather name={segmentTrendIcon} size={14} color={segmentTrendColor} />
+                <ThemedText style={[styles.trendDelta, { color: segmentTrendColor }]}>
+                  {lastSegmentDelta.label}
+                </ThemedText>
+              </View>
+            ) : null}
           </View>
         </View>
-        <InflationCpiChart />
+        <InflationCpiChart
+          observations={cpiHeadline.observations}
+          isLoading={cpiPending}
+          errorMessage={cpiError}
+        />
       </EconomyCard>
 
       <EconomyCard>
@@ -95,30 +141,48 @@ export function InflationDetailView() {
           PCE PRICE INDEX VS TARGET
         </ThemedText>
         <View style={styles.pceRow}>
-          <ThemedText style={[styles.pceLabel, { color: theme.text }]}>PCE Headline</ThemedText>
+          <ThemedText style={[styles.pceLabel, { color: theme.text }]}>{pceWidget.headlineLabel}</ThemedText>
           <ThemedText type="defaultSemiBold" style={{ color: theme.text }}>
-            {INFLATION_PCE_HEADLINE}%
+            {pcePending ? "—" : pceWidget.headlineValueLabel}
           </ThemedText>
         </View>
         <View style={styles.barTrackWrap}>
           <View style={[styles.barTrack, { backgroundColor: semantic.cardSubtleBackground }]}>
-            <View style={[styles.barFill, { width: `${headlinePct}%`, backgroundColor: interactive.primary }]} />
+            <View
+              style={[
+                styles.barFill,
+                {
+                  width: pcePending ? "0%" : `${pceWidget.headlinePct}%`,
+                  backgroundColor: interactive.primary,
+                },
+              ]}
+            />
           </View>
-          <View style={[styles.targetLine, { left: `${targetPct}%` }]} />
+          <View style={[styles.targetLine, { left: `${pceWidget.targetPct}%` }]} />
         </View>
         <View style={[styles.pceRow, { marginTop: Spacing.md }]}>
-          <ThemedText style={[styles.pceLabel, { color: theme.text }]}>Core PCE</ThemedText>
+          <ThemedText style={[styles.pceLabel, { color: theme.text }]}>{pceWidget.coreLabel}</ThemedText>
           <ThemedText type="defaultSemiBold" style={{ color: theme.text }}>
-            {INFLATION_PCE_CORE}%
+            {pcePending ? "—" : pceWidget.coreValueLabel}
           </ThemedText>
         </View>
         <View style={styles.barTrackWrap}>
           <View style={[styles.barTrack, { backgroundColor: semantic.cardSubtleBackground }]}>
-            <View style={[styles.barFill, { width: `${corePct}%`, backgroundColor: interactive.primary }]} />
+            <View
+              style={[
+                styles.barFill,
+                {
+                  width: pcePending ? "0%" : `${pceWidget.corePct}%`,
+                  backgroundColor: interactive.primary,
+                },
+              ]}
+            />
           </View>
-          <View style={[styles.targetLine, { left: `${targetPct}%` }]} />
+          <View style={[styles.targetLine, { left: `${pceWidget.targetPct}%` }]} />
         </View>
-        <ThemedText style={[styles.targetCaption, { color: semantic.mutedText }]}>FED TARGET (2.0%)</ThemedText>
+        <ThemedText style={[styles.targetCaption, { color: semantic.mutedText }]}>
+          {pcePending ? "FED TARGET (—)" : `FED TARGET (${pceWidget.targetValueLabel})`}
+        </ThemedText>
         <View style={[styles.quoteBox, { backgroundColor: interactive.primarySoft }]}>
           <ThemedText style={[styles.quoteText, { color: theme.text }]}>
             {"The Core PCE index, which excludes food and energy, remains the Federal Reserve's preferred inflation gauge."}

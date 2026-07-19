@@ -1,16 +1,3 @@
-export type InflationCpiObservation = {
-  date: string;
-  value: number;
-};
-
-export type InflationCpiResponse = {
-  as_of: string;
-  label: string;
-  observations: InflationCpiObservation[];
-  series_id: string;
-  unit: string;
-};
-
 export type InflationMetricRow = {
   metric: string;
   latest: string;
@@ -74,9 +61,5 @@ export const INFLATION_CPI_COMPONENTS: InflationComponentCard[] = [
   },
 ];
 
-/** Scale max for PCE bars (approx %). */
-export const INFLATION_PCE_SCALE_MAX = 3.5;
-
-export const INFLATION_PCE_HEADLINE = 2.4;
-export const INFLATION_PCE_CORE = 2.8;
-export const INFLATION_PCE_TARGET = 2.0;
+/** Minimum bar scale for PCE vs target (actual scale grows with data). */
+export const INFLATION_PCE_SCALE_MIN = 3.5;

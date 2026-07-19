@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from "react";
+import { useMemo, useState } from "react";
 import { StyleSheet, View } from "react-native";
 import Svg, {
   Circle,
@@ -9,11 +9,9 @@ import Svg, {
   Stop,
 } from "react-native-svg";
 
-import {
-  InflationCpiObservation,
-  InflationCpiResponse,
-} from "@/components/economy/detail/inflation/inflationDetailData";
 import { ThemedText } from "@/components/theme/ThemedText";
+import type { EconomyCpiObservation } from "@/hooks/api/economyCpiApi";
+import { formatCpiChartMonthLabel } from "@/lib/economy/inflationCpiViewModel";
 import { Spacing, getSemanticColors } from "@/constants/theme/ThemeTokens";
 import { Fonts } from "@/constants/theme/Typography";
 import { useColorScheme } from "@/hooks/useColorScheme";
@@ -32,11 +30,10 @@ const PAD_BOTTOM = 18;
  */
 const CHART_VALUE_PADDING = 0.05;
 
-const API_BASE_URL = (
-  process.env.EXPO_PUBLIC_API_BASE_URL ?? "http://127.0.0.1:5001"
-).replace(/\/$/, "");
-
 type InflationCpiChartProps = {
+  observations: EconomyCpiObservation[];
+  isLoading?: boolean;
+  errorMessage?: string | null;
   width?: number;
 };
 
@@ -45,39 +42,6 @@ type ChartPoint = {
   y: number;
 };
 
-function formatCpiDate(dateString: string): string {
-  const [yearString, monthString] = dateString.split("-");
-
-  const year = Number(yearString);
-  const month = Number(monthString);
-
-  const monthLabels = [
-    "JAN",
-    "FEB",
-    "MAR",
-    "APR",
-    "MAY",
-    "JUN",
-    "JUL",
-    "AUG",
-    "SEP",
-    "OCT",
-    "NOV",
-    "DEC",
-  ];
-
-  if (
-    !Number.isFinite(year) ||
-    !Number.isFinite(month) ||
-    month < 1 ||
-    month > 12
-  ) {
-    return dateString;
-  }
-
-  return `${monthLabels[month - 1]} ${String(year).slice(-2)}`;
-}
-
 /**
  * Converts actual CPI values into SVG Y-axis ratios.
  *
@@ -85,7 +49,7 @@ function formatCpiDate(dateString: string): string {
  * receive the smallest normalized Y value.
  */
 function normalizeCpiValues(
-  observations: InflationCpiObservation[],
+  observations: EconomyCpiObservation[],
 ): number[] {
   if (observations.length === 0) {
     return [];
@@ -110,16 +74,16 @@ function normalizeCpiValues(
   });
 }
 
-export function InflationCpiChart({ width }: InflationCpiChartProps) {
+export function InflationCpiChart({
+  observations,
+  isLoading = false,
+  errorMessage = null,
+  width,
+}: InflationCpiChartProps) {
   const colorScheme = useColorScheme() ?? "light";
   const semantic = getSemanticColors(colorScheme);
   const interactive = useThemeInteractive();
 
-  const [observations, setObservations] = useState<
-    InflationCpiObservation[]
-  >([]);
-  const [isLoading, setIsLoading] = useState(true);
-  const [errorMessage, setErrorMessage] = useState<string | null>(null);
   const [measuredWidth, setMeasuredWidth] = useState(0);
 
   const chartWidth =
@@ -128,80 +92,6 @@ export function InflationCpiChart({ width }: InflationCpiChartProps) {
       : Number.isFinite(width) && width! > 0
         ? width!
         : 360;
-
-  useEffect(() => {
-    const controller = new AbortController();
-
-    async function loadCpiData() {
-      try {
-        setIsLoading(true);
-        setErrorMessage(null);
-
-        const response = await fetch(
-          `${API_BASE_URL}/api/economy/cpi`,
-          {
-            method: "GET",
-            headers: {
-              Accept: "application/json",
-            },
-            signal: controller.signal,
-          },
-        );
-
-        if (!response.ok) {
-          throw new Error(
-            `CPI request failed with status ${response.status}`,
-          );
-        }
-
-        const payload = (await response.json()) as InflationCpiResponse;
-
-        if (!Array.isArray(payload.observations)) {
-          throw new Error("CPI response does not contain observations.");
-        }
-
-        const validObservations = payload.observations.filter(
-          (observation) =>
-            typeof observation.date === "string" &&
-            typeof observation.value === "number" &&
-            Number.isFinite(observation.value),
-        );
-
-        /*
-         * The backend returns newest first:
-         * June, May, April, March, February.
-         *
-         * Graphs should run chronologically from left to right:
-         * February, March, April, May, June.
-         */
-        setObservations(
-          [...validObservations].sort((a, b) => a.date.localeCompare(b.date)),
-        );
-      } catch (error) {
-        if (error instanceof Error && error.name === "AbortError") {
-          return;
-        }
-
-        console.error("Unable to load CPI data:", error);
-
-        setErrorMessage(
-          error instanceof Error
-            ? error.message
-            : "Unable to load CPI data.",
-        );
-      } finally {
-        if (!controller.signal.aborted) {
-          setIsLoading(false);
-        }
-      }
-    }
-
-    void loadCpiData();
-
-    return () => {
-      controller.abort();
-    };
-  }, []);
 
   const handleLayout = (nextWidth: number) => {
     if (
@@ -216,36 +106,26 @@ export function InflationCpiChart({ width }: InflationCpiChartProps) {
   const chartContent = useMemo(() => {
     const normalizedValues = normalizeCpiValues(observations);
     const labels = observations.map((observation) =>
-      formatCpiDate(observation.date),
+      formatCpiChartMonthLabel(observation.date),
     );
 
     const safeWidth =
-    Number.isFinite(chartWidth) && chartWidth > 0
-      ? chartWidth
-      : 300;
-  
-  const innerW = Math.max(safeWidth - PAD_X * 2, 1);
-  const innerH = CHART_H - PAD_TOP - PAD_BOTTOM;
-  const pointCount = normalizedValues.length;
-  
-  const step =
-    pointCount > 1
-      ? innerW / (pointCount - 1)
-      : 0;
+      Number.isFinite(chartWidth) && chartWidth > 0 ? chartWidth : 300;
+
+    const innerW = Math.max(safeWidth - PAD_X * 2, 1);
+    const innerH = CHART_H - PAD_TOP - PAD_BOTTOM;
+    const pointCount = normalizedValues.length;
+
+    const step = pointCount > 1 ? innerW / (pointCount - 1) : 0;
 
     const points: ChartPoint[] = normalizedValues.map(
       (normalizedValue, index) => ({
-        x:
-          pointCount === 1
-            ? safeWidth / 2
-            : PAD_X + index * step,
+        x: pointCount === 1 ? safeWidth / 2 : PAD_X + index * step,
         y: PAD_TOP + normalizedValue * innerH,
       }),
     );
 
-    const linePoints = points
-      .map((point) => `${point.x},${point.y}`)
-      .join(" ");
+    const linePoints = points.map((point) => `${point.x},${point.y}`).join(" ");
 
     if (points.length === 0) {
       return {
@@ -336,13 +216,7 @@ export function InflationCpiChart({ width }: InflationCpiChartProps) {
             preserveAspectRatio="none"
           >
             <Defs>
-              <LinearGradient
-                id="cpiFill"
-                x1="0"
-                y1="0"
-                x2="0"
-                y2="1"
-              >
+              <LinearGradient id="cpiFill" x1="0" y1="0" x2="0" y2="1">
                 <Stop
                   offset="0"
                   stopColor={interactive.primary}
