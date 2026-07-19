@@ -85,7 +85,12 @@ describe("laborDemographicModelFromAgeMetrics", () => {
     expect(model!.buckets[0]!.valueLabel).toBe("14.4%");
     expect(model!.buckets[2]!.valueLabel).toBe("3.7%");
     expect(model!.updateBadge).toMatch(/April 2026 Update/);
-    expect(model!.varianceNorm.length).toBeGreaterThan(0);
+    expect(model!.comparisonChart).toBeNull();
+    const chartModel = laborDemographicModelFromAgeMetrics(api, "unemployment", 320);
+    expect(chartModel!.comparisonChart).not.toBeNull();
+    expect(chartModel!.comparisonChart!.lines).toHaveLength(4);
+    expect(chartModel!.comparisonChart!.lines[0]!.label).toBe("16-19 Years");
+    expect(chartModel!.comparisonChart!.lines[0]!.latestValue).toBe(14.4);
   });
 
   it("maps participation tab to labor_force_participation metric", () => {

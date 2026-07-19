@@ -21,13 +21,15 @@ export type LaborDemographicAgeBucket = {
   trendStress?: boolean;
 };
 
+import type { LaborDemographicComparisonChartModel } from "@/lib/economy/laborDemographicComparisonChartModel";
+
 export type LaborDemographicAnalysisModel = {
   updateBadge: string;
   chartTitle: string;
   chartSubtitle: string;
   frequencyLabel: string;
   buckets: LaborDemographicAgeBucket[];
-  varianceNorm: number[];
+  comparisonChart: LaborDemographicComparisonChartModel | null;
   insight: {
     kicker: string;
     title: string;

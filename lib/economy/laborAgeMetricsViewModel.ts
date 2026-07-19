@@ -3,6 +3,7 @@ import type {
   LaborDemographicAnalysisModel,
   LaborDemographicTab,
 } from "@/lib/economy/laborDemographicTypes";
+import { buildLaborDemographicComparisonChartModel } from "@/lib/economy/laborDemographicComparisonChartModel";
 import type {
   LaborAgeMetricsMetric,
   LaborAgeMetricsResponse,
@@ -76,29 +77,6 @@ function periodDelta(series: LaborAgeMetricsSeries): number | null {
     return null;
   }
   return vals[vals.length - 1]! - vals[0]!;
-}
-
-function computeVarianceNorm(metric: LaborAgeMetricsMetric): number[] {
-  const byDate = new Map<string, number[]>();
-  for (const s of metric.series) {
-    for (const obs of s.observations) {
-      if (obs.value == null) {
-        continue;
-      }
-      const list = byDate.get(obs.date) ?? [];
-      list.push(obs.value);
-      byDate.set(obs.date, list);
-    }
-  }
-  const dates = [...byDate.keys()].sort((a, b) => a.localeCompare(b));
-  const spreads = dates.map((date) => {
-    const vals = byDate.get(date)!;
-    if (vals.length < 2) {
-      return 0;
-    }
-    return Math.max(...vals) - Math.min(...vals);
-  });
-  return normalizeMinMax(spreads);
 }
 
 function buildInsight(
@@ -201,6 +179,7 @@ function buildBuckets(metric: LaborAgeMetricsMetric): {
 export function laborDemographicModelFromAgeMetrics(
   api: LaborAgeMetricsResponse,
   tab: LaborDemographicTab,
+  chartWidth?: number,
 ): LaborDemographicAnalysisModel | null {
   const metricId = LABOR_AGE_METRIC_ID_BY_TAB[tab];
   const metric = api.metrics.find((m) => m.id === metricId);
@@ -219,7 +198,10 @@ export function laborDemographicModelFromAgeMetrics(
     chartSubtitle: "Comparative breakdown by age demographic",
     frequencyLabel: "Monthly",
     buckets,
-    varianceNorm: computeVarianceNorm(metric),
+    comparisonChart:
+      chartWidth != null && chartWidth > 0
+        ? buildLaborDemographicComparisonChartModel(metric, chartWidth)
+        : null,
     insight: buildInsight(metric.id, metric.name, buckets, seriesByAge),
   };
 }
