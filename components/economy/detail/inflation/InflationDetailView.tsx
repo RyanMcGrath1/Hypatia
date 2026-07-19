@@ -5,11 +5,7 @@ import { Pressable, StyleSheet, View } from "react-native";
 
 import { InflationCpiChart } from "@/components/economy/detail/inflation/InflationCpiChart";
 import { laborMarketDetailStyles as laborStyles } from "@/components/economy/detail/labor/LaborMarketDetailView.styles";
-import {
-  INFLATION_CPI_COMPONENTS,
-  INFLATION_METRIC_TABLE,
-  type InflationComponentCard,
-} from "@/components/economy/detail/inflation/inflationDetailData";
+import type { InflationComponentIcon } from "@/components/economy/detail/inflation/inflationDetailData";
 import { EconomyCard } from "@/components/economy/detail/shared/EconomyCard";
 import {
   ECONOMY_DASHBOARD_POSITIVE_GREEN,
@@ -21,10 +17,12 @@ import { Radius, Spacing, getSemanticColors } from "@/constants/theme/ThemeToken
 import { Fonts } from "@/constants/theme/Typography";
 import { useColorScheme } from "@/hooks/useColorScheme";
 import { useEconomyCpi } from "@/hooks/useEconomyCpi";
+import { useEconomyInflationCpiComponents } from "@/hooks/useEconomyInflationCpiComponents";
 import { useEconomyInflationPceVsTarget } from "@/hooks/useEconomyInflationPceVsTarget";
 import { useEconomyTabDashboard } from "@/hooks/useEconomyTabDashboard";
 import { useThemeInteractive } from "@/hooks/useThemeInteractive";
 import { isEconomyDataPending } from "@/lib/economy/economyDataPending";
+import { inflationCpiComponentsFromApi } from "@/lib/economy/inflationCpiComponentsViewModel";
 import { inflationCpiHeadlineFromApi } from "@/lib/economy/inflationCpiViewModel";
 import { inflationPceVsTargetFromApi } from "@/lib/economy/inflationPceVsTargetViewModel";
 import { resolveEconomyOverviewUpdatedDisplay } from "@/lib/economy/economyOverviewUpdatedDisplay";
@@ -34,7 +32,7 @@ const RED = "#DC2626";
 /** Set to true to show the Live Fed Terminal promo widget again. */
 const SHOW_LIVE_FED_TERMINAL = false;
 
-function componentIcon(name: InflationComponentCard["icon"]) {
+function componentIcon(name: InflationComponentIcon) {
   switch (name) {
     case "home":
       return "home-outline" as const;
@@ -44,6 +42,8 @@ function componentIcon(name: InflationComponentCard["icon"]) {
       return "flash-outline" as const;
     case "briefcase":
       return "briefcase-outline" as const;
+    case "cube":
+      return "cube-outline" as const;
     default:
       return "ellipse-outline" as const;
   }
@@ -63,11 +63,20 @@ export function InflationDetailView() {
     isLoading: pceLoading,
     error: pceError,
   } = useEconomyInflationPceVsTarget();
+  const {
+    data: cpiComponentsApi,
+    isLoading: cpiComponentsLoading,
+    error: cpiComponentsError,
+  } = useEconomyInflationCpiComponents();
   const cpiHeadline = useMemo(
     () => inflationCpiHeadlineFromApi(cpiApi),
     [cpiApi],
   );
   const pceWidget = useMemo(() => inflationPceVsTargetFromApi(pceApi), [pceApi]);
+  const cpiComponentsWidget = useMemo(
+    () => inflationCpiComponentsFromApi(cpiComponentsApi),
+    [cpiComponentsApi],
+  );
   const cpiPending = isEconomyDataPending({
     isLoading: cpiLoading,
     error: cpiError,
@@ -77,6 +86,11 @@ export function InflationDetailView() {
     isLoading: pceLoading,
     error: pceError,
     hasData: pceApi != null,
+  });
+  const cpiComponentsPending = isEconomyDataPending({
+    isLoading: cpiComponentsLoading,
+    error: cpiComponentsError,
+    hasData: cpiComponentsApi != null,
   });
   const updatedDisplay = useMemo(
     () => resolveEconomyOverviewUpdatedDisplay(economyOverview?.as_of),
@@ -213,15 +227,28 @@ export function InflationDetailView() {
 
       <View style={styles.sectionHeader}>
         <Feather name="list" size={18} color={interactive.primary} />
-        <ThemedText style={[laborStyles.tableTitle, { color: theme.text }]}>
-          CPI COMPONENTS BREAKDOWN
-        </ThemedText>
+        <View style={styles.sectionHeaderText}>
+          <ThemedText style={[laborStyles.tableTitle, { color: theme.text }]}>
+            CPI COMPONENTS BREAKDOWN
+          </ThemedText>
+          {!cpiComponentsPending && cpiComponentsWidget.observationDateLabel ? (
+            <ThemedText style={[styles.sectionSubtitle, { color: semantic.mutedText }]}>
+              {`YoY as of ${cpiComponentsWidget.observationDateLabel} · Headline ${cpiComponentsWidget.headlineYoyLabel}`}
+            </ThemedText>
+          ) : null}
+        </View>
       </View>
 
+      {cpiComponentsError && !cpiComponentsPending ? (
+        <ThemedText style={[styles.sectionSubtitle, { color: semantic.mutedText, marginBottom: Spacing.sm }]}>
+          {cpiComponentsError}
+        </ThemedText>
+      ) : null}
+
       <View style={styles.componentGrid}>
-        {INFLATION_CPI_COMPONENTS.map((c) => (
+        {(cpiComponentsPending ? [] : cpiComponentsWidget.components).map((c) => (
           <View
-            key={c.id}
+            key={c.key}
             style={[
               styles.componentCell,
               {
@@ -236,9 +263,11 @@ export function InflationDetailView() {
             <ThemedText type="defaultSemiBold" style={[styles.compTitle, { color: theme.text }]} numberOfLines={2}>
               {c.title}
             </ThemedText>
-            <View style={[styles.weightPill, { backgroundColor: semantic.cardSubtleBackground }]}>
-              <ThemedText style={[styles.weightText, { color: semantic.mutedText }]}>WEIGHT: {c.weightPct}%</ThemedText>
-            </View>
+            {c.nestedNote ? (
+              <ThemedText style={[styles.compNestedNote, { color: semantic.mutedText }]} numberOfLines={2}>
+                {c.nestedNote}
+              </ThemedText>
+            ) : null}
             <ThemedText
               style={[
                 styles.compYoy,
@@ -247,13 +276,38 @@ export function InflationDetailView() {
                 c.yoyPositive === null && { color: theme.text },
               ]}
             >
-              {c.yoy} YOY
+              {c.yoyLabel} YOY
             </ThemedText>
-            <ThemedText style={[styles.compContrib, { color: semantic.mutedText }]}>
-              Contribution: {c.contribution}
-            </ThemedText>
+            {c.vsHeadlineLabel ? (
+              <ThemedText style={[styles.compContrib, { color: semantic.mutedText }]}>
+                {c.vsHeadlineLabel}
+              </ThemedText>
+            ) : c.hasError ? (
+              <ThemedText style={[styles.compContrib, { color: semantic.mutedText }]}>
+                Data unavailable
+              </ThemedText>
+            ) : null}
           </View>
         ))}
+        {cpiComponentsPending
+          ? Array.from({ length: 5 }, (_, index) => (
+              <View
+                key={`cpi-component-placeholder-${index}`}
+                style={[
+                  styles.componentCell,
+                  {
+                    backgroundColor: semantic.cardBackground,
+                    borderColor: isDark ? semantic.hairline : "transparent",
+                    borderWidth: isDark ? 1 : 0,
+                  },
+                  semantic.cardShadow,
+                ]}
+              >
+                <ThemedText style={[styles.compTitle, { color: semantic.mutedText }]}>—</ThemedText>
+                <ThemedText style={[styles.compYoy, { color: semantic.mutedText }]}>— YOY</ThemedText>
+              </View>
+            ))
+          : null}
       </View>
 
       <EconomyCard>
@@ -263,14 +317,34 @@ export function InflationDetailView() {
           <ThemedText style={[styles.th, styles.thNum, { color: semantic.mutedText }]}>PREVIOUS</ThemedText>
           <ThemedText style={[styles.th, styles.thNum, { color: semantic.mutedText }]}>DELTA</ThemedText>
         </View>
-        {INFLATION_METRIC_TABLE.map((row) => (
-          <View key={row.metric} style={[styles.tr, { borderTopColor: semantic.hairline }]}>
+        {(cpiComponentsPending
+          ? Array.from({ length: 6 }, (_, index) => ({
+              key: `cpi-metric-placeholder-${index}`,
+              metric: "—",
+              latest: "—",
+              previous: "—",
+              delta: "—",
+              deltaPositive: null,
+            }))
+          : cpiComponentsWidget.metricTable
+        ).map((row) => (
+          <View key={row.key} style={[styles.tr, { borderTopColor: semantic.hairline }]}>
             <ThemedText style={[styles.td, { color: theme.text, flex: 1.4 }]} numberOfLines={2}>
               {row.metric}
             </ThemedText>
             <ThemedText style={[styles.td, styles.tdNum, { color: theme.text }]}>{row.latest}</ThemedText>
             <ThemedText style={[styles.td, styles.tdNum, { color: theme.text }]}>{row.previous}</ThemedText>
-            <ThemedText style={[styles.td, styles.tdNum, { color: RED }]}>{row.delta}</ThemedText>
+            <ThemedText
+              style={[
+                styles.td,
+                styles.tdNum,
+                row.deltaPositive === true && { color: ECONOMY_DASHBOARD_POSITIVE_GREEN },
+                row.deltaPositive === false && { color: RED },
+                row.deltaPositive === null && { color: semantic.mutedText },
+              ]}
+            >
+              {row.delta}
+            </ThemedText>
           </View>
         ))}
       </EconomyCard>
@@ -376,9 +450,18 @@ const styles = StyleSheet.create({
   },
   sectionHeader: {
     flexDirection: "row",
-    alignItems: "center",
+    alignItems: "flex-start",
     gap: Spacing.sm,
     marginTop: Spacing.xs,
+  },
+  sectionHeaderText: {
+    flex: 1,
+    gap: 2,
+  },
+  sectionSubtitle: {
+    fontSize: 11,
+    fontFamily: Fonts.body,
+    lineHeight: 15,
   },
   componentGrid: {
     flexDirection: "row",
@@ -397,16 +480,10 @@ const styles = StyleSheet.create({
     fontSize: 14,
     lineHeight: 18,
   },
-  weightPill: {
-    alignSelf: "flex-start",
-    paddingHorizontal: 8,
-    paddingVertical: 4,
-    borderRadius: Radius.sm,
-  },
-  weightText: {
-    fontSize: 10,
-    fontFamily: Fonts.bodyBold,
-    letterSpacing: 0.2,
+  compNestedNote: {
+    fontSize: 11,
+    fontFamily: Fonts.body,
+    lineHeight: 14,
   },
   compYoy: {
     fontSize: 16,
