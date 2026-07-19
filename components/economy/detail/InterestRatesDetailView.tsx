@@ -10,8 +10,13 @@ import { Colors } from "@/constants/theme/Colors";
 import { Spacing, getSemanticColors } from "@/constants/theme/ThemeTokens";
 import { Fonts } from "@/constants/theme/Typography";
 import { useColorScheme } from "@/hooks/useColorScheme";
+import { useEconomyRatesFedFundsTarget } from "@/hooks/useEconomyRatesFedFundsTarget";
+import { useEconomyRatesKeyMetrics } from "@/hooks/useEconomyRatesKeyMetrics";
 import { useEconomyTabDashboard } from "@/hooks/useEconomyTabDashboard";
+import { isEconomyDataPending } from "@/lib/economy/economyDataPending";
 import { resolveEconomyOverviewUpdatedDisplay } from "@/lib/economy/economyOverviewUpdatedDisplay";
+import { ratesFedFundsTargetFromApi } from "@/lib/economy/ratesFedFundsTargetViewModel";
+import { ratesKeyMetricsFromApi } from "@/lib/economy/ratesKeyMetricsViewModel";
 
 const RATES_SECTOR = getEconomicSectorById("rates");
 
@@ -21,6 +26,34 @@ export function InterestRatesDetailView() {
   const theme = Colors[colorScheme];
 
   const { economyOverview } = useEconomyTabDashboard();
+  const {
+    data: fedFundsTargetApi,
+    isLoading: fedFundsTargetLoading,
+    error: fedFundsTargetError,
+  } = useEconomyRatesFedFundsTarget();
+  const fedFundsTargetWidget = useMemo(
+    () => ratesFedFundsTargetFromApi(fedFundsTargetApi),
+    [fedFundsTargetApi],
+  );
+  const fedFundsTargetPending = isEconomyDataPending({
+    isLoading: fedFundsTargetLoading,
+    error: fedFundsTargetError,
+    hasData: fedFundsTargetApi != null,
+  });
+  const {
+    data: keyMetricsApi,
+    isLoading: keyMetricsLoading,
+    error: keyMetricsError,
+  } = useEconomyRatesKeyMetrics();
+  const keyMetricsWidget = useMemo(
+    () => ratesKeyMetricsFromApi(keyMetricsApi),
+    [keyMetricsApi],
+  );
+  const keyMetricsPending = isEconomyDataPending({
+    isLoading: keyMetricsLoading,
+    error: keyMetricsError,
+    hasData: keyMetricsApi != null,
+  });
   const updatedDisplay = useMemo(
     () => resolveEconomyOverviewUpdatedDisplay(economyOverview?.as_of),
     [economyOverview?.as_of],
@@ -42,7 +75,14 @@ export function InterestRatesDetailView() {
         <ThemedText style={[laborStyles.tableTitle, { color: theme.text }]}>
           {RATES_SECTOR.headlineLabel.toUpperCase()}
         </ThemedText>
-        <ThemedText style={styles.heroValue}>{RATES_SECTOR.headlineValue}</ThemedText>
+        <ThemedText style={styles.heroValue}>
+          {fedFundsTargetPending ? "—" : fedFundsTargetWidget.headlineValueLabel}
+        </ThemedText>
+        {!fedFundsTargetPending && fedFundsTargetWidget.observationDateLabel ? (
+          <ThemedText style={[styles.asOf, { color: semantic.mutedText }]}>
+            As of {fedFundsTargetWidget.observationDateLabel}
+          </ThemedText>
+        ) : null}
         <ThemedText style={[styles.copy, { color: semantic.mutedText }]}>
           {RATES_SECTOR.summary}
         </ThemedText>
@@ -69,15 +109,17 @@ export function InterestRatesDetailView() {
         >
           KEY METRICS
         </ThemedText>
-        {RATES_SECTOR.metrics.map((metric) => (
+        {keyMetricsWidget.metrics.map((metric) => (
           <View
-            key={metric.label}
+            key={metric.key}
             style={[styles.metricRow, { borderTopColor: semantic.hairline }]}
           >
             <ThemedText style={[styles.metricLabel, { color: semantic.mutedText }]}>
               {metric.label}
             </ThemedText>
-            <ThemedText style={styles.metricValue}>{metric.value}</ThemedText>
+            <ThemedText style={styles.metricValue}>
+              {keyMetricsPending ? "—" : metric.valueLabel}
+            </ThemedText>
             <ThemedText style={[styles.metricNote, { color: semantic.mutedText }]}>
               {metric.note}
             </ThemedText>
@@ -96,6 +138,11 @@ const styles = StyleSheet.create({
     fontSize: 28,
     lineHeight: 32,
     fontFamily: Fonts.displaySemibold,
+  },
+  asOf: {
+    fontSize: 12,
+    lineHeight: 16,
+    fontFamily: Fonts.body,
   },
   copy: {
     lineHeight: 20,
