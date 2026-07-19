@@ -13,13 +13,6 @@ export const laborDemographicAnalysisStyles = StyleSheet.create({
     justifyContent: "space-between",
     gap: Spacing.sm,
   },
-  sectionTitle: {
-    flex: 1,
-    fontSize: 22,
-    lineHeight: 28,
-    fontFamily: Fonts.displayBold,
-    letterSpacing: -0.3,
-  },
   updateBadge: {
     borderRadius: Radius.full,
     paddingHorizontal: 12,

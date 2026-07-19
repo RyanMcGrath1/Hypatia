@@ -51,7 +51,7 @@ export function LaborPayrollHeroSkeleton() {
   return (
     <View accessibilityLabel="Loading payroll summary" accessibilityRole="progressbar">
       <View style={styles.cardTopRow}>
-        <Skeleton width={120} height={11} borderRadius={4} />
+        <Skeleton width={120} height={12} borderRadius={4} />
         <Skeleton width={96} height={10} borderRadius={4} />
       </View>
       <Skeleton width="48%" height={36} borderRadius={Radius.sm} style={{ marginBottom: 8 }} />
@@ -165,7 +165,7 @@ export function WagesInflationCardSkeleton() {
   return (
     <View accessibilityLabel="Loading wages and inflation" accessibilityRole="progressbar">
       <View style={styles.cardTopRow}>
-        <Skeleton width={130} height={11} borderRadius={4} />
+        <Skeleton width={130} height={12} borderRadius={4} />
         <Skeleton width={100} height={10} borderRadius={4} />
       </View>
       <View style={styles.splitMetricRow}>
@@ -196,7 +196,7 @@ export function LaborDemographicAnalysisSkeleton() {
       accessibilityRole="progressbar"
     >
       <View style={{ flexDirection: "row", justifyContent: "space-between", gap: Spacing.sm }}>
-        <Skeleton width="55%" height={28} borderRadius={Radius.sm} />
+        <Skeleton width="55%" height={12} borderRadius={Radius.sm} />
         <Skeleton width={120} height={28} borderRadius={Radius.full} />
       </View>
       <Skeleton width="100%" height={52} borderRadius={Radius.lg} />

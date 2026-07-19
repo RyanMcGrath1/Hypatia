@@ -4,6 +4,7 @@ import { useMemo } from "react";
 import { Pressable, StyleSheet, View } from "react-native";
 
 import { InflationCpiChart } from "@/components/economy/detail/inflation/InflationCpiChart";
+import { laborMarketDetailStyles as laborStyles } from "@/components/economy/detail/labor/LaborMarketDetailView.styles";
 import {
   INFLATION_CPI_COMPONENTS,
   INFLATION_METRIC_TABLE,
@@ -69,7 +70,11 @@ export function InflationDetailView() {
       updatedDisplay={updatedDisplay}
     >
       <EconomyCard>
-        <ThemedText style={[styles.kicker, { color: semantic.mutedText }]}>CONSUMER PRICE INDEX (YOY)</ThemedText>
+        <ThemedText
+          style={[laborStyles.tableTitle, { color: theme.text, marginBottom: Spacing.sm }]}
+        >
+          CONSUMER PRICE INDEX (YOY)
+        </ThemedText>
         <View style={styles.cpiTopRow}>
           <ThemedText style={[styles.cpiHero, { color: interactive.primary }]}>3.1%</ThemedText>
           <View style={styles.trendCol}>
@@ -84,7 +89,11 @@ export function InflationDetailView() {
       </EconomyCard>
 
       <EconomyCard>
-        <ThemedText style={[styles.kicker, { color: semantic.mutedText }]}>PCE PRICE INDEX VS TARGET</ThemedText>
+        <ThemedText
+          style={[laborStyles.tableTitle, { color: theme.text, marginBottom: Spacing.sm }]}
+        >
+          PCE PRICE INDEX VS TARGET
+        </ThemedText>
         <View style={styles.pceRow}>
           <ThemedText style={[styles.pceLabel, { color: theme.text }]}>PCE Headline</ThemedText>
           <ThemedText type="defaultSemiBold" style={{ color: theme.text }}>
@@ -133,7 +142,9 @@ export function InflationDetailView() {
 
       <View style={styles.sectionHeader}>
         <Feather name="list" size={18} color={interactive.primary} />
-        <ThemedText style={[styles.sectionTitle, { color: theme.text }]}>CPI COMPONENTS BREAKDOWN</ThemedText>
+        <ThemedText style={[laborStyles.tableTitle, { color: theme.text }]}>
+          CPI COMPONENTS BREAKDOWN
+        </ThemedText>
       </View>
 
       <View style={styles.componentGrid}>
@@ -197,12 +208,6 @@ export function InflationDetailView() {
 }
 
 const styles = StyleSheet.create({
-  kicker: {
-    fontSize: 11,
-    fontFamily: Fonts.bodyBold,
-    letterSpacing: 0.5,
-    marginBottom: Spacing.sm,
-  },
   cpiTopRow: {
     flexDirection: "row",
     alignItems: "flex-start",
@@ -303,11 +308,6 @@ const styles = StyleSheet.create({
     alignItems: "center",
     gap: Spacing.sm,
     marginTop: Spacing.xs,
-  },
-  sectionTitle: {
-    fontSize: 13,
-    fontFamily: Fonts.bodyBold,
-    letterSpacing: 0.4,
   },
   componentGrid: {
     flexDirection: "row",

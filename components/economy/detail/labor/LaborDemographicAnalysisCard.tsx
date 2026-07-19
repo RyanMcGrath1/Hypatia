@@ -3,6 +3,7 @@ import { Pressable, View, useWindowDimensions } from "react-native";
 import Svg, { Polyline } from "react-native-svg";
 
 import { laborDemographicAnalysisStyles as styles } from "@/components/economy/detail/labor/LaborDemographicAnalysisCard.styles";
+import { laborMarketDetailStyles as laborStyles } from "@/components/economy/detail/labor/LaborMarketDetailView.styles";
 import {
   LABOR_DEMOGRAPHIC_TABS,
   type LaborDemographicAgeBucket,
@@ -207,8 +208,8 @@ export function LaborDemographicAnalysisCard({
   return (
     <View style={styles.section}>
       <View style={styles.sectionHeaderRow}>
-        <ThemedText style={[styles.sectionTitle, { color: theme.text }]}>
-          Demographic Analysis
+        <ThemedText style={[laborStyles.tableTitle, { color: theme.text }]}>
+          DEMOGRAPHIC ANALYSIS
         </ThemedText>
         {model?.updateBadge ? (
           <View
