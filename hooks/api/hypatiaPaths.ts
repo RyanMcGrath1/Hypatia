@@ -10,6 +10,7 @@ export const HYPATIA_API_PATHS = {
   civicRepresentatives: "/api/civic/representatives",
   economyDashboard: "/api/economy/dashboard",
   economyDetail: "/api/economy/detail",
+  economyGdpGrowthRate: "/api/economy/gdp/growth-rate",
   economyCpi: "/api/economy/cpi",
   economyInflationPceVsTarget: "/api/economy/inflation/pce-vs-target",
   economyInflationCpiComponents: "/api/economy/inflation/cpi-components",

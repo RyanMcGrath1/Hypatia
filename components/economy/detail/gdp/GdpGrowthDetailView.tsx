@@ -1,6 +1,6 @@
 import Feather from "@expo/vector-icons/Feather";
 import Ionicons from "@expo/vector-icons/Ionicons";
-import { useMemo } from "react";
+import { useCallback, useMemo, useState } from "react";
 import { Pressable, StyleSheet, View } from "react-native";
 import Svg, { Path } from "react-native-svg";
 
@@ -12,12 +12,15 @@ import { Colors } from "@/constants/theme/Colors";
 import { Radius, Spacing, getSemanticColors } from "@/constants/theme/ThemeTokens";
 import { Fonts } from "@/constants/theme/Typography";
 import { useColorScheme } from "@/hooks/useColorScheme";
+import { useEconomyGdpGrowthRate } from "@/hooks/useEconomyGdpGrowthRate";
 import { useEconomyTabDashboard } from "@/hooks/useEconomyTabDashboard";
 import { useThemeInteractive } from "@/hooks/useThemeInteractive";
+import { isEconomyDataPending } from "@/lib/economy/economyDataPending";
 import { resolveEconomyOverviewUpdatedDisplay } from "@/lib/economy/economyOverviewUpdatedDisplay";
+import { gdpGrowthFromApi } from "@/lib/economy/gdpGrowthViewModel";
 
-const GDP_SPARK = [0.3, 0.34, 0.31, 0.38, 0.55, 0.63, 0.57, 0.43, 0.36, 0.42, 0.7];
-const GDP_SPARK_LABELS = ["Q1 23", "Q1 24", "Q2 24", "Q3 24"];
+const SPARK_HEIGHT = 156;
+const SPARK_LABEL_WIDTH = 40;
 
 function curvePath(values: number[], width: number, height: number): string {
   const stepX = width / Math.max(values.length - 1, 1);
@@ -46,14 +49,36 @@ export function GdpGrowthDetailView() {
   const interactive = useThemeInteractive();
   const isDark = colorScheme === "dark";
 
-  const spark = useMemo(() => {
-    const w = 288;
-    const h = 84;
-    return {
-      line: curvePath(GDP_SPARK, w, h),
-      area: `${curvePath(GDP_SPARK, w, h)} L ${w} ${h} L 0 ${h} Z`,
-    };
+  const {
+    data: gdpGrowthApi,
+    isLoading: gdpGrowthLoading,
+    error: gdpGrowthError,
+  } = useEconomyGdpGrowthRate();
+  const gdpGrowth = useMemo(() => gdpGrowthFromApi(gdpGrowthApi), [gdpGrowthApi]);
+  const gdpGrowthPending = isEconomyDataPending({
+    isLoading: gdpGrowthLoading,
+    error: gdpGrowthError,
+    hasData: gdpGrowthApi != null,
+  });
+
+  const [chartWidth, setChartWidth] = useState(0);
+  const handleChartLayout = useCallback((width: number) => {
+    const next = Math.floor(width);
+    if (next > 0) {
+      setChartWidth((prev) => (prev === next ? prev : next));
+    }
   }, []);
+
+  const spark = useMemo(() => {
+    if (chartWidth <= 0) {
+      return null;
+    }
+    const values = gdpGrowth.sparkValues.length > 0 ? gdpGrowth.sparkValues : [0.5];
+    return {
+      line: curvePath(values, chartWidth, SPARK_HEIGHT),
+      area: `${curvePath(values, chartWidth, SPARK_HEIGHT)} L ${chartWidth} ${SPARK_HEIGHT} L 0 ${SPARK_HEIGHT} Z`,
+    };
+  }, [chartWidth, gdpGrowth.sparkValues]);
 
   const { economyOverview } = useEconomyTabDashboard();
   const updatedDisplay = useMemo(
@@ -79,22 +104,55 @@ export function GdpGrowthDetailView() {
             <Ionicons name="ellipsis-vertical" size={14} color={semantic.mutedText} />
           </View>
         </View>
-        <ThemedText style={[styles.heroValue, { color: theme.text }]}>+2.4%</ThemedText>
+        <ThemedText
+          style={[
+            styles.heroValue,
+            { color: gdpGrowthPending ? semantic.mutedText : theme.text },
+          ]}
+        >
+          {gdpGrowthPending ? "—" : gdpGrowth.valueLabel}
+        </ThemedText>
         <ThemedText style={[styles.heroSub, { color: semantic.mutedText }]}>
-          Quarter-over-Quarter (Q3 2024)
+          {gdpGrowthPending ? "Quarter-over-Quarter" : gdpGrowth.subtitle}
         </ThemedText>
         <View style={[styles.sparkWrap, { backgroundColor: semantic.cardSubtleBackground }]}>
-          <Svg width={288} height={84}>
-            <Path d={spark.area} fill={isDark ? "rgba(74,108,247,0.18)" : "rgba(74,108,247,0.15)"} />
-            <Path d={spark.line} stroke={interactive.primary} strokeWidth={2} fill="none" />
-          </Svg>
-        </View>
-        <View style={styles.sparkLabels}>
-          {GDP_SPARK_LABELS.map((label) => (
-            <ThemedText key={label} style={[styles.sparkLabel, { color: semantic.mutedText }]}>
-              {label}
-            </ThemedText>
-          ))}
+          <View
+            style={styles.sparkChart}
+            onLayout={(event) => handleChartLayout(event.nativeEvent.layout.width)}
+          >
+            {spark ? (
+              <Svg
+                width="100%"
+                height={SPARK_HEIGHT}
+                viewBox={`0 0 ${chartWidth} ${SPARK_HEIGHT}`}
+                preserveAspectRatio="none"
+              >
+                <Path
+                  d={spark.area}
+                  fill={isDark ? "rgba(74,108,247,0.18)" : "rgba(74,108,247,0.15)"}
+                />
+                <Path d={spark.line} stroke={interactive.primary} strokeWidth={2.5} fill="none" />
+              </Svg>
+            ) : (
+              <View style={{ height: SPARK_HEIGHT }} />
+            )}
+            <View style={[styles.sparkLabels, chartWidth > 0 ? { width: chartWidth } : null]}>
+              {gdpGrowth.sparkLabels.map((item) => (
+                <ThemedText
+                  key={`${item.label}-${item.position}`}
+                  style={[
+                    styles.sparkLabel,
+                    {
+                      color: semantic.mutedText,
+                      left: chartWidth * item.position - SPARK_LABEL_WIDTH / 2,
+                    },
+                  ]}
+                >
+                  {item.label}
+                </ThemedText>
+              ))}
+            </View>
+          </View>
         </View>
       </EconomyCard>
 
@@ -238,17 +296,22 @@ const styles = StyleSheet.create({
     marginTop: Spacing.md,
     borderRadius: Radius.lg,
     overflow: "hidden",
-    paddingHorizontal: 8,
-    paddingTop: 8,
+    paddingVertical: Spacing.sm,
+    paddingHorizontal: Spacing.xs,
+  },
+  sparkChart: {
+    width: "100%",
   },
   sparkLabels: {
-    marginTop: 6,
-    flexDirection: "row",
-    justifyContent: "space-between",
-    paddingHorizontal: 2,
+    marginTop: Spacing.sm,
+    height: 16,
+    position: "relative",
   },
   sparkLabel: {
-    fontSize: 9,
+    position: "absolute",
+    width: SPARK_LABEL_WIDTH,
+    textAlign: "center",
+    fontSize: 10,
     fontFamily: Fonts.bodyMedium,
   },
   forecastCard: {
