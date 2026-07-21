@@ -6,6 +6,9 @@ import type {
 /** Recent quarters shown in the GDP growth sparkline. */
 export const GDP_GROWTH_SPARK_QUARTERS = 8;
 
+/** Recent quarters listed under the 5-year historical performance chart. */
+export const GDP_HISTORICAL_RECENT_QUARTERS = 5;
+
 export type GdpGrowthHeadwindIcon = "git-branch" | "dollar-sign" | "activity" | "trending-up";
 
 export type GdpGrowthHeadwindRow = {
@@ -36,11 +39,21 @@ export type GdpGrowthSparkLabel = {
   position: number;
 };
 
+export type GdpHistoricalQuarterRow = {
+  date: string;
+  quarterLabel: string;
+  valueLabel: string;
+};
+
 export type GdpGrowthViewModel = {
   valueLabel: string;
   subtitle: string;
   sparkValues: number[];
   sparkLabels: GdpGrowthSparkLabel[];
+  historicalPeriodLabel: string;
+  historicalChartValues: number[];
+  historicalChartLabels: GdpGrowthSparkLabel[];
+  historicalRows: GdpHistoricalQuarterRow[];
 };
 
 function formatSignedPct(value: number | null | undefined): string {
@@ -110,13 +123,45 @@ export function buildSparkLabels(dates: string[], count = 4): GdpGrowthSparkLabe
   return labels;
 }
 
+function formatHistoricalPeriod(startDate: string | undefined, endDate: string | undefined): string {
+  const startYear = startDate?.slice(0, 4);
+  const endYear = endDate?.slice(0, 4);
+  if (startYear && endYear) {
+    return `${startYear} – ${endYear}`;
+  }
+  return "5-Year Horizon";
+}
+
+function buildHistoricalRows(
+  observations: GdpGrowthRateResponse["observations"],
+  count = GDP_HISTORICAL_RECENT_QUARTERS,
+): GdpHistoricalQuarterRow[] {
+  return observations.slice(0, count).map((row) => ({
+    date: row.date,
+    quarterLabel: quarterLabelFromDate(row.date),
+    valueLabel: formatSignedPct(row.value),
+  }));
+}
+
 /** Map API payload into hero + sparkline inputs for the GDP growth widget. */
 export function gdpGrowthFromApi(api: GdpGrowthRateResponse | null): GdpGrowthViewModel {
   const chronological = [...(api?.observations ?? [])].reverse();
   const sparkSeries = chronological.slice(-GDP_GROWTH_SPARK_QUARTERS);
-  const rawValues = sparkSeries.map((row) => row.value);
-  const sparkValues = scaleSparkValues(rawValues);
+  const rawSparkValues = sparkSeries.map((row) => row.value);
+  const sparkValues = scaleSparkValues(rawSparkValues);
   const sparkLabels = buildSparkLabels(sparkSeries.map((row) => row.date));
+
+  const historicalRawValues = chronological.map((row) => row.value);
+  const historicalChartValues = scaleSparkValues(historicalRawValues);
+  const historicalChartLabels = buildSparkLabels(chronological.map((row) => row.date));
+  const historicalRows =
+    (api?.observations?.length ?? 0) > 0
+      ? buildHistoricalRows(api!.observations)
+      : Array.from({ length: GDP_HISTORICAL_RECENT_QUARTERS }, (_, index) => ({
+          date: `placeholder-${index}`,
+          quarterLabel: "—",
+          valueLabel: "—",
+        }));
 
   const latestQuarter =
     api?.observation_date != null ? quarterLabelFromDate(api.observation_date) : null;
@@ -128,6 +173,10 @@ export function gdpGrowthFromApi(api: GdpGrowthRateResponse | null): GdpGrowthVi
       : "Quarter-over-Quarter",
     sparkValues,
     sparkLabels,
+    historicalPeriodLabel: formatHistoricalPeriod(api?.start_date, api?.end_date),
+    historicalChartValues,
+    historicalChartLabels,
+    historicalRows,
   };
 }
 
