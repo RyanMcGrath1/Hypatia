@@ -13,11 +13,13 @@ import { Radius, Spacing, getSemanticColors } from "@/constants/theme/ThemeToken
 import { Fonts } from "@/constants/theme/Typography";
 import { useColorScheme } from "@/hooks/useColorScheme";
 import { useEconomyGdpGrowthRate } from "@/hooks/useEconomyGdpGrowthRate";
+import { useEconomyGdpSectorContribution } from "@/hooks/useEconomyGdpSectorContribution";
 import { useEconomyTabDashboard } from "@/hooks/useEconomyTabDashboard";
 import { useThemeInteractive } from "@/hooks/useThemeInteractive";
 import { isEconomyDataPending } from "@/lib/economy/economyDataPending";
 import { resolveEconomyOverviewUpdatedDisplay } from "@/lib/economy/economyOverviewUpdatedDisplay";
 import { gdpGrowthFromApi } from "@/lib/economy/gdpGrowthViewModel";
+import { gdpSectorContributionFromApi } from "@/lib/economy/gdpSectorContributionViewModel";
 
 const SPARK_HEIGHT = 156;
 const SPARK_LABEL_WIDTH = 40;
@@ -59,6 +61,21 @@ export function GdpGrowthDetailView() {
     isLoading: gdpGrowthLoading,
     error: gdpGrowthError,
     hasData: gdpGrowthApi != null,
+  });
+
+  const {
+    data: sectorContributionApi,
+    isLoading: sectorContributionLoading,
+    error: sectorContributionError,
+  } = useEconomyGdpSectorContribution();
+  const sectorContribution = useMemo(
+    () => gdpSectorContributionFromApi(sectorContributionApi, interactive.primary),
+    [sectorContributionApi, interactive.primary],
+  );
+  const sectorContributionPending = isEconomyDataPending({
+    isLoading: sectorContributionLoading,
+    error: sectorContributionError,
+    hasData: sectorContributionApi != null,
   });
 
   const [chartWidth, setChartWidth] = useState(0);
@@ -187,24 +204,37 @@ export function GdpGrowthDetailView() {
       </EconomyCard>
 
       <EconomyCard>
-        <View style={styles.sectionHeadRow}>
-          <ThemedText style={[laborStyles.tableTitle, { color: theme.text }]}>
-            SECTOR CONTRIBUTION
+        <ThemedText style={[laborStyles.tableTitle, { color: theme.text, marginBottom: Spacing.sm }]}>
+          SECTOR CONTRIBUTION
+        </ThemedText>
+        {sectorContribution.observationDateLabel ? (
+          <ThemedText style={[styles.sectorSub, { color: semantic.mutedText }]}>
+            Share of real GDP · {sectorContribution.observationDateLabel}
           </ThemedText>
-          <Ionicons name="information-circle-outline" size={14} color={semantic.mutedText} />
-        </View>
-        {[
-          { label: "Services", value: 72, color: interactive.primary },
-          { label: "Manufacturing", value: 18, color: "#4B5563" },
-          { label: "Agriculture", value: 10, color: "#B45309" },
-        ].map((row) => (
-          <View key={row.label} style={styles.contribRow}>
+        ) : null}
+        {sectorContribution.rows.map((row) => (
+          <View key={row.key} style={styles.contribRow}>
             <View style={styles.contribLabelRow}>
               <ThemedText style={[styles.contribLabel, { color: theme.text }]}>{row.label}</ThemedText>
-              <ThemedText style={[styles.contribPct, { color: theme.text }]}>{row.value}%</ThemedText>
+              <ThemedText
+                style={[
+                  styles.contribPct,
+                  { color: sectorContributionPending ? semantic.mutedText : theme.text },
+                ]}
+              >
+                {sectorContributionPending ? "—" : row.valueLabel}
+              </ThemedText>
             </View>
             <View style={[styles.contribTrack, { backgroundColor: semantic.cardSubtleBackground }]}>
-              <View style={[styles.contribFill, { width: `${row.value}%`, backgroundColor: row.color }]} />
+              <View
+                style={[
+                  styles.contribFill,
+                  {
+                    width: sectorContributionPending ? "0%" : `${row.barWidthPct}%`,
+                    backgroundColor: row.color,
+                  },
+                ]}
+              />
             </View>
           </View>
         ))}
@@ -338,6 +368,11 @@ const styles = StyleSheet.create({
     flexDirection: "row",
     alignItems: "center",
     justifyContent: "space-between",
+  },
+  sectorSub: {
+    marginBottom: Spacing.sm,
+    fontSize: 11,
+    fontFamily: Fonts.body,
   },
   contribRow: {
     gap: 4,
