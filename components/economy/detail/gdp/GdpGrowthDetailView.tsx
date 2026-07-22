@@ -23,6 +23,7 @@ import { gdpSectorContributionFromApi } from "@/lib/economy/gdpSectorContributio
 
 const SPARK_HEIGHT = 156;
 const SPARK_LABEL_WIDTH = 40;
+const HISTORY_CHART_HEIGHT = 180;
 
 function curvePath(values: number[], width: number, height: number): string {
   const stepX = width / Math.max(values.length - 1, 1);
@@ -91,10 +92,17 @@ export function GdpGrowthDetailView() {
   });
 
   const [chartWidth, setChartWidth] = useState(0);
+  const [historyChartWidth, setHistoryChartWidth] = useState(0);
   const handleChartLayout = useCallback((width: number) => {
     const next = Math.floor(width);
     if (next > 0) {
       setChartWidth((prev) => (prev === next ? prev : next));
+    }
+  }, []);
+  const handleHistoryChartLayout = useCallback((width: number) => {
+    const next = Math.floor(width);
+    if (next > 0) {
+      setHistoryChartWidth((prev) => (prev === next ? prev : next));
     }
   }, []);
 
@@ -108,6 +116,18 @@ export function GdpGrowthDetailView() {
       area: `${curvePath(values, chartWidth, SPARK_HEIGHT)} L ${chartWidth} ${SPARK_HEIGHT} L 0 ${SPARK_HEIGHT} Z`,
     };
   }, [chartWidth, gdpGrowth.sparkValues]);
+
+  const historyChart = useMemo(() => {
+    if (historyChartWidth <= 0) {
+      return null;
+    }
+    const values =
+      gdpGrowth.historicalChartValues.length > 0 ? gdpGrowth.historicalChartValues : [0.5];
+    return {
+      line: curvePath(values, historyChartWidth, HISTORY_CHART_HEIGHT),
+      area: `${curvePath(values, historyChartWidth, HISTORY_CHART_HEIGHT)} L ${historyChartWidth} ${HISTORY_CHART_HEIGHT} L 0 ${HISTORY_CHART_HEIGHT} Z`,
+    };
+  }, [gdpGrowth.historicalChartValues, historyChartWidth]);
 
   const { economyOverview } = useEconomyTabDashboard();
   const updatedDisplay = useMemo(
@@ -279,23 +299,83 @@ export function GdpGrowthDetailView() {
           HISTORICAL PERFORMANCE
         </ThemedText>
         <ThemedText style={[styles.historySub, { color: semantic.mutedText }]}>
-          Real vs. Nominal GDP Growth (5-Year Horizon)
+          {gdpGrowthPending
+            ? "Real GDP Growth (5-Year Horizon)"
+            : `Real GDP Growth (${gdpGrowth.historicalPeriodLabel})`}
         </ThemedText>
         <View style={styles.pillsRow}>
           <View style={[styles.pill, { backgroundColor: semantic.cardSubtleBackground }]}>
             <View style={[styles.pillDot, { backgroundColor: interactive.primary }]} />
-            <ThemedText style={[styles.pillText, { color: semantic.mutedText }]}>Real GDP</ThemedText>
-          </View>
-          <View style={[styles.pill, { backgroundColor: semantic.cardSubtleBackground }]}>
-            <View style={[styles.pillDot, { backgroundColor: "#111827" }]} />
-            <ThemedText style={[styles.pillText, { color: semantic.mutedText }]}>Nominal GDP</ThemedText>
+            <ThemedText style={[styles.pillText, { color: semantic.mutedText }]}>
+              Real GDP Growth
+            </ThemedText>
           </View>
         </View>
         <View style={[styles.historyViz, { backgroundColor: semantic.cardSubtleBackground }]}>
-          <Ionicons name="trending-up-outline" size={34} color={interactive.primary} />
-          <ThemedText style={[styles.historyHint, { color: semantic.mutedText }]}>
-            Interactive Historical Data Visualizer
-          </ThemedText>
+          <View
+            style={styles.historyChart}
+            onLayout={(event) => handleHistoryChartLayout(event.nativeEvent.layout.width)}
+          >
+            {historyChart ? (
+              <Svg
+                width="100%"
+                height={HISTORY_CHART_HEIGHT}
+                viewBox={`0 0 ${historyChartWidth} ${HISTORY_CHART_HEIGHT}`}
+                preserveAspectRatio="none"
+              >
+                <Path
+                  d={historyChart.area}
+                  fill={isDark ? "rgba(74,108,247,0.18)" : "rgba(74,108,247,0.15)"}
+                />
+                <Path
+                  d={historyChart.line}
+                  stroke={interactive.primary}
+                  strokeWidth={2.5}
+                  fill="none"
+                />
+              </Svg>
+            ) : (
+              <View style={{ height: HISTORY_CHART_HEIGHT }} />
+            )}
+            <View
+              style={[
+                styles.historyChartLabels,
+                historyChartWidth > 0 ? { width: historyChartWidth } : null,
+              ]}
+            >
+              {gdpGrowth.historicalChartLabels.map((item) => (
+                <ThemedText
+                  key={`history-${item.label}-${item.position}`}
+                  style={[
+                    styles.sparkLabel,
+                    {
+                      color: semantic.mutedText,
+                      left: historyChartWidth * item.position - SPARK_LABEL_WIDTH / 2,
+                    },
+                  ]}
+                >
+                  {item.label}
+                </ThemedText>
+              ))}
+            </View>
+          </View>
+        </View>
+        <View style={styles.historyRows}>
+          {gdpGrowth.historicalRows.map((row) => (
+            <View key={row.date} style={[styles.historyRow, { borderColor: semantic.hairline }]}>
+              <ThemedText style={[styles.historyRowLabel, { color: theme.text }]}>
+                {row.quarterLabel}
+              </ThemedText>
+              <ThemedText
+                style={[
+                  styles.historyRowValue,
+                  { color: gdpGrowthPending ? semantic.mutedText : theme.text },
+                ]}
+              >
+                {gdpGrowthPending ? "—" : row.valueLabel}
+              </ThemedText>
+            </View>
+          ))}
         </View>
       </EconomyCard>
     </EconomyDetailShell>
@@ -466,13 +546,35 @@ const styles = StyleSheet.create({
   historyViz: {
     marginTop: Spacing.md,
     borderRadius: Radius.md,
-    minHeight: 110,
-    alignItems: "center",
-    justifyContent: "center",
-    gap: 8,
+    overflow: "hidden",
+    paddingVertical: Spacing.sm,
+    paddingHorizontal: Spacing.xs,
   },
-  historyHint: {
-    fontSize: 11,
+  historyChart: {
+    width: "100%",
+  },
+  historyChartLabels: {
+    marginTop: Spacing.sm,
+    height: 16,
+    position: "relative",
+  },
+  historyRows: {
+    marginTop: Spacing.md,
+    gap: 0,
+  },
+  historyRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
+    paddingVertical: 10,
+    borderBottomWidth: StyleSheet.hairlineWidth,
+  },
+  historyRowLabel: {
+    fontSize: 12,
     fontFamily: Fonts.bodyMedium,
+  },
+  historyRowValue: {
+    fontSize: 12,
+    fontFamily: Fonts.bodySemiBold,
   },
 });

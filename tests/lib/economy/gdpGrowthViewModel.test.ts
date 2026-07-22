@@ -70,6 +70,12 @@ describe("gdpGrowthFromApi", () => {
     expect(vm.sparkLabels[0]?.position).toBe(0);
     expect(vm.sparkLabels[vm.sparkLabels.length - 1]?.label).toBe("Q1 '26");
     expect(vm.sparkLabels[vm.sparkLabels.length - 1]?.position).toBe(1);
+    expect(vm.historicalPeriodLabel).toBe("2023 – 2026");
+    expect(vm.historicalChartValues).toHaveLength(10);
+    expect(vm.historicalChartLabels[0]?.position).toBe(0);
+    expect(vm.historicalRows).toHaveLength(5);
+    expect(vm.historicalRows[0]?.valueLabel).toBe("+2.1%");
+    expect(vm.historicalRows[0]?.quarterLabel).toBe("Q1 '26");
   });
 
   it("returns placeholders when API is null", () => {
@@ -78,6 +84,11 @@ describe("gdpGrowthFromApi", () => {
     expect(vm.subtitle).toBe("Quarter-over-Quarter");
     expect(vm.sparkValues).toEqual([]);
     expect(vm.sparkLabels).toEqual([]);
+    expect(vm.historicalPeriodLabel).toBe("5-Year Horizon");
+    expect(vm.historicalChartValues).toEqual([]);
+    expect(vm.historicalChartLabels).toEqual([]);
+    expect(vm.historicalRows).toHaveLength(5);
+    expect(vm.historicalRows.every((row) => row.valueLabel === "—")).toBe(true);
   });
 });
 
