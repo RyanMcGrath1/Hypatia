@@ -22,10 +22,11 @@ describe("getTrendFromSeries", () => {
 });
 
 describe("getSentimentTrend", () => {
-  it("inverts labor and inflation metric direction for sentiment", () => {
+  it("inverts labor, inflation, and rates metric direction for sentiment", () => {
     expect(getSentimentTrend("labor", "up")).toBe("down");
     expect(getSentimentTrend("labor", "down")).toBe("up");
     expect(getSentimentTrend("inflation", "up")).toBe("down");
+    expect(getSentimentTrend("rates", "down")).toBe("up");
   });
 
   it("keeps gdp metric direction for sentiment", () => {
@@ -46,6 +47,7 @@ describe("formatFeedBarValue", () => {
   it("formats signed YoY inflation values consistently with the headline", () => {
     expect(formatFeedBarValue(3.46, "percent", "signed-percent")).toBe("+3.5%");
     expect(formatFeedBarValue(4.2, "percent", "percent")).toBe("4.2%");
+    expect(formatFeedBarValue(3.63, "percent", "percent")).toBe("3.63%");
   });
 });
 
@@ -164,6 +166,52 @@ describe("buildEconomyFeedRows", () => {
       sentimentTrend: "up",
     });
     expect(inflation?.history).toEqual([3.6, 3.5, 3.4, 3.35, 3.25, 3.2]);
+  });
+
+  it("uses live effective fed funds for rates tile with inverted easing sentiment", () => {
+    const overview: EconomyOverviewApiResponse = {
+      ...laborOverview,
+      sections: {
+        ...laborOverview.sections,
+        interest_rates: {
+          label: "Federal Funds Effective Rate",
+          series_id: "FEDFUNDS",
+          unit: "percent",
+          observations: [
+            { date: "2025-09-01", value: 4.22 },
+            { date: "2025-11-01", value: 3.88 },
+            { date: "2026-06-01", value: 3.63 },
+          ],
+        },
+      },
+    };
+
+    const rates = buildEconomyFeedRows(overview).find((row) => row.id === "rates");
+    expect(rates).toMatchObject({
+      subtitle: "Effective Fed Funds",
+      value: "3.63%",
+      isLive: true,
+      history: [4.22, 3.88, 3.63],
+      historyDates: ["2025-09-01", "2025-11-01", "2026-06-01"],
+      metricTrend: "down",
+      sentimentTrend: "up",
+      valueFormat: "percent",
+    });
+    expect(feedTrendLabel(rates!.sentimentTrend)).toBe("STRENGTHENING");
+  });
+
+  it("falls back to mock effective fed funds history when overview is unavailable", () => {
+    const rows = buildEconomyFeedRows(null);
+    const rates = rows.find((row) => row.id === "rates");
+    expect(rates).toMatchObject({
+      isLive: false,
+      subtitle: "Effective Fed Funds",
+      value: "3.63%",
+      valueFormat: "percent",
+      metricTrend: "down",
+      sentimentTrend: "up",
+    });
+    expect(rates?.history).toEqual([4.22, 4.09, 3.88, 3.72, 3.64, 3.63]);
   });
 });
 
@@ -286,5 +334,48 @@ describe("getSectorCardDisplay", () => {
       isLive: true,
     });
     expect(feedTrendLabel(inflation!.sentimentTrend)).toBe("WEAKENING");
+  });
+
+  it("derives effective fed funds tile data from a live-shaped dashboard section", () => {
+    const raw = {
+      as_of: "2026-07-22T16:15:39+00:00",
+      sections: {
+        interest_rates: {
+          label: "Federal Funds Effective Rate",
+          series_id: "FEDFUNDS",
+          unit: "percent",
+          observations: [
+            { date: "2026-06-01", value: 3.63 },
+            { date: "2026-05-01", value: 3.63 },
+            { date: "2025-09-01", value: 4.22 },
+          ],
+        },
+      },
+    };
+
+    const parsed = parseEconomyOverviewResponse(raw);
+    expect(parsed).not.toBeNull();
+
+    const sector = getEconomicSectorById("rates");
+    expect(sector).not.toBeNull();
+
+    const display = getSectorCardDisplay(sector!, parsed);
+    expect(display).toMatchObject({
+      headlineLabel: "Effective Fed Funds",
+      headlineValue: "3.63%",
+      isLive: true,
+      history: [4.22, 3.63, 3.63],
+      valueFormat: "percent",
+    });
+
+    const rates = buildEconomyFeedRows(parsed).find((row) => row.id === "rates");
+    expect(rates).toMatchObject({
+      subtitle: "Effective Fed Funds",
+      value: "3.63%",
+      metricTrend: "down",
+      sentimentTrend: "up",
+      isLive: true,
+    });
+    expect(feedTrendLabel(rates!.sentimentTrend)).toBe("STRENGTHENING");
   });
 });

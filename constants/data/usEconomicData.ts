@@ -117,10 +117,10 @@ export const US_ECONOMIC_SECTORS: EconomicSector[] = [
   {
     id: "rates",
     title: "Interest Rates",
-    headlineLabel: "Fed Funds Target",
-    headlineValue: "5.25% - 5.50%",
-    trend: "flat",
-    trendLabel: "Holding restrictive stance",
+    headlineLabel: "Effective Fed Funds",
+    headlineValue: "3.63%",
+    trend: "down",
+    trendLabel: "Easing from prior levels",
     summary:
       "Policy rates remain elevated while officials monitor inflation progress.",
     interpretation:
@@ -134,8 +134,9 @@ export const US_ECONOMIC_SECTORS: EconomicSector[] = [
       },
       { label: "2Y Treasury", value: "4.7%", note: "Policy-sensitive yield" },
     ],
-    updatedAt: "Apr 2026",
-    history: [100, 100, 100, 100, 100, 100],
+    updatedAt: "Jun 2026",
+    /** Sample effective fed funds readings for the tile sparkline (FRED FEDFUNDS). */
+    history: [4.22, 4.09, 3.88, 3.72, 3.64, 3.63],
   },
   {
     id: "housing",
