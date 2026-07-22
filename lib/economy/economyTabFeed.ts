@@ -2,7 +2,11 @@ import {
   US_ECONOMIC_SECTORS,
   type SectorTrend,
 } from "@/constants/data/usEconomicData";
-import type { EconomyOverviewApiResponse } from "@/lib/economy/economyOverviewTypes";
+import type {
+  EconomyOverviewApiResponse,
+  EconomySentimentPayload,
+  EconomySentimentTrend,
+} from "@/lib/economy/economyOverviewTypes";
 import {
   formatOverviewMetricValue,
   formatSignedPercent,
@@ -120,6 +124,60 @@ export function sentimentLabel(score: number) {
   if (score >= 70) return "High";
   if (score >= 45) return "Moderate";
   return "Low";
+}
+
+function sentimentStatusLabel(score: number): string {
+  if (score >= 70) return "OPTIMAL";
+  if (score >= 45) return "STEADY";
+  return "WEAK";
+}
+
+/** Client-side composite when the backend omits `sentiment` (older API). */
+export function buildEconomySentimentFallback(
+  economyOverview: EconomyOverviewApiResponse | null,
+): EconomySentimentPayload | null {
+  if (economyOverview == null) {
+    return null;
+  }
+
+  const rows = buildEconomyFeedRows(economyOverview).filter(
+    (row) => row.isLive && row.history.length >= 2,
+  );
+  if (rows.length < 2) {
+    return null;
+  }
+
+  let points = 0;
+  let trend: EconomySentimentTrend = "flat";
+  for (const row of rows) {
+    points += row.sentimentTrend === "up" ? 1 : row.sentimentTrend === "down" ? -1 : 0;
+  }
+  if (points > 0) {
+    trend = "up";
+  } else if (points < 0) {
+    trend = "down";
+  }
+
+  const score =
+    Math.round(Math.max(0, Math.min(100, 50 + 12.5 * points)) * 10) / 10;
+
+  return {
+    score,
+    status_label: sentimentStatusLabel(score),
+    period_label: "MACRO INDEX",
+    trend,
+    is_live: false,
+  };
+}
+
+/** Hero tile payload from dashboard API (with client fallback). */
+export function resolveEconomySentimentHero(
+  economyOverview: EconomyOverviewApiResponse | null,
+): EconomySentimentPayload | null {
+  if (economyOverview?.sentiment) {
+    return economyOverview.sentiment;
+  }
+  return buildEconomySentimentFallback(economyOverview);
 }
 
 export function normalizeBars(values: number[]) {

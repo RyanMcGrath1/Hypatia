@@ -30,6 +30,10 @@ export const economyDashboardStyles = StyleSheet.create({
     alignItems: "center",
     gap: Spacing.xs,
   },
+  heroSkeleton: {
+    minHeight: 320,
+    opacity: 0.45,
+  },
   gaugeRoot: {
     width: "68%",
     alignItems: "center",

@@ -178,4 +178,23 @@ describe('parseEconomyOverviewResponse', () => {
     expect(out).not.toBeNull();
     expect(out?.as_of).toBe(payload.as_of);
   });
+
+  it('accepts optional dashboard sentiment block', () => {
+    const payload = {
+      as_of: '2026-01-01T00:00:00+00:00',
+      sections: {},
+      sentiment: {
+        score: 74,
+        volatility_pct: 2.4,
+        stability: 68.2,
+        status_label: 'OPTIMAL',
+        period_label: 'MACRO INDEX',
+        trend: 'up',
+        is_live: true,
+      },
+    };
+    expect(economyOverviewResponseSchema.safeParse(payload).success).toBe(true);
+    const out = parseEconomyOverviewResponse(payload);
+    expect(out?.sentiment?.score).toBe(74);
+  });
 });

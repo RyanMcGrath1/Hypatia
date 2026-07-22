@@ -37,6 +37,20 @@ export type EconomyOverviewApiResponse = {
   /** ISO 8601 timestamp from the backend */
   as_of: string;
   sections: EconomyOverviewSections;
+  /** Composite macro sentiment for the dashboard hero tile. */
+  sentiment?: EconomySentimentPayload;
+};
+
+export type EconomySentimentTrend = "up" | "down" | "flat";
+
+export type EconomySentimentPayload = {
+  score: number;
+  volatility_pct?: number;
+  stability?: number;
+  status_label: string;
+  period_label: string;
+  trend: EconomySentimentTrend;
+  is_live: boolean;
 };
 
 /** True when `sections[key]` is a success payload (not a per-series FRED error object). */

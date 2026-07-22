@@ -5,11 +5,27 @@ import Svg, { Circle, Defs, LinearGradient, Stop } from "react-native-svg";
 
 import { economyDashboardStyles as styles } from "@/components/economy/tab/economyDashboardStyles";
 import { ThemedText } from "@/components/theme/ThemedText";
+import type { EconomySentimentTrend } from "@/lib/economy/economyOverviewTypes";
 
 const AnimatedCircle = Animated.createAnimatedComponent(Circle);
 
+function gaugeTrendIcon(
+  trend: EconomySentimentTrend,
+): "trending-up" | "trending-down" | "minus" {
+  if (trend === "up") {
+    return "trending-up";
+  }
+  if (trend === "down") {
+    return "trending-down";
+  }
+  return "minus";
+}
+
 export type EconomySentimentGaugeProps = {
   score: number;
+  statusLabel: string;
+  periodLabel: string;
+  trend: EconomySentimentTrend;
   isDark: boolean;
   mutedTextColor: string;
   positiveAccentColor: string;
@@ -17,6 +33,9 @@ export type EconomySentimentGaugeProps = {
 
 export function EconomySentimentGauge({
   score,
+  statusLabel,
+  periodLabel,
+  trend,
   isDark,
   mutedTextColor,
   positiveAccentColor,
@@ -90,12 +109,16 @@ export function EconomySentimentGauge({
         <ThemedText style={styles.gaugeScore}>{Math.round(clampedScore)}</ThemedText>
         <View style={styles.gaugeStatusRow}>
           <ThemedText style={[styles.gaugeStatus, { color: positiveAccentColor }]}>
-            OPTIMAL
+            {statusLabel}
           </ThemedText>
-          <Feather name="trending-up" size={12} color={positiveAccentColor} />
+          <Feather
+            name={gaugeTrendIcon(trend)}
+            size={12}
+            color={positiveAccentColor}
+          />
         </View>
         <ThemedText style={[styles.gaugeSubtleLabel, { color: mutedTextColor }]}>
-          ANNUAL AVG
+          {periodLabel}
         </ThemedText>
       </View>
     </View>

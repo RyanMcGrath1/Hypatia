@@ -4,6 +4,7 @@ import { economyDashboardStyles as styles } from "@/components/economy/tab/econo
 import { EconomySentimentGauge } from "@/components/economy/tab/EconomySentimentGauge";
 import { ThemedText } from "@/components/theme/ThemedText";
 
+import type { EconomySentimentPayload } from "@/lib/economy/economyOverviewTypes";
 import { sentimentLabel } from "@/lib/economy/economyTabFeed";
 
 type Semantic = {
@@ -17,19 +18,29 @@ export type EconomySentimentHeroCardProps = {
   semantic: Semantic;
   isDark: boolean;
   gaugePositiveColor: string;
-  sentimentScore: number;
-  sentimentDelta: number;
-  sentimentStability: number;
+  sentiment: EconomySentimentPayload;
 };
+
+function formatHeroStat(
+  value: number | undefined,
+  fallback: string,
+  suffix = "",
+): string {
+  if (typeof value === "number" && Number.isFinite(value)) {
+    return `${value.toFixed(1)}${suffix}`;
+  }
+  return fallback;
+}
 
 export function EconomySentimentHeroCard({
   semantic,
   isDark,
   gaugePositiveColor,
-  sentimentScore,
-  sentimentDelta,
-  sentimentStability,
+  sentiment,
 }: EconomySentimentHeroCardProps) {
+  const { score, volatility_pct, stability, status_label, period_label, trend } =
+    sentiment;
+
   return (
     <View
       style={[
@@ -42,7 +53,10 @@ export function EconomySentimentHeroCard({
       ]}
     >
       <EconomySentimentGauge
-        score={sentimentScore}
+        score={score}
+        statusLabel={status_label}
+        periodLabel={period_label}
+        trend={trend}
         isDark={isDark}
         mutedTextColor={semantic.mutedText}
         positiveAccentColor={gaugePositiveColor}
@@ -70,7 +84,7 @@ export function EconomySentimentHeroCard({
           <ThemedText
             style={[styles.heroStatValue, { color: gaugePositiveColor }]}
           >
-            {sentimentLabel(sentimentScore)}
+            {sentimentLabel(score)}
           </ThemedText>
         </View>
         <View
@@ -87,7 +101,7 @@ export function EconomySentimentHeroCard({
               { color: isDark ? "#FACC15" : "#A16207" },
             ]}
           >
-            {sentimentDelta.toFixed(1)}%
+            {formatHeroStat(volatility_pct, "—", "%")}
           </ThemedText>
         </View>
         <View
@@ -104,7 +118,7 @@ export function EconomySentimentHeroCard({
               { color: isDark ? "#60A5FA" : "#1D4ED8" },
             ]}
           >
-            {sentimentStability.toFixed(1)}
+            {formatHeroStat(stability, "—")}
           </ThemedText>
         </View>
       </View>
