@@ -95,15 +95,9 @@ export function GdpGrowthDetailView() {
       updatedDisplay={updatedDisplay}
     >
       <EconomyCard style={styles.heroCard}>
-        <View style={styles.heroTop}>
-          <ThemedText style={[laborStyles.tableTitle, { color: theme.text }]}>
-            REAL GDP GROWTH RATE
-          </ThemedText>
-          <View style={styles.heroIcons}>
-            <Ionicons name="share-social-outline" size={16} color={semantic.mutedText} />
-            <Ionicons name="ellipsis-vertical" size={14} color={semantic.mutedText} />
-          </View>
-        </View>
+        <ThemedText style={[laborStyles.tableTitle, { color: theme.text }]}>
+          REAL GDP GROWTH RATE
+        </ThemedText>
         <ThemedText
           style={[
             styles.heroValue,
@@ -269,17 +263,6 @@ export function GdpGrowthDetailView() {
 const styles = StyleSheet.create({
   heroCard: {
     paddingBottom: Spacing.md,
-  },
-  heroTop: {
-    flexDirection: "row",
-    alignItems: "center",
-    justifyContent: "space-between",
-    gap: Spacing.sm,
-  },
-  heroIcons: {
-    flexDirection: "row",
-    alignItems: "center",
-    gap: 6,
   },
   heroValue: {
     marginTop: 2,
