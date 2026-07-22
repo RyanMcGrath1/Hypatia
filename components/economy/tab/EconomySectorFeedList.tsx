@@ -9,10 +9,12 @@ import { Colors } from "@/constants/theme/Colors";
 
 import type { FeedRow } from "@/lib/economy/economyTabFeed";
 import {
+  feedTrendLabel,
   formatFeedBarValue,
+  metricTrendArrowIcon,
   normalizeBars,
   resolveFeedBarSelectionIndex,
-  trendVisual,
+  sentimentTrendVisual,
 } from "@/lib/economy/economyTabFeed";
 import type { EconomyOverviewApiResponse } from "@/lib/economy/economyOverviewTypes";
 import { formatObservationMonthYear } from "@/lib/economy/sectorOverviewMerge";
@@ -51,7 +53,7 @@ export function EconomySectorFeedList({
   return (
     <View style={styles.feed}>
       {feedRows.map((row) => {
-        const trend = trendVisual(row.trend, isDark);
+        const sentiment = sentimentTrendVisual(row.sentimentTrend, isDark);
         const bars = normalizeBars(row.history);
         const selectedIdx = resolveFeedBarSelectionIndex(
           row.id,
@@ -60,6 +62,10 @@ export function EconomySectorFeedList({
         );
         const mutedBar = isDark ? "#334155" : "#E5E7EB";
         const rawSelected = row.history[selectedIdx];
+        const displayValue =
+          rawSelected !== undefined
+            ? formatFeedBarValue(rawSelected, row.valueUnit)
+            : row.value;
         const openSectorDetail = () =>
           router.push({
             pathname: AppRoutes.economyDetail,
@@ -80,7 +86,7 @@ export function EconomySectorFeedList({
           >
             <Pressable
               accessibilityRole="button"
-              accessibilityLabel={`${row.title}, ${row.value}. Open details.`}
+              accessibilityLabel={`${row.title}, ${displayValue}, ${row.subtitle}. Open details.`}
               onPress={openSectorDetail}
               style={({ pressed }) => [{ opacity: pressed ? 0.92 : 1 }]}
             >
@@ -90,27 +96,32 @@ export function EconomySectorFeedList({
                 >
                   {row.title}
                 </ThemedText>
-                <Feather name={trend.icon} size={14} color={trend.color} />
+                <Feather
+                  name={metricTrendArrowIcon(row.metricTrend)}
+                  size={14}
+                  color={sentiment.color}
+                />
               </View>
+              <ThemedText
+                style={[styles.feedSubtitle, { color: semantic.mutedText }]}
+              >
+                {row.subtitle}
+              </ThemedText>
               <View
                 style={[
                   styles.feedHeaderDivider,
                   { backgroundColor: semantic.cardBorder },
                 ]}
               />
-              <ThemedText style={styles.feedValue}>{row.value}</ThemedText>
+              <ThemedText style={styles.feedValue}>{displayValue}</ThemedText>
               <View style={styles.feedTrend}>
                 <View
-                  style={[styles.statusDot, { backgroundColor: trend.color }]}
+                  style={[styles.statusDot, { backgroundColor: sentiment.color }]}
                 />
                 <ThemedText
-                  style={[styles.feedTrendText, { color: trend.color }]}
+                  style={[styles.feedTrendText, { color: sentiment.color }]}
                 >
-                  {row.trend === "up"
-                    ? "STRENGTHENING"
-                    : row.trend === "down"
-                      ? "WEAKENING"
-                      : "STABLE"}
+                  {feedTrendLabel(row.sentimentTrend)}
                 </ThemedText>
               </View>
             </Pressable>
@@ -139,14 +150,14 @@ export function EconomySectorFeedList({
                           {
                             height: 22 * heightPct,
                             backgroundColor: selected
-                              ? trend.color
+                              ? sentiment.color
                               : mutedBar,
                             opacity: selected ? 1 : 0.78,
                           },
                           selected &&
                             Platform.select({
                               ios: {
-                                shadowColor: trend.color,
+                                shadowColor: sentiment.color,
                                 shadowOffset: { width: 0, height: 0 },
                                 shadowOpacity: 0.4,
                                 shadowRadius: 3,
@@ -172,6 +183,7 @@ export function EconomySectorFeedList({
                     ? `${formatObservationMonthYear(row.historyDates[selectedIdx])} · `
                     : null}
                   {formatFeedBarValue(rawSelected, row.valueUnit)}
+                  {!row.isLive ? " · sample data" : null}
                 </ThemedText>
               ) : null}
               {bars.length === 0 &&

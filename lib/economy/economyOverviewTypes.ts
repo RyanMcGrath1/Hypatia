@@ -6,6 +6,8 @@ import { economyOverviewResponseSchema } from "@/lib/economy/economyOverviewSche
 export type EconomyObservation = {
   date: string;
   value: number;
+  /** Present on inflation section rows from `GET /api/economy/dashboard`. */
+  yoyInflation?: number | null;
 };
 
 export type EconomySectionPayload = {
@@ -13,6 +15,8 @@ export type EconomySectionPayload = {
   observations: EconomyObservation[];
   series_id: string;
   unit: string;
+  /** Latest YoY inflation on inflation sections when provided by the backend. */
+  yoyInflation?: number;
 };
 
 /** Keys returned under `sections` for the current overview payload. */

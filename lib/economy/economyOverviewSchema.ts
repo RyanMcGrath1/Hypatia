@@ -27,12 +27,14 @@ const economyObservationValueSchema = z
 const economyObservationSchema = z.object({
   date: z.string(),
   value: economyObservationValueSchema,
+  yoyInflation: z.union([z.number(), z.null()]).optional(),
 });
 
 const economySectionSuccessSchema = z.object({
   label: z.string().optional().default(""),
   series_id: z.string().optional().default(""),
   unit: z.string().optional().default(""),
+  yoyInflation: z.number().optional(),
   observations: z
     .array(economyObservationSchema)
     .transform((rows) => rows.filter((r) => Number.isFinite(r.value))),

@@ -137,6 +137,12 @@ export const economyDashboardStyles = StyleSheet.create({
     fontWeight: "700",
     letterSpacing: 0.4,
   },
+  feedSubtitle: {
+    marginTop: 2,
+    paddingHorizontal: 12,
+    fontSize: 11,
+    lineHeight: 14,
+  },
   feedHeaderDivider: {
     marginTop: 8,
     marginHorizontal: 12,

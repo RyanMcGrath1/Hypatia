@@ -15,7 +15,6 @@ import { getSemanticColors } from "@/constants/theme/ThemeTokens";
 import { useColorScheme } from "@/hooks/useColorScheme";
 import { useEconomyTabDashboard } from "@/hooks/useEconomyTabDashboard";
 import { resolveEconomyOverviewUpdatedDisplay } from "@/lib/economy/economyOverviewUpdatedDisplay";
-import { isEconomyDataPending } from "@/lib/economy/economyDataPending";
 import { buildEconomyFeedRows } from "@/lib/economy/economyTabFeed";
 
 const sentimentScore = 74;
@@ -47,19 +46,15 @@ export default function EconomyDashboardScreen() {
     Record<string, number>
   >({});
 
-  const { economyOverview, isEconomyOverviewLoading, economyOverviewError } =
-    useEconomyTabDashboard();
+  const { economyOverview, isEconomyOverviewLoading } = useEconomyTabDashboard();
 
   const feedRows = useMemo(
     () => buildEconomyFeedRows(economyOverview),
     [economyOverview],
   );
 
-  const overviewPending = isEconomyDataPending({
-    isLoading: isEconomyOverviewLoading,
-    error: economyOverviewError,
-    hasData: economyOverview != null,
-  });
+  const overviewPending =
+    isEconomyOverviewLoading && economyOverview == null;
 
   const displayAsOf = useMemo(
     () => resolveEconomyOverviewUpdatedDisplay(economyOverview?.as_of),
