@@ -64,7 +64,11 @@ export function EconomySectorFeedList({
         const rawSelected = row.history[selectedIdx];
         const displayValue =
           rawSelected !== undefined
-            ? formatFeedBarValue(rawSelected, row.valueUnit)
+            ? formatFeedBarValue(
+                rawSelected,
+                row.valueUnit,
+                row.valueFormat ?? "unit",
+              )
             : row.value;
         const openSectorDetail = () =>
           router.push({
@@ -138,7 +142,7 @@ export function EconomySectorFeedList({
                     <Pressable
                       key={`${row.id}-${index}`}
                       accessibilityRole="button"
-                      accessibilityLabel={`${row.title}: ${dateHint}, ${formatFeedBarValue(row.history[index] ?? 0, row.valueUnit)}`}
+                      accessibilityLabel={`${row.title}: ${dateHint}, ${formatFeedBarValue(row.history[index] ?? 0, row.valueUnit, row.valueFormat ?? "unit")}`}
                       accessibilityState={{ selected }}
                       hitSlop={{ top: 10, bottom: 6, left: 3, right: 3 }}
                       onPress={() => onSelectBarIndex(row.id, index)}
@@ -182,7 +186,11 @@ export function EconomySectorFeedList({
                   {row.historyDates?.[selectedIdx]
                     ? `${formatObservationMonthYear(row.historyDates[selectedIdx])} · `
                     : null}
-                  {formatFeedBarValue(rawSelected, row.valueUnit)}
+                  {formatFeedBarValue(
+                    rawSelected,
+                    row.valueUnit,
+                    row.valueFormat ?? "unit",
+                  )}
                   {!row.isLive ? " · sample data" : null}
                 </ThemedText>
               ) : null}

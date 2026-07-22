@@ -1,9 +1,11 @@
 import { describe, expect, it } from "vitest";
 
 import type { EconomyOverviewApiResponse } from "@/lib/economy/economyOverviewTypes";
+import { parseEconomyOverviewResponse } from "@/lib/economy/economyOverviewTypes";
 import {
   buildEconomyFeedRows,
   feedTrendLabel,
+  formatFeedBarValue,
   getSentimentTrend,
   getTrendFromSeries,
 } from "@/lib/economy/economyTabFeed";
@@ -37,6 +39,13 @@ describe("feedTrendLabel", () => {
     expect(feedTrendLabel("up")).toBe("STRENGTHENING");
     expect(feedTrendLabel("down")).toBe("WEAKENING");
     expect(feedTrendLabel("flat")).toBe("STABLE");
+  });
+});
+
+describe("formatFeedBarValue", () => {
+  it("formats signed YoY inflation values consistently with the headline", () => {
+    expect(formatFeedBarValue(3.46, "percent", "signed-percent")).toBe("+3.5%");
+    expect(formatFeedBarValue(4.2, "percent", "percent")).toBe("4.2%");
   });
 });
 
@@ -135,9 +144,26 @@ describe("buildEconomyFeedRows", () => {
       value: "+3.5%",
       isLive: true,
       history: [3.8, 3.5],
+      historyDates: ["2026-04-01", "2026-06-01"],
+      metricTrend: "down",
+      sentimentTrend: "up",
+      valueFormat: "signed-percent",
+    });
+    expect(feedTrendLabel(inflation!.sentimentTrend)).toBe("STRENGTHENING");
+  });
+
+  it("falls back to mock YoY inflation history when overview is unavailable", () => {
+    const rows = buildEconomyFeedRows(null);
+    const inflation = rows.find((row) => row.id === "inflation");
+    expect(inflation).toMatchObject({
+      isLive: false,
+      subtitle: "CPI (YoY)",
+      value: "3.2%",
+      valueFormat: "signed-percent",
       metricTrend: "down",
       sentimentTrend: "up",
     });
+    expect(inflation?.history).toEqual([3.6, 3.5, 3.4, 3.35, 3.25, 3.2]);
   });
 });
 
@@ -193,5 +219,72 @@ describe("getSectorCardDisplay", () => {
     expect(display.headlineLabel).toBe("Real GDP (QoQ annualized)");
     expect(display.headlineValue).toBe("+4.0%");
     expect(display.history[0]).toBeCloseTo(4, 5);
+  });
+
+  it("derives CPI YoY tile data from a live-shaped dashboard inflation section", () => {
+    const raw = {
+      as_of: "2026-07-22T15:11:50+00:00",
+      sections: {
+        inflation: {
+          acceleration: "decelerating",
+          label: "Consumer Price Index for All Urban Consumers: All Items",
+          momInflation: -0.42,
+          observations: [
+            {
+              acceleration: "decelerating",
+              date: "2026-06-01",
+              momInflation: -0.42,
+              value: 332.568,
+              yoyInflation: 3.46,
+            },
+            {
+              acceleration: "decelerating",
+              date: "2026-05-01",
+              momInflation: 0.47,
+              value: 333.979,
+              yoyInflation: 4.17,
+            },
+            {
+              acceleration: "decelerating",
+              date: "2025-09-01",
+              momInflation: 0.3,
+              value: 324.245,
+              yoyInflation: 3.02,
+            },
+          ],
+          series_id: "CPIAUCSL",
+          unit: "index",
+          yoyInflation: 3.46,
+        },
+      },
+    };
+
+    const parsed = parseEconomyOverviewResponse(raw);
+    expect(parsed).not.toBeNull();
+
+    const sector = getEconomicSectorById("inflation");
+    expect(sector).not.toBeNull();
+
+    const display = getSectorCardDisplay(sector!, parsed);
+    expect(display).toMatchObject({
+      headlineLabel: "CPI (YoY)",
+      headlineValue: "+3.5%",
+      isLive: true,
+      history: [3.02, 4.17, 3.46],
+      historyDates: ["2025-09-01", "2026-05-01", "2026-06-01"],
+      valueFormat: "signed-percent",
+    });
+
+    const inflation = buildEconomyFeedRows(parsed).find(
+      (row) => row.id === "inflation",
+    );
+    expect(inflation).toMatchObject({
+      subtitle: "CPI (YoY)",
+      value: "+3.5%",
+      metricTrend: "up",
+      sentimentTrend: "down",
+      isLive: true,
+    });
+    expect(feedTrendLabel(inflation!.sentimentTrend)).toBe("WEAKENING");
   });
 });
