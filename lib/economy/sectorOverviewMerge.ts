@@ -19,12 +19,16 @@ export const SECTOR_ID_TO_OVERVIEW_KEY: Record<
   labor: "labor",
 };
 
+function sortedObservations(
+  observations: EconomyObservation[],
+): EconomyObservation[] {
+  return [...observations].sort((a, b) => a.date.localeCompare(b.date));
+}
+
 function observationsChronologicalValues(
   observations: EconomyObservation[],
 ): number[] {
-  return [...observations]
-    .sort((a, b) => a.date.localeCompare(b.date))
-    .map((o) => o.value);
+  return sortedObservations(observations).map((o) => o.value);
 }
 
 /** Display string for the headline figure from API `unit` + raw value. */
@@ -51,6 +55,11 @@ export function formatOverviewMetricValue(value: number, unit: string): string {
   });
 }
 
+function formatSignedPercent(value: number, digits = 1): string {
+  const sign = value >= 0 ? "+" : "";
+  return `${sign}${value.toFixed(digits)}%`;
+}
+
 /** `YYYY-MM-DD` → e.g. `Mar 2026` for card foot line. */
 export function formatObservationMonthYear(isoDate: string): string {
   const parts = isoDate.split("-").map(Number);
@@ -68,8 +77,102 @@ export type SectorCardDisplay = {
   headlineLabel: string;
   headlineValue: string;
   history: number[];
+  historyDates?: string[];
   updatedAt: string;
+  /** True when headline/history came from overview API observations. */
+  isLive: boolean;
+  valueUnit?: string;
 };
+
+type DerivedSeriesPoint = { date: string; value: number };
+
+function inflationYoySeries(
+  section: { observations: EconomyObservation[]; yoyInflation?: number },
+): DerivedSeriesPoint[] {
+  const fromObs = sortedObservations(section.observations)
+    .map((o) => {
+      const yoy = o.yoyInflation;
+      if (typeof yoy !== "number" || !Number.isFinite(yoy)) {
+        return null;
+      }
+      return { date: o.date, value: yoy };
+    })
+    .filter((row): row is DerivedSeriesPoint => row != null);
+
+  if (fromObs.length > 0) {
+    return fromObs;
+  }
+
+  if (
+    typeof section.yoyInflation === "number" &&
+    Number.isFinite(section.yoyInflation)
+  ) {
+    const latest = sortedObservations(section.observations).at(-1);
+    if (latest) {
+      return [{ date: latest.date, value: section.yoyInflation }];
+    }
+  }
+
+  return [];
+}
+
+function gdpQoqAnnualizedSeries(
+  observations: EconomyObservation[],
+): DerivedSeriesPoint[] {
+  const sorted = sortedObservations(observations);
+  const out: DerivedSeriesPoint[] = [];
+  for (let i = 1; i < sorted.length; i++) {
+    const prev = sorted[i - 1]!.value;
+    const curr = sorted[i]!.value;
+    if (prev <= 0) {
+      continue;
+    }
+    out.push({
+      date: sorted[i]!.date,
+      value: (curr / prev - 1) * 400,
+    });
+  }
+  return out;
+}
+
+function displayFromDerivedSeries(
+  sector: EconomicSector,
+  series: DerivedSeriesPoint[],
+  options: {
+    headlineLabel?: string;
+    valueUnit?: string;
+    formatValue?: (value: number) => string;
+  } = {},
+): SectorCardDisplay | null {
+  if (series.length === 0) {
+    return null;
+  }
+  const latest = series[series.length - 1]!;
+  const formatValue =
+    options.formatValue ??
+    ((value: number) => formatSignedPercent(value));
+  return {
+    title: sector.title,
+    headlineLabel: options.headlineLabel ?? sector.headlineLabel,
+    headlineValue: formatValue(latest.value),
+    history: series.map((point) => point.value),
+    historyDates: series.map((point) => point.date),
+    updatedAt: formatObservationMonthYear(latest.date),
+    isLive: true,
+    valueUnit: options.valueUnit ?? "percent",
+  };
+}
+
+function mockSectorDisplay(sector: EconomicSector): SectorCardDisplay {
+  return {
+    title: sector.title,
+    headlineLabel: sector.headlineLabel,
+    headlineValue: sector.headlineValue,
+    history: sector.history,
+    updatedAt: sector.updatedAt,
+    isLive: false,
+  };
+}
 
 /**
  * Merge overview API rows into tile copy when available; otherwise use mock `sector` fields.
@@ -87,26 +190,44 @@ export function getSectorCardDisplay(
     !Array.isArray(section.observations) ||
     section.observations.length === 0
   ) {
-    return {
-      title: sector.title,
-      headlineLabel: sector.headlineLabel,
-      headlineValue: sector.headlineValue,
-      history: sector.history,
-      updatedAt: sector.updatedAt,
-    };
+    return mockSectorDisplay(sector);
   }
 
-  const history = observationsChronologicalValues(section.observations);
-  const sortedObs = [...section.observations].sort((a, b) =>
-    a.date.localeCompare(b.date),
-  );
+  if (sector.id === "inflation") {
+    const yoySeries = inflationYoySeries(section);
+    const derived = displayFromDerivedSeries(sector, yoySeries, {
+      headlineLabel: sector.headlineLabel,
+      valueUnit: "percent",
+    });
+    if (derived) {
+      return derived;
+    }
+  }
+
+  if (sector.id === "gdp") {
+    const qoqSeries = gdpQoqAnnualizedSeries(section.observations);
+    const derived = displayFromDerivedSeries(sector, qoqSeries, {
+      headlineLabel: sector.headlineLabel,
+      valueUnit: "percent",
+    });
+    if (derived) {
+      return derived;
+    }
+  }
+
+  const sortedObs = sortedObservations(section.observations);
   const latest = sortedObs[sortedObs.length - 1]!;
+  const history = observationsChronologicalValues(section.observations);
 
   return {
     title: sector.title,
-    headlineLabel: section.label,
+    headlineLabel:
+      sector.id === "labor" ? sector.headlineLabel : section.label || sector.headlineLabel,
     headlineValue: formatOverviewMetricValue(latest.value, section.unit),
     history,
+    historyDates: sortedObs.map((o) => o.date),
     updatedAt: formatObservationMonthYear(latest.date),
+    isLive: true,
+    valueUnit: section.unit,
   };
 }

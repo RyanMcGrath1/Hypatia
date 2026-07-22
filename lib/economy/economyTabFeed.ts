@@ -1,15 +1,12 @@
 import {
-    US_ECONOMIC_SECTORS,
-    type SectorTrend,
+  US_ECONOMIC_SECTORS,
+  type SectorTrend,
 } from "@/constants/data/usEconomicData";
+import type { EconomyOverviewApiResponse } from "@/lib/economy/economyOverviewTypes";
 import {
-    isEconomySectionPayload,
-    type EconomyOverviewApiResponse,
-} from "@/lib/economy/economyOverviewTypes";
-import {
-    formatOverviewMetricValue,
-    getSectorCardDisplay,
-    SECTOR_ID_TO_OVERVIEW_KEY
+  formatOverviewMetricValue,
+  getSectorCardDisplay,
+  SECTOR_ID_TO_OVERVIEW_KEY,
 } from "@/lib/economy/sectorOverviewMerge";
 
 export type FeedRow = {
@@ -17,7 +14,10 @@ export type FeedRow = {
   title: string;
   subtitle: string;
   value: string;
-  trend: SectorTrend;
+  /** Raw direction of the plotted metric (first → last observation). */
+  metricTrend: SectorTrend;
+  /** Sector-aware labor-market interpretation for labels and colors. */
+  sentimentTrend: SectorTrend;
   history: number[];
   /** ISO dates aligned with `history` when observations came from the API */
   historyDates?: string[];
@@ -25,27 +25,88 @@ export type FeedRow = {
   valueUnit?: string;
   /** True when this tile id maps to an overview `sections` key (still may have zero observations). */
   overviewSectionBound: boolean;
+  /** True when headline/history came from live overview API data. */
+  isLive: boolean;
 };
 
-/** Matches `sections` keys from `GET /api/economy/dashboard` via {@link SECTOR_ID_TO_OVERVIEW_KEY}. */
+/** Matches `sections` keys from `GET /api/economy/dashboard` via sector overview merge. */
 export const ECONOMY_FEED_IDS = ["labor", "inflation", "rates", "gdp"] as const;
 
-export function trendVisual(trend: SectorTrend, isDark: boolean) {
+/** Sectors where a rising metric is generally negative for conditions (unemployment, inflation, rates). */
+const INVERSE_SENTIMENT_SECTORS = new Set<string>(["labor", "inflation", "rates"]);
+
+export function getTrendFromSeries(
+  values: number[],
+  fallback: SectorTrend,
+): SectorTrend {
+  if (values.length < 2) {
+    return fallback;
+  }
+  const first = values[0]!;
+  const last = values[values.length - 1]!;
+  if (last > first) {
+    return "up";
+  }
+  if (last < first) {
+    return "down";
+  }
+  return "flat";
+}
+
+export function getSentimentTrend(
+  sectorId: string,
+  metricTrend: SectorTrend,
+): SectorTrend {
+  if (metricTrend === "flat") {
+    return "flat";
+  }
+  if (INVERSE_SENTIMENT_SECTORS.has(sectorId)) {
+    return metricTrend === "up" ? "down" : "up";
+  }
+  return metricTrend;
+}
+
+export function feedTrendLabel(sentimentTrend: SectorTrend): string {
+  if (sentimentTrend === "up") {
+    return "STRENGTHENING";
+  }
+  if (sentimentTrend === "down") {
+    return "WEAKENING";
+  }
+  return "STABLE";
+}
+
+export function metricTrendArrowIcon(trend: SectorTrend) {
   if (trend === "up") {
+    return "arrow-up-right" as const;
+  }
+  if (trend === "down") {
+    return "arrow-down-right" as const;
+  }
+  return "arrow-right" as const;
+}
+
+export function sentimentTrendVisual(sentimentTrend: SectorTrend, isDark: boolean) {
+  if (sentimentTrend === "up") {
     return {
-      icon: "arrow-up-right" as const,
       color: isDark ? "#4ADE80" : "#16A34A",
     };
   }
-  if (trend === "down") {
+  if (sentimentTrend === "down") {
     return {
-      icon: "arrow-down-right" as const,
       color: "#E26D5A",
     };
   }
   return {
-    icon: "arrow-right" as const,
     color: isDark ? "#FACC15" : "#CA8A04",
+  };
+}
+
+/** @deprecated Prefer {@link metricTrendArrowIcon} + {@link sentimentTrendVisual}. */
+export function trendVisual(trend: SectorTrend, isDark: boolean) {
+  return {
+    icon: metricTrendArrowIcon(trend),
+    ...sentimentTrendVisual(trend, isDark),
   };
 }
 
@@ -98,24 +159,6 @@ export function formatFeedBarValue(
   });
 }
 
-export function getTrendFromSeries(
-  values: number[],
-  fallback: SectorTrend,
-): SectorTrend {
-  if (values.length < 2) {
-    return fallback;
-  }
-  const first = values[0]!;
-  const last = values[values.length - 1]!;
-  if (last > first) {
-    return "up";
-  }
-  if (last < first) {
-    return "down";
-  }
-  return "flat";
-}
-
 export function buildEconomyFeedRows(
   economyOverview: EconomyOverviewApiResponse | null,
 ): FeedRow[] {
@@ -128,33 +171,21 @@ export function buildEconomyFeedRows(
     )
     .map((sector) => {
       const display = getSectorCardDisplay(sector, economyOverview);
-      const sectionKey = SECTOR_ID_TO_OVERVIEW_KEY[sector.id];
-      const rawSection =
-        sectionKey && economyOverview?.sections
-          ? economyOverview.sections[sectionKey]
-          : undefined;
-      const section = isEconomySectionPayload(rawSection)
-        ? rawSection
-        : undefined;
-      const sortedObs =
-        section && section.observations.length > 0
-          ? [...section.observations].sort((a, b) =>
-              a.date.localeCompare(b.date),
-            )
-          : [];
-      const history = sortedObs.map((o) => o.value);
-      const historyDates =
-        sortedObs.length > 0 ? sortedObs.map((o) => o.date) : undefined;
+      const metricTrend = getTrendFromSeries(display.history, sector.trend);
+      const sentimentTrend = getSentimentTrend(sector.id, metricTrend);
+
       return {
         id: sector.id,
         title: display.title.toUpperCase(),
         subtitle: display.headlineLabel,
         value: display.headlineValue,
-        trend: getTrendFromSeries(history, sector.trend),
-        history,
-        historyDates,
-        valueUnit: section?.unit,
-        overviewSectionBound: Boolean(sectionKey),
+        metricTrend,
+        sentimentTrend,
+        history: display.history,
+        historyDates: display.historyDates,
+        valueUnit: display.valueUnit,
+        overviewSectionBound: Boolean(SECTOR_ID_TO_OVERVIEW_KEY[sector.id]),
+        isLive: display.isLive,
       };
     });
 }
