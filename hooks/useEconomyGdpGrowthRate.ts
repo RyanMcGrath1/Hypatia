@@ -4,8 +4,10 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 
 import {
+  fetchGdpGrowthHeadwinds,
   fetchGdpGrowthRate,
   GdpGrowthRateApiError,
+  type GdpGrowthHeadwindsResponse,
   type GdpGrowthRateResponse,
 } from "@/hooks/api/economyGdpGrowthRateApi";
 import { getHypatiaBackendNetworkErrorMessage } from "@/hooks/api/hypatiaBaseUrl";
@@ -106,6 +108,82 @@ export function useEconomyGdpGrowthRate(): UseEconomyGdpGrowthRateResult {
 
   const refetch = useCallback(() => {
     cache = null;
+    setReloadKey((k) => k + 1);
+  }, []);
+
+  return { data, isLoading, error, refetch };
+}
+
+type HeadwindsCacheEntry = {
+  fetchedAt: number;
+  data: GdpGrowthHeadwindsResponse;
+};
+
+let headwindsCache: HeadwindsCacheEntry | null = null;
+
+export type UseEconomyGdpGrowthHeadwindsResult = {
+  data: GdpGrowthHeadwindsResponse | null;
+  isLoading: boolean;
+  error: string | null;
+  refetch: () => void;
+};
+
+export function useEconomyGdpGrowthHeadwinds(): UseEconomyGdpGrowthHeadwindsResult {
+  const [data, setData] = useState<GdpGrowthHeadwindsResponse | null>(() => {
+    return headwindsCache && isFresh(headwindsCache, Date.now()) ? headwindsCache.data : null;
+  });
+  const [isLoading, setIsLoading] = useState<boolean>(() => {
+    return !(headwindsCache && isFresh(headwindsCache, Date.now()));
+  });
+  const [error, setError] = useState<string | null>(null);
+  const [reloadKey, setReloadKey] = useState(0);
+  const cancelledRef = useRef(false);
+
+  useEffect(() => {
+    cancelledRef.current = false;
+    const now = Date.now();
+    if (headwindsCache && isFresh(headwindsCache, now)) {
+      setData(headwindsCache.data);
+      setIsLoading(false);
+      setError(null);
+      return;
+    }
+
+    const ac = new AbortController();
+    setData(null);
+    setIsLoading(true);
+    setError(null);
+
+    void (async () => {
+      try {
+        const res = await fetchGdpGrowthHeadwinds(ac.signal);
+        if (cancelledRef.current) {
+          return;
+        }
+        headwindsCache = { fetchedAt: Date.now(), data: res };
+        setData(res);
+        setError(null);
+      } catch (e) {
+        if (isAbort(e) || cancelledRef.current) {
+          return;
+        }
+        setData(null);
+        setError(errorMessageFromCaught(e));
+      } finally {
+        if (!cancelledRef.current) {
+          setIsLoading(false);
+        }
+      }
+    })();
+
+    return () => {
+      cancelledRef.current = true;
+      ac.abort();
+    };
+  }, [reloadKey]);
+
+  const refetch = useCallback(() => {
+    headwindsCache = null;
     setReloadKey((k) => k + 1);
   }, []);
 

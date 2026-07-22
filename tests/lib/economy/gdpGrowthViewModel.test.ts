@@ -3,6 +3,7 @@ import { describe, expect, it } from "vitest";
 import {
   buildSparkLabels,
   gdpGrowthFromApi,
+  gdpGrowthHeadwindsFromApi,
   quarterLabelFromDate,
   scaleSparkValues,
 } from "@/lib/economy/gdpGrowthViewModel";
@@ -77,5 +78,65 @@ describe("gdpGrowthFromApi", () => {
     expect(vm.subtitle).toBe("Quarter-over-Quarter");
     expect(vm.sparkValues).toEqual([]);
     expect(vm.sparkLabels).toEqual([]);
+  });
+});
+
+describe("gdpGrowthHeadwindsFromApi", () => {
+  it("maps four live risk cards from the API", () => {
+    const rows = gdpGrowthHeadwindsFromApi({
+      risks: [
+        {
+          key: "supply_chain",
+          series_id: "FRGSHPUSM649NCIS",
+          title: "Supply Chain",
+          value: -3.1,
+          observation_date: "2026-06-01",
+          body: "U.S. freight shipment volumes declined 3.1% month-over-month.",
+          risk: "high",
+          risk_label: "High Risk",
+        },
+        {
+          key: "interest_rates",
+          series_id: "DFEDTARU",
+          title: "Interest Rates",
+          value: 5.5,
+          observation_date: "2026-07-17",
+          body: "Fed funds target range is 5.25–5.50%.",
+          risk: "high",
+          risk_label: "High Risk",
+        },
+        {
+          key: "yield_curve",
+          series_id: "T10Y2Y",
+          title: "Yield Curve",
+          value: 0.39,
+          observation_date: "2026-07-17",
+          body: "10Y–2Y spread is 0.39%. Flat yield curve.",
+          risk: "medium",
+          risk_label: "Medium Risk",
+        },
+        {
+          key: "inflation",
+          series_id: "PCEPILFE",
+          title: "Inflation",
+          value: 2.8,
+          observation_date: "2026-05-01",
+          body: "Core PCE inflation is 2.8% YoY, above the Fed's 2% target.",
+          risk: "medium",
+          risk_label: "Medium Risk",
+        },
+      ],
+    });
+
+    expect(rows).toHaveLength(4);
+    expect(rows[0]?.icon).toBe("git-branch");
+    expect(rows[1]?.riskLabel).toBe("High Risk");
+    expect(rows[2]?.title).toBe("Yield Curve");
+  });
+
+  it("returns placeholders when API is null", () => {
+    const rows = gdpGrowthHeadwindsFromApi(null);
+    expect(rows).toHaveLength(4);
+    expect(rows.every((row) => row.body === "—")).toBe(true);
   });
 });

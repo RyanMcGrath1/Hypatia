@@ -11,6 +11,7 @@ export const HYPATIA_API_PATHS = {
   economyDashboard: "/api/economy/dashboard",
   economyDetail: "/api/economy/detail",
   economyGdpGrowthRate: "/api/economy/gdp/growth-rate",
+  economyGdpGrowthHeadwinds: "/api/economy/gdp/growth-headwinds",
   economyGdpSectorContribution: "/api/economy/gdp/sector-contribution",
   economyCpi: "/api/economy/cpi",
   economyInflationPceVsTarget: "/api/economy/inflation/pce-vs-target",

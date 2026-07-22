@@ -12,13 +12,13 @@ import { Colors } from "@/constants/theme/Colors";
 import { Radius, Spacing, getSemanticColors } from "@/constants/theme/ThemeTokens";
 import { Fonts } from "@/constants/theme/Typography";
 import { useColorScheme } from "@/hooks/useColorScheme";
-import { useEconomyGdpGrowthRate } from "@/hooks/useEconomyGdpGrowthRate";
+import { useEconomyGdpGrowthHeadwinds, useEconomyGdpGrowthRate } from "@/hooks/useEconomyGdpGrowthRate";
 import { useEconomyGdpSectorContribution } from "@/hooks/useEconomyGdpSectorContribution";
 import { useEconomyTabDashboard } from "@/hooks/useEconomyTabDashboard";
 import { useThemeInteractive } from "@/hooks/useThemeInteractive";
 import { isEconomyDataPending } from "@/lib/economy/economyDataPending";
 import { resolveEconomyOverviewUpdatedDisplay } from "@/lib/economy/economyOverviewUpdatedDisplay";
-import { gdpGrowthFromApi } from "@/lib/economy/gdpGrowthViewModel";
+import { gdpGrowthFromApi, gdpGrowthHeadwindsFromApi } from "@/lib/economy/gdpGrowthViewModel";
 import { gdpSectorContributionFromApi } from "@/lib/economy/gdpSectorContributionViewModel";
 
 const SPARK_HEIGHT = 156;
@@ -76,6 +76,18 @@ export function GdpGrowthDetailView() {
     isLoading: sectorContributionLoading,
     error: sectorContributionError,
     hasData: sectorContributionApi != null,
+  });
+
+  const {
+    data: headwindsApi,
+    isLoading: headwindsLoading,
+    error: headwindsError,
+  } = useEconomyGdpGrowthHeadwinds();
+  const headwinds = useMemo(() => gdpGrowthHeadwindsFromApi(headwindsApi), [headwindsApi]);
+  const headwindsPending = isEconomyDataPending({
+    isLoading: headwindsLoading,
+    error: headwindsError,
+    hasData: headwindsApi != null,
   });
 
   const [chartWidth, setChartWidth] = useState(0);
@@ -245,19 +257,19 @@ export function GdpGrowthDetailView() {
           <ThemedText style={[laborStyles.tableTitle, { color: theme.text }]}>
             GROWTH HEADWINDS & RISKS
           </ThemedText>
-          <Ionicons name="warning-outline" size={14} color={isDark ? "#FCA5A5" : "#991B1B"} />
         </View>
-        {[
-          { icon: "git-branch", title: "Supply Chain", body: "Logistical constraints in key ports.", risk: "Medium Risk" },
-          { icon: "bank", title: "Interest Rates", body: "Potential +25bps hike in Q1.", risk: "High Risk" },
-        ].map((risk) => (
-          <View key={risk.title} style={[styles.riskCard, { borderColor: semantic.hairline }]}>
+        {headwinds.map((risk) => (
+          <View key={risk.key} style={[styles.riskCard, { borderColor: semantic.hairline }]}>
             <View style={styles.riskHead}>
-              <Feather name={risk.icon as keyof typeof Feather.glyphMap} size={13} color={semantic.mutedText} />
+              <Feather name={risk.icon} size={13} color={semantic.mutedText} />
               <ThemedText style={[styles.riskTitle, { color: theme.text }]}>{risk.title}</ThemedText>
             </View>
-            <ThemedText style={[styles.riskBody, { color: semantic.mutedText }]}>{risk.body}</ThemedText>
-            <ThemedText style={[styles.riskFlag, { color: isDark ? "#FCA5A5" : "#991B1B" }]}>{risk.risk}</ThemedText>
+            <ThemedText style={[styles.riskBody, { color: semantic.mutedText }]}>
+              {headwindsPending ? "—" : risk.body}
+            </ThemedText>
+            <ThemedText style={[styles.riskFlag, { color: isDark ? "#FCA5A5" : "#991B1B" }]}>
+              {headwindsPending ? "—" : risk.riskLabel}
+            </ThemedText>
           </View>
         ))}
       </EconomyCard>

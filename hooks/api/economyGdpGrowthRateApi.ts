@@ -118,3 +118,105 @@ export async function fetchGdpGrowthRate(signal?: AbortSignal): Promise<GdpGrowt
   }
   return parsed;
 }
+
+export type GdpGrowthHeadwindRisk = {
+  key: string;
+  series_id: string;
+  title: string;
+  value: number | null;
+  previous_value?: number | null;
+  target_lower?: number | null;
+  target_upper?: number | null;
+  observation_date: string | null;
+  body: string;
+  risk: string | null;
+  risk_label: string | null;
+  error?: string;
+};
+
+export type GdpGrowthHeadwindsResponse = {
+  as_of?: string;
+  risks: GdpGrowthHeadwindRisk[];
+};
+
+function parseHeadwindRisk(raw: unknown): GdpGrowthHeadwindRisk | null {
+  if (!raw || typeof raw !== "object") {
+    return null;
+  }
+  const o = raw as Record<string, unknown>;
+  const key = typeof o.key === "string" ? o.key.trim() : "";
+  const series_id = typeof o.series_id === "string" ? o.series_id.trim() : "";
+  const title = typeof o.title === "string" ? o.title.trim() : "";
+  const body = typeof o.body === "string" ? o.body : "";
+  const risk = typeof o.risk === "string" ? o.risk.trim() : null;
+  const risk_label = typeof o.risk_label === "string" ? o.risk_label.trim() : null;
+  if (!key || !series_id || !title) {
+    return null;
+  }
+  const numOrNull = (v: unknown): number | null =>
+    typeof v === "number" && Number.isFinite(v) ? v : null;
+  const observation_date =
+    typeof o.observation_date === "string" && o.observation_date.trim() !== ""
+      ? o.observation_date.trim()
+      : null;
+  const error = typeof o.error === "string" && o.error.trim() !== "" ? o.error.trim() : undefined;
+  return {
+    key,
+    series_id,
+    title,
+    value: numOrNull(o.value),
+    previous_value: numOrNull(o.previous_value),
+    target_lower: numOrNull(o.target_lower),
+    target_upper: numOrNull(o.target_upper),
+    observation_date,
+    body,
+    risk,
+    risk_label,
+    ...(error ? { error } : {}),
+  };
+}
+
+/** Normalize `/api/economy/gdp/growth-headwinds` JSON. */
+export function parseGdpGrowthHeadwindsResponse(raw: unknown): GdpGrowthHeadwindsResponse | null {
+  if (!raw || typeof raw !== "object") {
+    return null;
+  }
+  const o = raw as Record<string, unknown>;
+  if (!Array.isArray(o.risks)) {
+    return null;
+  }
+  const risks = o.risks
+    .map(parseHeadwindRisk)
+    .filter((row): row is GdpGrowthHeadwindRisk => row != null);
+  if (risks.length === 0) {
+    return null;
+  }
+  const as_of = typeof o.as_of === "string" ? o.as_of : undefined;
+  return { as_of, risks };
+}
+
+/** GET `/api/economy/gdp/growth-headwinds` — FRED key stays server-side. */
+export async function fetchGdpGrowthHeadwinds(
+  signal?: AbortSignal,
+): Promise<GdpGrowthHeadwindsResponse> {
+  let body: unknown;
+  try {
+    body = await fetchApiGet(
+      getHypatiaBackendBaseUrl(),
+      HYPATIA_API_PATHS.economyGdpGrowthHeadwinds,
+      undefined,
+      signal,
+    );
+  } catch (e) {
+    if (e instanceof HttpApiError) {
+      throw new GdpGrowthRateApiError(e.message, e.status, e.body);
+    }
+    throw e;
+  }
+
+  const parsed = parseGdpGrowthHeadwindsResponse(body);
+  if (!parsed) {
+    throw new GdpGrowthRateApiError("Invalid GDP growth headwinds payload", 500, body);
+  }
+  return parsed;
+}

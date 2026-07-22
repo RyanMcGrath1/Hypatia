@@ -1,7 +1,34 @@
-import type { GdpGrowthRateResponse } from "@/hooks/api/economyGdpGrowthRateApi";
+import type {
+  GdpGrowthHeadwindsResponse,
+  GdpGrowthRateResponse,
+} from "@/hooks/api/economyGdpGrowthRateApi";
 
 /** Recent quarters shown in the GDP growth sparkline. */
 export const GDP_GROWTH_SPARK_QUARTERS = 8;
+
+export type GdpGrowthHeadwindIcon = "git-branch" | "dollar-sign" | "activity" | "trending-up";
+
+export type GdpGrowthHeadwindRow = {
+  key: string;
+  icon: GdpGrowthHeadwindIcon;
+  title: string;
+  body: string;
+  riskLabel: string;
+};
+
+const GDP_HEADWIND_ICONS: Record<string, GdpGrowthHeadwindIcon> = {
+  supply_chain: "git-branch",
+  interest_rates: "dollar-sign",
+  yield_curve: "activity",
+  inflation: "trending-up",
+};
+
+const GDP_HEADWIND_PLACEHOLDERS: GdpGrowthHeadwindRow[] = [
+  { key: "supply_chain", icon: "git-branch", title: "Supply Chain", body: "—", riskLabel: "—" },
+  { key: "interest_rates", icon: "dollar-sign", title: "Interest Rates", body: "—", riskLabel: "—" },
+  { key: "yield_curve", icon: "activity", title: "Yield Curve", body: "—", riskLabel: "—" },
+  { key: "inflation", icon: "trending-up", title: "Inflation", body: "—", riskLabel: "—" },
+];
 
 export type GdpGrowthSparkLabel = {
   label: string;
@@ -102,4 +129,21 @@ export function gdpGrowthFromApi(api: GdpGrowthRateResponse | null): GdpGrowthVi
     sparkValues,
     sparkLabels,
   };
+}
+
+/** Map API payload into the GDP growth headwinds & risks panel. */
+export function gdpGrowthHeadwindsFromApi(
+  api: GdpGrowthHeadwindsResponse | null,
+): GdpGrowthHeadwindRow[] {
+  if (!api?.risks?.length) {
+    return GDP_HEADWIND_PLACEHOLDERS;
+  }
+
+  return api.risks.map((risk) => ({
+    key: risk.key,
+    icon: GDP_HEADWIND_ICONS[risk.key] ?? "activity",
+    title: risk.title,
+    body: risk.error ? "—" : risk.body || "—",
+    riskLabel: risk.error ? "—" : risk.risk_label || "—",
+  }));
 }
