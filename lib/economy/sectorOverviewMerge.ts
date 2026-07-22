@@ -11,6 +11,7 @@ const SECTOR_TILE_HEADLINE_LABEL: Partial<Record<string, string>> = {
   labor: "Unemployment Rate",
   rates: "Effective Fed Funds",
   inflation: "CPI (YoY)",
+  gdp: "Real GDP (QoQ annualized)",
 };
 
 /** Format a policy/market rate in percent for overview tiles. */
@@ -203,7 +204,11 @@ function mockSectorDisplay(sector: EconomicSector): SectorCardDisplay {
     updatedAt: sector.updatedAt,
     isLive: false,
     valueUnit:
-      valueFormat === "percent" || sector.id === "rates" ? "percent" : undefined,
+      valueFormat === "signed-percent" ||
+      valueFormat === "percent" ||
+      sector.id === "rates"
+        ? "percent"
+        : undefined,
     valueFormat,
   };
 }
@@ -242,7 +247,7 @@ export function getSectorCardDisplay(
   if (sector.id === "gdp") {
     const qoqSeries = gdpQoqAnnualizedSeries(section.observations);
     const derived = displayFromDerivedSeries(sector, qoqSeries, {
-      headlineLabel: sector.headlineLabel,
+      headlineLabel: tileHeadlineLabel(sector, section.label),
       valueUnit: "percent",
       valueFormat: "signed-percent",
     });
