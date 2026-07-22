@@ -55,9 +55,20 @@ export const economySectionSchema = z
     hint: undefined as string | undefined,
   });
 
+const economySentimentSchema = z.object({
+  score: z.number(),
+  volatility_pct: z.number().optional(),
+  stability: z.number().optional(),
+  status_label: z.string(),
+  period_label: z.string(),
+  trend: z.enum(["up", "down", "flat"]),
+  is_live: z.boolean(),
+});
+
 export const economyOverviewResponseSchema = z.object({
   as_of: z.string(),
   sections: z.record(z.string(), economySectionSchema),
+  sentiment: economySentimentSchema.optional(),
 });
 
 export type EconomyOverviewValidated = z.infer<

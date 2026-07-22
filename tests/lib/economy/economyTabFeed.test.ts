@@ -4,10 +4,12 @@ import type { EconomyOverviewApiResponse } from "@/lib/economy/economyOverviewTy
 import { parseEconomyOverviewResponse } from "@/lib/economy/economyOverviewTypes";
 import {
   buildEconomyFeedRows,
+  buildEconomySentimentFallback,
   feedTrendLabel,
   formatFeedBarValue,
   getSentimentTrend,
   getTrendFromSeries,
+  resolveEconomySentimentHero,
 } from "@/lib/economy/economyTabFeed";
 import { getSectorCardDisplay } from "@/lib/economy/sectorOverviewMerge";
 import { getEconomicSectorById } from "@/constants/data/usEconomicData";
@@ -470,5 +472,86 @@ describe("getSectorCardDisplay", () => {
     expect(gdp?.isLive).toBe(true);
     expect(gdp?.history.length).toBe(3);
     expect(feedTrendLabel(gdp!.sentimentTrend)).toBeTruthy();
+  });
+});
+
+describe("resolveEconomySentimentHero", () => {
+  it("prefers backend sentiment payload when present", () => {
+    const overview: EconomyOverviewApiResponse = {
+      as_of: "2026-01-01T00:00:00+00:00",
+      sections: {} as EconomyOverviewApiResponse["sections"],
+      sentiment: {
+        score: 72,
+        volatility_pct: 2.4,
+        stability: 68.2,
+        status_label: "OPTIMAL",
+        period_label: "MACRO INDEX",
+        trend: "up",
+        is_live: true,
+      },
+    };
+    expect(resolveEconomySentimentHero(overview)).toEqual(overview.sentiment);
+  });
+
+  it("builds a composite fallback from live feed rows when sentiment is absent", () => {
+    const overview: EconomyOverviewApiResponse = {
+      as_of: "2026-07-22T15:11:50+00:00",
+      sections: {
+        consumer_spending: {
+          label: "PCE",
+          series_id: "PCE",
+          unit: "billions",
+          observations: [],
+        },
+        gdp: {
+          label: "GDP",
+          series_id: "GDPC1",
+          unit: "billions",
+          observations: [
+            { date: "2025-07-01", value: 22000 },
+            { date: "2025-10-01", value: 22500 },
+            { date: "2026-01-01", value: 23100 },
+          ],
+        },
+        housing: {
+          label: "Housing",
+          series_id: "CSUSHPISA",
+          unit: "index",
+          observations: [],
+        },
+        inflation: {
+          label: "CPI",
+          series_id: "CPIAUCSL",
+          unit: "index",
+          observations: [],
+        },
+        interest_rates: {
+          label: "Fed Funds",
+          series_id: "FEDFUNDS",
+          unit: "percent",
+          observations: [],
+        },
+        labor: {
+          label: "Unemployment Rate",
+          series_id: "UNRATE",
+          unit: "percent",
+          observations: [
+            { date: "2025-09-01", value: 4.4 },
+            { date: "2025-11-01", value: 4.5 },
+            { date: "2026-06-01", value: 4.2 },
+          ],
+        },
+      },
+    };
+
+    const fallback = buildEconomySentimentFallback(overview);
+    expect(fallback).toMatchObject({
+      score: 75,
+      status_label: "OPTIMAL",
+      period_label: "MACRO INDEX",
+      trend: "up",
+      is_live: false,
+    });
+    expect(fallback?.volatility_pct).toBeUndefined();
   });
 });

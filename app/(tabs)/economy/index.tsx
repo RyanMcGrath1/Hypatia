@@ -15,11 +15,10 @@ import { getSemanticColors } from "@/constants/theme/ThemeTokens";
 import { useColorScheme } from "@/hooks/useColorScheme";
 import { useEconomyTabDashboard } from "@/hooks/useEconomyTabDashboard";
 import { resolveEconomyOverviewUpdatedDisplay } from "@/lib/economy/economyOverviewUpdatedDisplay";
-import { buildEconomyFeedRows } from "@/lib/economy/economyTabFeed";
-
-const sentimentScore = 74;
-const sentimentDelta = 2.4;
-const sentimentStability = 68.2;
+import {
+  buildEconomyFeedRows,
+  resolveEconomySentimentHero,
+} from "@/lib/economy/economyTabFeed";
 
 const DEVELOPMENTS = [
   "Fed Beige Book highlights modest growth and resilient labor conditions.",
@@ -53,6 +52,11 @@ export default function EconomyDashboardScreen() {
     [economyOverview],
   );
 
+  const sentiment = useMemo(
+    () => resolveEconomySentimentHero(economyOverview),
+    [economyOverview],
+  );
+
   const overviewPending =
     isEconomyOverviewLoading && economyOverview == null;
 
@@ -74,14 +78,25 @@ export default function EconomyDashboardScreen() {
           </ThemedText>
         </View>
 
-        <EconomySentimentHeroCard
-          semantic={semantic}
-          isDark={isDark}
-          gaugePositiveColor={gaugePositiveColor}
-          sentimentScore={sentimentScore}
-          sentimentDelta={sentimentDelta}
-          sentimentStability={sentimentStability}
-        />
+        {sentiment ? (
+          <EconomySentimentHeroCard
+            semantic={semantic}
+            isDark={isDark}
+            gaugePositiveColor={gaugePositiveColor}
+            sentiment={sentiment}
+          />
+        ) : overviewPending ? (
+          <View
+            style={[
+              styles.heroCard,
+              styles.heroSkeleton,
+              {
+                backgroundColor: semantic.cardBackground,
+                borderColor: semantic.cardBorder,
+              },
+            ]}
+          />
+        ) : null}
 
         {overviewPending ? (
           <EconomyFeedSkeletonList count={4} semantic={semantic} />
