@@ -57,7 +57,8 @@ export const US_ECONOMIC_SECTORS: EconomicSector[] = [
       { label: "Energy CPI", value: "-0.9%", note: "Lower than last month" },
     ],
     updatedAt: "Apr 2026",
-    history: [100, 101, 100, 99, 98, 97],
+    /** Sample YoY CPI readings aligned with the tile sparkline (not index levels). */
+    history: [3.6, 3.5, 3.4, 3.35, 3.25, 3.2],
   },
   {
     id: "labor",

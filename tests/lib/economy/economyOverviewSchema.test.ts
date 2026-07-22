@@ -119,6 +119,34 @@ describe('economyOverviewResponseSchema', () => {
     expect(economyOverviewResponseSchema.safeParse(payload).success).toBe(true);
   });
 
+  it('preserves inflation yoyInflation on observations and section metadata', () => {
+    const payload = {
+      as_of: '2026-07-22T15:11:50+00:00',
+      sections: {
+        inflation: {
+          label: 'CPI',
+          series_id: 'CPIAUCSL',
+          unit: 'index',
+          yoyInflation: 3.46,
+          observations: [
+            { date: '2026-06-01', value: 332.568, yoyInflation: 3.46 },
+            { date: '2026-05-01', value: 333.979, yoyInflation: 4.17 },
+            { date: '2025-10-01', value: '.', yoyInflation: null },
+          ],
+        },
+      },
+    };
+    expect(economyOverviewResponseSchema.safeParse(payload).success).toBe(true);
+    const parsed = economyOverviewResponseSchema.parse(payload);
+    expect(parsed.sections.inflation).toMatchObject({
+      yoyInflation: 3.46,
+      observations: [
+        { date: '2026-06-01', value: 332.568, yoyInflation: 3.46 },
+        { date: '2026-05-01', value: 333.979, yoyInflation: 4.17 },
+      ],
+    });
+  });
+
   it('rejects missing as_of', () => {
     expect(
       economyOverviewResponseSchema.safeParse({

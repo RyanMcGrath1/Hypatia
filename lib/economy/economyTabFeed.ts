@@ -5,9 +5,13 @@ import {
 import type { EconomyOverviewApiResponse } from "@/lib/economy/economyOverviewTypes";
 import {
   formatOverviewMetricValue,
+  formatSignedPercent,
   getSectorCardDisplay,
   SECTOR_ID_TO_OVERVIEW_KEY,
+  type FeedValueFormat,
 } from "@/lib/economy/sectorOverviewMerge";
+
+export type { FeedValueFormat };
 
 export type FeedRow = {
   id: string;
@@ -23,6 +27,8 @@ export type FeedRow = {
   historyDates?: string[];
   /** Section unit for formatting selected bar values */
   valueUnit?: string;
+  /** Preferred display formatting for bar/headline numeric values. */
+  valueFormat?: FeedValueFormat;
   /** True when this tile id maps to an overview `sections` key (still may have zero observations). */
   overviewSectionBound: boolean;
   /** True when headline/history came from live overview API data. */
@@ -149,7 +155,14 @@ export function resolveFeedBarSelectionIndex(
 export function formatFeedBarValue(
   raw: number,
   unit: string | undefined,
+  valueFormat: FeedValueFormat = "unit",
 ): string {
+  if (valueFormat === "signed-percent") {
+    return formatSignedPercent(raw);
+  }
+  if (valueFormat === "percent" || unit?.toLowerCase().includes("percent")) {
+    return formatOverviewMetricValue(raw, unit ?? "percent");
+  }
   if (unit) {
     return formatOverviewMetricValue(raw, unit);
   }
@@ -184,6 +197,7 @@ export function buildEconomyFeedRows(
         history: display.history,
         historyDates: display.historyDates,
         valueUnit: display.valueUnit,
+        valueFormat: display.valueFormat,
         overviewSectionBound: Boolean(SECTOR_ID_TO_OVERVIEW_KEY[sector.id]),
         isLive: display.isLive,
       };

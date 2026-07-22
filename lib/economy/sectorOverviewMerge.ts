@@ -55,10 +55,13 @@ export function formatOverviewMetricValue(value: number, unit: string): string {
   });
 }
 
-function formatSignedPercent(value: number, digits = 1): string {
+export function formatSignedPercent(value: number, digits = 1): string {
   const sign = value >= 0 ? "+" : "";
   return `${sign}${value.toFixed(digits)}%`;
 }
+
+/** How feed tiles format numeric bar/headline values. */
+export type FeedValueFormat = "unit" | "percent" | "signed-percent";
 
 /** `YYYY-MM-DD` → e.g. `Mar 2026` for card foot line. */
 export function formatObservationMonthYear(isoDate: string): string {
@@ -82,6 +85,7 @@ export type SectorCardDisplay = {
   /** True when headline/history came from overview API observations. */
   isLive: boolean;
   valueUnit?: string;
+  valueFormat?: FeedValueFormat;
 };
 
 type DerivedSeriesPoint = { date: string; value: number };
@@ -141,6 +145,7 @@ function displayFromDerivedSeries(
   options: {
     headlineLabel?: string;
     valueUnit?: string;
+    valueFormat?: FeedValueFormat;
     formatValue?: (value: number) => string;
   } = {},
 ): SectorCardDisplay | null {
@@ -160,10 +165,17 @@ function displayFromDerivedSeries(
     updatedAt: formatObservationMonthYear(latest.date),
     isLive: true,
     valueUnit: options.valueUnit ?? "percent",
+    valueFormat: options.valueFormat ?? "signed-percent",
   };
 }
 
 function mockSectorDisplay(sector: EconomicSector): SectorCardDisplay {
+  const valueFormat: FeedValueFormat | undefined =
+    sector.id === "inflation" || sector.id === "gdp"
+      ? "signed-percent"
+      : sector.id === "labor" || sector.id === "rates"
+        ? "percent"
+        : undefined;
   return {
     title: sector.title,
     headlineLabel: sector.headlineLabel,
@@ -171,6 +183,8 @@ function mockSectorDisplay(sector: EconomicSector): SectorCardDisplay {
     history: sector.history,
     updatedAt: sector.updatedAt,
     isLive: false,
+    valueUnit: valueFormat === "signed-percent" ? "percent" : undefined,
+    valueFormat,
   };
 }
 
@@ -198,6 +212,7 @@ export function getSectorCardDisplay(
     const derived = displayFromDerivedSeries(sector, yoySeries, {
       headlineLabel: sector.headlineLabel,
       valueUnit: "percent",
+      valueFormat: "signed-percent",
     });
     if (derived) {
       return derived;
@@ -209,6 +224,7 @@ export function getSectorCardDisplay(
     const derived = displayFromDerivedSeries(sector, qoqSeries, {
       headlineLabel: sector.headlineLabel,
       valueUnit: "percent",
+      valueFormat: "signed-percent",
     });
     if (derived) {
       return derived;
@@ -229,5 +245,8 @@ export function getSectorCardDisplay(
     updatedAt: formatObservationMonthYear(latest.date),
     isLive: true,
     valueUnit: section.unit,
+    valueFormat: section.unit.toLowerCase().includes("percent")
+      ? "percent"
+      : "unit",
   };
 }
