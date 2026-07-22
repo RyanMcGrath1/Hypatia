@@ -6,6 +6,18 @@ import type {
   EconomyOverviewSectionKey,
 } from "@/lib/economy/economyOverviewTypes";
 
+/** Maps `US_ECONOMIC_SECTORS[].id` → short tile subtitle (overrides long FRED labels). */
+const SECTOR_TILE_HEADLINE_LABEL: Partial<Record<string, string>> = {
+  labor: "Unemployment Rate",
+  rates: "Effective Fed Funds",
+  inflation: "CPI (YoY)",
+};
+
+/** Format a policy/market rate in percent for overview tiles. */
+export function formatPercentRate(value: number, digits = 2): string {
+  return `${value.toFixed(digits)}%`;
+}
+
 /** Maps `US_ECONOMIC_SECTORS[].id` → `EconomyOverviewApiResponse.sections` key. */
 export const SECTOR_ID_TO_OVERVIEW_KEY: Record<
   string,
@@ -18,6 +30,13 @@ export const SECTOR_ID_TO_OVERVIEW_KEY: Record<
   rates: "interest_rates",
   labor: "labor",
 };
+
+function tileHeadlineLabel(sector: EconomicSector, sectionLabel: string): string {
+  return (
+    SECTOR_TILE_HEADLINE_LABEL[sector.id] ??
+    (sectionLabel.trim() || sector.headlineLabel)
+  );
+}
 
 function sortedObservations(
   observations: EconomyObservation[],
@@ -178,12 +197,13 @@ function mockSectorDisplay(sector: EconomicSector): SectorCardDisplay {
         : undefined;
   return {
     title: sector.title,
-    headlineLabel: sector.headlineLabel,
+    headlineLabel: tileHeadlineLabel(sector, sector.headlineLabel),
     headlineValue: sector.headlineValue,
     history: sector.history,
     updatedAt: sector.updatedAt,
     isLive: false,
-    valueUnit: valueFormat === "signed-percent" ? "percent" : undefined,
+    valueUnit:
+      valueFormat === "percent" || sector.id === "rates" ? "percent" : undefined,
     valueFormat,
   };
 }
@@ -210,7 +230,7 @@ export function getSectorCardDisplay(
   if (sector.id === "inflation") {
     const yoySeries = inflationYoySeries(section);
     const derived = displayFromDerivedSeries(sector, yoySeries, {
-      headlineLabel: sector.headlineLabel,
+      headlineLabel: tileHeadlineLabel(sector, section.label),
       valueUnit: "percent",
       valueFormat: "signed-percent",
     });
@@ -234,19 +254,21 @@ export function getSectorCardDisplay(
   const sortedObs = sortedObservations(section.observations);
   const latest = sortedObs[sortedObs.length - 1]!;
   const history = observationsChronologicalValues(section.observations);
+  const isPercentUnit = section.unit.toLowerCase().includes("percent");
+  const headlineValue =
+    sector.id === "rates" && isPercentUnit
+      ? formatPercentRate(latest.value)
+      : formatOverviewMetricValue(latest.value, section.unit);
 
   return {
     title: sector.title,
-    headlineLabel:
-      sector.id === "labor" ? sector.headlineLabel : section.label || sector.headlineLabel,
-    headlineValue: formatOverviewMetricValue(latest.value, section.unit),
+    headlineLabel: tileHeadlineLabel(sector, section.label),
+    headlineValue,
     history,
     historyDates: sortedObs.map((o) => o.date),
     updatedAt: formatObservationMonthYear(latest.date),
     isLive: true,
     valueUnit: section.unit,
-    valueFormat: section.unit.toLowerCase().includes("percent")
-      ? "percent"
-      : "unit",
+    valueFormat: isPercentUnit ? "percent" : "unit",
   };
 }
