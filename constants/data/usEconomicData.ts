@@ -91,7 +91,7 @@ export const US_ECONOMIC_SECTORS: EconomicSector[] = [
     id: "gdp",
     title: "GDP Growth",
     headlineLabel: "Real GDP (QoQ annualized)",
-    headlineValue: "2.1%",
+    headlineValue: "+2.1%",
     trend: "up",
     trendLabel: "Re-accelerating modestly",
     summary:
@@ -112,7 +112,8 @@ export const US_ECONOMIC_SECTORS: EconomicSector[] = [
       { label: "Net Exports", value: "-0.2pp", note: "Drag on growth" },
     ],
     updatedAt: "Q1 2026",
-    history: [100, 99, 100, 101, 102, 103],
+    /** Sample QoQ annualized growth readings for the tile sparkline (derived from GDPC1). */
+    history: [1.9, -0.6, 3.8, 4.4, 0.5, 2.1],
   },
   {
     id: "rates",

@@ -213,6 +213,57 @@ describe("buildEconomyFeedRows", () => {
     });
     expect(rates?.history).toEqual([4.22, 4.09, 3.88, 3.72, 3.64, 3.63]);
   });
+
+  it("uses live derived QoQ GDP growth for the tile with strengthening sentiment", () => {
+    const overview: EconomyOverviewApiResponse = {
+      ...laborOverview,
+      sections: {
+        ...laborOverview.sections,
+        gdp: {
+          label: "Real Gross Domestic Product",
+          series_id: "GDPC1",
+          unit: "billions of chained 2017 dollars",
+          observations: [
+            { date: "2025-07-01", value: 24026.834 },
+            { date: "2025-10-01", value: 24055.749 },
+            { date: "2026-01-01", value: 24180.419 },
+          ],
+        },
+      },
+    };
+
+    const gdp = buildEconomyFeedRows(overview).find((row) => row.id === "gdp");
+    const q3ToQ4 = (24055.749 / 24026.834 - 1) * 400;
+    const q4ToQ1 = (24180.419 / 24055.749 - 1) * 400;
+
+    expect(gdp).toMatchObject({
+      subtitle: "Real GDP (QoQ annualized)",
+      isLive: true,
+      historyDates: ["2025-10-01", "2026-01-01"],
+      valueFormat: "signed-percent",
+    });
+    expect(gdp!.history[0]).toBeCloseTo(q3ToQ4, 4);
+    expect(gdp!.history[1]).toBeCloseTo(q4ToQ1, 4);
+    expect(gdp!.value).toBe(`+${q4ToQ1.toFixed(1)}%`);
+    expect(gdp!.metricTrend).toBe("up");
+    expect(gdp!.sentimentTrend).toBe("up");
+    expect(feedTrendLabel(gdp!.sentimentTrend)).toBe("STRENGTHENING");
+  });
+
+  it("falls back to mock QoQ GDP history when overview is unavailable", () => {
+    const rows = buildEconomyFeedRows(null);
+    const gdp = rows.find((row) => row.id === "gdp");
+    expect(gdp).toMatchObject({
+      isLive: false,
+      subtitle: "Real GDP (QoQ annualized)",
+      value: "+2.1%",
+      valueFormat: "signed-percent",
+      metricTrend: "up",
+      sentimentTrend: "up",
+    });
+    expect(gdp?.history).toEqual([1.9, -0.6, 3.8, 4.4, 0.5, 2.1]);
+    expect(feedTrendLabel(gdp!.sentimentTrend)).toBe("STRENGTHENING");
+  });
 });
 
 describe("getSectorCardDisplay", () => {
@@ -377,5 +428,47 @@ describe("getSectorCardDisplay", () => {
       isLive: true,
     });
     expect(feedTrendLabel(rates!.sentimentTrend)).toBe("STRENGTHENING");
+  });
+
+  it("derives QoQ GDP tile data from a live-shaped dashboard section", () => {
+    const raw = {
+      as_of: "2026-07-22T16:24:41+00:00",
+      sections: {
+        gdp: {
+          label: "Real Gross Domestic Product",
+          series_id: "GDPC1",
+          unit: "billions of chained 2017 dollars",
+          observations: [
+            { date: "2026-01-01", value: 24180.419 },
+            { date: "2025-10-01", value: 24055.749 },
+            { date: "2025-07-01", value: 24026.834 },
+            { date: "2025-04-01", value: 23770.976 },
+          ],
+        },
+      },
+    };
+
+    const parsed = parseEconomyOverviewResponse(raw);
+    expect(parsed).not.toBeNull();
+
+    const sector = getEconomicSectorById("gdp");
+    expect(sector).not.toBeNull();
+
+    const display = getSectorCardDisplay(sector!, parsed);
+    expect(display.headlineLabel).toBe("Real GDP (QoQ annualized)");
+    expect(display.isLive).toBe(true);
+    expect(display.valueFormat).toBe("signed-percent");
+    expect(display.history).toHaveLength(3);
+    expect(display.historyDates).toEqual([
+      "2025-07-01",
+      "2025-10-01",
+      "2026-01-01",
+    ]);
+
+    const gdp = buildEconomyFeedRows(parsed).find((row) => row.id === "gdp");
+    expect(gdp?.subtitle).toBe("Real GDP (QoQ annualized)");
+    expect(gdp?.isLive).toBe(true);
+    expect(gdp?.history.length).toBe(3);
+    expect(feedTrendLabel(gdp!.sentimentTrend)).toBeTruthy();
   });
 });
