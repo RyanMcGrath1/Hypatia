@@ -1,7 +1,6 @@
 import Feather from "@expo/vector-icons/Feather";
-import Ionicons from "@expo/vector-icons/Ionicons";
 import { useCallback, useMemo, useState } from "react";
-import { Pressable, StyleSheet, View } from "react-native";
+import { StyleSheet, View } from "react-native";
 import Svg, { Path } from "react-native-svg";
 
 import { EconomyCard } from "@/components/economy/detail/shared/EconomyCard";
@@ -199,42 +198,6 @@ export function GdpGrowthDetailView() {
         </View>
       </EconomyCard>
 
-      <EconomyCard style={styles.forecastCard}>
-        <View
-          style={[
-            styles.forecastGradient,
-            {
-              backgroundColor: isDark ? "rgba(74,108,247,0.12)" : "#EEF2FF",
-            },
-          ]}
-        >
-          <View style={styles.forecastKickerRow}>
-            <Ionicons name="sparkles" size={12} color={interactive.primary} />
-            <ThemedText style={[laborStyles.tableTitle, { color: theme.text }]}>
-              AI ECONOMIC FORECAST
-            </ThemedText>
-          </View>
-          <ThemedText style={[styles.forecastTitle, { color: theme.text }]}>
-            Stable Convergence
-          </ThemedText>
-          <ThemedText style={[styles.forecastBody, { color: semantic.mutedText }]}>
-            Predictive models suggest a 2.1% growth trajectory for Q4. Recent consumer spending data correlates
-            with a cooling but resilient labor market.
-          </ThemedText>
-          <Pressable
-            accessibilityRole="button"
-            style={({ pressed }) => [
-              styles.modelBtn,
-              { backgroundColor: interactive.primaryFill, opacity: pressed ? 0.9 : 1 },
-            ]}
-          >
-            <ThemedText style={[styles.modelBtnText, { color: interactive.onPrimaryFill }]}>
-              View Model Details
-            </ThemedText>
-          </Pressable>
-        </View>
-      </EconomyCard>
-
       <EconomyCard>
         <ThemedText style={[laborStyles.tableTitle, { color: theme.text, marginBottom: Spacing.sm }]}>
           SECTOR CONTRIBUTION
@@ -418,42 +381,6 @@ const styles = StyleSheet.create({
     textAlign: "center",
     fontSize: 10,
     fontFamily: Fonts.bodyMedium,
-  },
-  forecastCard: {
-    padding: 0,
-    overflow: "hidden",
-  },
-  forecastGradient: {
-    padding: Spacing.lg,
-    borderLeftWidth: 3,
-    borderLeftColor: "#4A6CF7",
-    gap: 8,
-  },
-  forecastKickerRow: {
-    flexDirection: "row",
-    alignItems: "center",
-    gap: 6,
-  },
-  forecastTitle: {
-    fontSize: 30,
-    lineHeight: 34,
-    fontFamily: Fonts.displaySemibold,
-  },
-  forecastBody: {
-    fontSize: 12,
-    lineHeight: 18,
-    fontFamily: Fonts.body,
-  },
-  modelBtn: {
-    marginTop: Spacing.sm,
-    minHeight: 38,
-    borderRadius: Radius.md,
-    alignItems: "center",
-    justifyContent: "center",
-  },
-  modelBtnText: {
-    fontSize: 12,
-    fontFamily: Fonts.bodySemiBold,
   },
   sectionHeadRow: {
     marginBottom: Spacing.sm,
