@@ -18,6 +18,7 @@ import { ThemedView } from '@/components/theme/ThemedView';
 import { AppRoutes } from '@/constants/app/routes';
 import { Spacing } from '@/constants/theme/ThemeTokens';
 import { AuthApiError, login as loginAccount } from '@/hooks/api/authApi';
+import { useAuthFlow } from '@/hooks/useAuthFlow';
 import { useAuthSession } from '@/hooks/useAuthSession';
 import { useThemeInteractive } from '@/hooks/useThemeInteractive';
 
@@ -83,14 +84,15 @@ function mapLoginApiError(error: unknown): string {
  * Login screen for unauthenticated users (`canAccessApp === false`).
  * Authenticates via authApi, then establishes a session through AuthProvider.
  *
- * TOTP-required responses are recognized but do not unlock the app yet
- * (verification screen lands in a later step).
+ * When the backend requires TOTP, the MFA challenge is held only in
+ * AuthFlowProvider memory and the user is sent to login-totp — no Session yet.
  *
  * Dev note: with `EXPO_PUBLIC_DEV_AUTH_BYPASS=true`, `(auth)` is gated off.
  * Set bypass to false and reload to exercise this screen locally.
  */
 export default function LoginScreen() {
   const { establishSession } = useAuthSession();
+  const { beginTotpLogin, clearTotpLogin } = useAuthFlow();
   const interactive = useThemeInteractive();
 
   const [email, setEmail] = useState('');
@@ -132,6 +134,9 @@ export default function LoginScreen() {
 
     const trimmedEmail = email.trim();
 
+    // Fresh password Login must not carry a stale MFA challenge forward.
+    clearTotpLogin();
+
     setIsSubmitting(true);
     try {
       const result = await loginAccount({
@@ -140,11 +145,10 @@ export default function LoginScreen() {
       });
 
       if (result.kind === 'totp_required') {
-        // Step 10 will navigate to the TOTP verification screen.
-        // Do not establish a session or persist the challenge token.
-        setFormNoticeTone('info');
-        setFormNotice(
-          'Authenticator verification is required to finish signing in.',
+        // Challenge stays in AuthFlowProvider memory only — never Session/storage/URL.
+        beginTotpLogin(result.challengeToken);
+        router.replace(
+          AppRoutes.authLoginTotp as Parameters<typeof router.replace>[0],
         );
         return;
       }
@@ -169,7 +173,14 @@ export default function LoginScreen() {
     } finally {
       setIsSubmitting(false);
     }
-  }, [email, establishSession, isSubmitting, password]);
+  }, [
+    beginTotpLogin,
+    clearTotpLogin,
+    email,
+    establishSession,
+    isSubmitting,
+    password,
+  ]);
 
   return (
     <ThemedView style={styles.screen}>

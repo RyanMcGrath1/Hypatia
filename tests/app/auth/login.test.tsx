@@ -260,14 +260,21 @@ vi.mock('@/hooks/useColorScheme', () => ({
   useColorScheme: () => 'light',
 }));
 
-const { mockLogin, mockEstablishSession, mockReplace, mockPush } = vi.hoisted(
-  () => ({
-    mockLogin: vi.fn(),
-    mockEstablishSession: vi.fn(),
-    mockReplace: vi.fn(),
-    mockPush: vi.fn(),
-  }),
-);
+const {
+  mockLogin,
+  mockEstablishSession,
+  mockReplace,
+  mockPush,
+  mockBeginTotpLogin,
+  mockClearTotpLogin,
+} = vi.hoisted(() => ({
+  mockLogin: vi.fn(),
+  mockEstablishSession: vi.fn(),
+  mockReplace: vi.fn(),
+  mockPush: vi.fn(),
+  mockBeginTotpLogin: vi.fn(),
+  mockClearTotpLogin: vi.fn(),
+}));
 
 vi.mock('@/hooks/api/authApi', () => {
   class AuthApiError extends Error {
@@ -296,6 +303,14 @@ vi.mock('@/hooks/useAuthSession', () => ({
     establishSession: mockEstablishSession,
     replaceSession: vi.fn(),
     clearSession: vi.fn(),
+  }),
+}));
+
+vi.mock('@/hooks/useAuthFlow', () => ({
+  useAuthFlow: () => ({
+    pendingTotpChallenge: null,
+    beginTotpLogin: mockBeginTotpLogin,
+    clearTotpLogin: mockClearTotpLogin,
   }),
 }));
 
@@ -338,6 +353,8 @@ beforeEach(() => {
   mockEstablishSession.mockReset();
   mockReplace.mockReset();
   mockPush.mockReset();
+  mockBeginTotpLogin.mockReset();
+  mockClearTotpLogin.mockReset();
   mockEstablishSession.mockResolvedValue(undefined);
 });
 
@@ -644,7 +661,7 @@ describe('LoginScreen session persistence failure', () => {
 });
 
 describe('LoginScreen TOTP required', () => {
-  it('shows authenticator notice without establishing session or leaking challenge', async () => {
+  it('begins TOTP flow in memory and navigates without establishing session', async () => {
     mockLogin.mockResolvedValueOnce({
       kind: 'totp_required',
       challengeToken: CHALLENGE_TOKEN,
@@ -657,15 +674,16 @@ describe('LoginScreen TOTP required', () => {
       submit();
     });
 
-    await waitFor(() =>
-      expect(
-        screen.getByText(
-          'Authenticator verification is required to finish signing in.',
-        ),
-      ).toBeTruthy(),
-    );
+    await waitFor(() => expect(mockBeginTotpLogin).toHaveBeenCalledTimes(1));
+    expect(mockClearTotpLogin).toHaveBeenCalled();
+    expect(mockBeginTotpLogin).toHaveBeenCalledWith(CHALLENGE_TOKEN);
+    expect(mockReplace).toHaveBeenCalledWith(AppRoutes.authLoginTotp);
     expect(mockEstablishSession).not.toHaveBeenCalled();
-    expect(mockReplace).not.toHaveBeenCalled();
+    expect(
+      screen.queryByText(
+        'Authenticator verification is required to finish signing in.',
+      ),
+    ).toBeNull();
     expect(document.body.textContent).not.toContain(CHALLENGE_TOKEN);
     expect(document.body.textContent).not.toContain(SESSION_TOKEN);
 
@@ -676,5 +694,26 @@ describe('LoginScreen TOTP required', () => {
     expect(source).not.toMatch(/Bearer/);
     expect(source).not.toMatch(/setSessionToken/);
     expect(source).not.toMatch(/tokenStorage/);
+    expect(source).not.toMatch(/SecureStore/);
+  });
+
+  it('clears any stale pending TOTP challenge when a fresh Login begins', async () => {
+    mockLogin.mockResolvedValueOnce({
+      kind: 'authenticated',
+      message: 'ok',
+      sessionToken: SESSION_TOKEN,
+    });
+
+    render(<LoginScreen />);
+    fillValidForm();
+    await act(async () => {
+      submit();
+    });
+
+    await waitFor(() => expect(mockLogin).toHaveBeenCalledTimes(1));
+    expect(mockClearTotpLogin).toHaveBeenCalled();
+    const clearOrder = mockClearTotpLogin.mock.invocationCallOrder[0]!;
+    const loginOrder = mockLogin.mock.invocationCallOrder[0]!;
+    expect(clearOrder).toBeLessThan(loginOrder);
   });
 });

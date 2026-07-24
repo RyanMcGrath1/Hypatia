@@ -77,6 +77,16 @@ try {
     'Auth group layout must declare the register screen.',
   );
   assertContains(
+    'app/(auth)/_layout.tsx',
+    'login-totp',
+    'Auth group layout must declare the TOTP login screen.',
+  );
+  assertContains(
+    'app/(auth)/_layout.tsx',
+    'AuthFlowProvider',
+    'Auth group layout must mount AuthFlowProvider for MFA challenge handoff.',
+  );
+  assertContains(
     'constants/app/routes.ts',
     "authLogin: '/login'",
     'Route constants must define the Login path.',
@@ -85,6 +95,41 @@ try {
     'constants/app/routes.ts',
     "authRegister: '/register'",
     'Route constants must define the Registration path.',
+  );
+  assertContains(
+    'constants/app/routes.ts',
+    "authLoginTotp: '/login-totp'",
+    'Route constants must define the TOTP login path.',
+  );
+  assertContains(
+    'app/(auth)/login-totp.tsx',
+    'Verify',
+    'TOTP login screen is missing.',
+  );
+  assertContains(
+    'app/(auth)/login.tsx',
+    'authLoginTotp',
+    'Login must navigate to TOTP when totp_required.',
+  );
+  assertContains(
+    'app/(auth)/login.tsx',
+    'beginTotpLogin',
+    'Login must store MFA challenge via beginTotpLogin.',
+  );
+  assertContains(
+    'app/(auth)/login-totp.tsx',
+    'completeTotpLogin',
+    'TOTP screen must complete login via completeTotpLogin.',
+  );
+  assertContains(
+    'app/(auth)/login-totp.tsx',
+    'establishSession',
+    'TOTP success must establish a session.',
+  );
+  assertContains(
+    'app/(auth)/login-totp.tsx',
+    'tabsRoot',
+    'TOTP success must route to the protected app home.',
   );
 
   console.log('Navigation smoke check passed.');

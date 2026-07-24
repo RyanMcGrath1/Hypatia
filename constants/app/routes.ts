@@ -2,6 +2,8 @@ export const AppRoutes = {
   /** Unauthenticated auth-group entry points (`canAccessApp === false`). */
   authLogin: '/login',
   authRegister: '/register',
+  /** TOTP verification after password Login returns totp_required (memory challenge). */
+  authLoginTotp: '/login-totp',
   tabsRoot: '/(tabs)',
   tabsExplore: '/(tabs)/explore',
   tabsEconomy: '/(tabs)/economy',
