@@ -305,6 +305,10 @@ vi.mock('@/components/profile/ChangeEmailModal', () => ({
   ChangeEmailModal: () => null,
 }));
 
+vi.mock('@/components/profile/DeleteAccountConfirmModal', () => ({
+  DeleteAccountConfirmModal: () => null,
+}));
+
 const { ProfileApiError } = vi.hoisted(() => {
   class ProfileApiError extends Error {
     constructor(

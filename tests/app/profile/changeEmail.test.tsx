@@ -258,6 +258,10 @@ vi.mock('@/components/profile/TotpDisableModal', () => ({
   TotpDisableModal: () => null,
 }));
 
+vi.mock('@/components/profile/DeleteAccountConfirmModal', () => ({
+  DeleteAccountConfirmModal: () => null,
+}));
+
 vi.mock('@/hooks/useAuthSession', () => ({
   useAuthSession: () => ({
     token: authMocks.token,
@@ -275,6 +279,7 @@ vi.mock('@/hooks/api/accountApi', () => ({
   AccountApiError: accountApiMocks.AccountApiError,
   requestEmailChange: accountApiMocks.requestEmailChange,
   changePassword: accountApiMocks.changePassword,
+  deleteAccount: vi.fn(),
 }));
 
 const { ProfileApiError } = vi.hoisted(() => {

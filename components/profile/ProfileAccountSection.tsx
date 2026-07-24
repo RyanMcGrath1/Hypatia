@@ -1,5 +1,6 @@
 import { Pressable, StyleSheet, View } from 'react-native';
 
+import { FormButton } from '@/components/forms/FormButton';
 import { SectionCard } from '@/components/surfaces/SectionCard';
 import { ThemedText } from '@/components/theme/ThemedText';
 import { Colors } from '@/constants/theme/Colors';
@@ -12,11 +13,14 @@ export type ProfileAccountSectionProps = {
   email: string;
   /** Opens Change Email when provided (authenticated Session only). */
   onChangeEmail?: () => void;
+  /** Opens Delete Account when provided (authenticated Session only). */
+  onDeleteAccount?: () => void;
 };
 
 export function ProfileAccountSection({
   email,
   onChangeEmail,
+  onDeleteAccount,
 }: ProfileAccountSectionProps) {
   const colorScheme = useColorScheme() ?? 'light';
   const theme = Colors[colorScheme];
@@ -73,6 +77,42 @@ export function ProfileAccountSection({
             </Pressable>
           ) : null}
         </View>
+
+        {onDeleteAccount ? (
+          <>
+            <View
+              style={[
+                styles.destructiveDivider,
+                { backgroundColor: semantic.hairline },
+              ]}
+              accessibilityElementsHidden
+              importantForAccessibility="no"
+            />
+            <View
+              style={styles.destructiveBlock}
+              testID="profile-delete-account-section"
+            >
+              <ThemedText
+                style={[styles.destructiveTitle, { color: semantic.danger }]}
+                accessibilityRole="header"
+              >
+                Delete Account
+              </ThemedText>
+              <ThemedText
+                style={[styles.destructiveCopy, { color: semantic.mutedText }]}
+              >
+                Deleting your account removes access to the account and its
+                profile information.
+              </ThemedText>
+              <FormButton
+                label="Delete Account"
+                variant="destructive"
+                onPress={onDeleteAccount}
+                style={styles.deleteButton}
+              />
+            </View>
+          </>
+        ) : null}
       </SectionCard>
     </View>
   );
@@ -114,5 +154,26 @@ const styles = StyleSheet.create({
     fontWeight: '600',
     fontSize: 15,
     paddingVertical: Spacing.xs,
+  },
+  destructiveDivider: {
+    height: StyleSheet.hairlineWidth,
+    marginTop: Spacing.md,
+    marginBottom: Spacing.md,
+  },
+  destructiveBlock: {
+    gap: Spacing.sm,
+  },
+  destructiveTitle: {
+    fontFamily: Fonts.bodyBold,
+    fontSize: 16,
+    lineHeight: 22,
+  },
+  destructiveCopy: {
+    fontFamily: Fonts.body,
+    fontSize: 14,
+    lineHeight: 20,
+  },
+  deleteButton: {
+    marginTop: Spacing.xs,
   },
 });

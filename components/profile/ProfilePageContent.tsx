@@ -6,6 +6,7 @@ import { FormNotice } from '@/components/forms/FormNotice';
 import { ScreenHeader } from '@/components/layout/ScreenHeader';
 import { ChangeEmailModal } from '@/components/profile/ChangeEmailModal';
 import { ChangePasswordModal } from '@/components/profile/ChangePasswordModal';
+import { DeleteAccountConfirmModal } from '@/components/profile/DeleteAccountConfirmModal';
 import { ProfileAccountSection } from '@/components/profile/ProfileAccountSection';
 import { ProfileLoadingSkeleton } from '@/components/profile/ProfileLoadingSkeleton';
 import { ProfilePersonalInfoSection } from '@/components/profile/ProfilePersonalInfoSection';
@@ -54,9 +55,10 @@ function initialErrorCopy(error: ProfileApiError | Error | null): {
 }
 
 /**
- * Profile page body — name editing, Change Email, Change Password, and
- * Authenticator App setup/disable. Profile.totpEnabled comes from the server
- * after Session rotation + useProfile reload.
+ * Profile page body — name editing, Change Email, Change Password,
+ * Authenticator App setup/disable, and Delete Account.
+ * Profile.totpEnabled comes from the server after Session rotation +
+ * useProfile reload (and gates conditional TOTP on delete).
  */
 export function ProfilePageContent({
   isRestoring,
@@ -78,6 +80,7 @@ export function ProfilePageContent({
   const [changeEmailVisible, setChangeEmailVisible] = useState(false);
   const [totpSetupVisible, setTotpSetupVisible] = useState(false);
   const [totpDisableVisible, setTotpDisableVisible] = useState(false);
+  const [deleteAccountVisible, setDeleteAccountVisible] = useState(false);
   const [accountNotice, setAccountNotice] = useState<{
     tone: 'success' | 'info' | 'error';
     message: string;
@@ -149,6 +152,11 @@ export function ProfilePageContent({
     setTotpDisableVisible(true);
   }, []);
 
+  const openDeleteAccount = useCallback(() => {
+    setAccountNotice(null);
+    setDeleteAccountVisible(true);
+  }, []);
+
   const handleChangePasswordSuccess = useCallback(() => {
     setChangePasswordVisible(false);
     setSecurityNotice({
@@ -198,6 +206,21 @@ export function ProfilePageContent({
       message,
     });
   }, []);
+
+  const handleAccountDeleted = useCallback(
+    (opts?: { cleanupWarning?: string }) => {
+      setDeleteAccountVisible(false);
+      // Prefer protected routing after clearSession. If a storage cleanup
+      // warning is present and the user can still see Profile briefly, surface it.
+      if (opts?.cleanupWarning) {
+        setAccountNotice({
+          tone: 'error',
+          message: opts.cleanupWarning,
+        });
+      }
+    },
+    [],
+  );
 
   return (
     <>
@@ -261,7 +284,9 @@ export function ProfilePageContent({
             {accountNotice ? (
               <FormNotice
                 tone={accountNotice.tone}
-                title="Email change"
+                title={
+                  accountNotice.tone === 'info' ? 'Email change' : 'Account'
+                }
                 message={accountNotice.message}
               />
             ) : null}
@@ -269,6 +294,9 @@ export function ProfilePageContent({
               email={profile.email}
               onChangeEmail={
                 hasAuthenticatedSession ? openChangeEmail : undefined
+              }
+              onDeleteAccount={
+                hasAuthenticatedSession ? openDeleteAccount : undefined
               }
             />
             {securityNotice ? (
@@ -330,6 +358,15 @@ export function ProfilePageContent({
           onDismiss={() => setTotpDisableVisible(false)}
           onSuccess={handleTotpDisableSuccess}
           onReauthRequired={handleTotpReauthRequired}
+        />
+      ) : null}
+
+      {hasAuthenticatedSession && profile ? (
+        <DeleteAccountConfirmModal
+          visible={deleteAccountVisible}
+          totpEnabled={profile.totpEnabled}
+          onDismiss={() => setDeleteAccountVisible(false)}
+          onDeleted={handleAccountDeleted}
         />
       ) : null}
     </>

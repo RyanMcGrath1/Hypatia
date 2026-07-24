@@ -70,6 +70,24 @@ export type VerifyEmailChangeResult =
       message: string;
     };
 
+export type DeleteAccountRequest = {
+  token: SessionToken;
+  /** Forwarded exactly — never trim/normalize. */
+  currentPassword: string;
+  /** Must be exact uppercase `DELETE`; forwarded without trim. */
+  confirmation: string;
+  /**
+   * Include only when TOTP is enabled on the account.
+   * Omitted entirely from the request body when not required.
+   */
+  totpCode?: string;
+  signal?: AbortSignal;
+};
+
+export type DeleteAccountResult = {
+  message: string;
+};
+
 const nonEmptyString = z.string().min(1);
 
 const changePasswordSuccessSchema = z.object({
@@ -85,6 +103,10 @@ const requestEmailChangeSuccessSchema = z.object({
 const verifyEmailChangeSuccessSchema = z.object({
   message: z.string(),
   email_change_complete: z.boolean(),
+});
+
+const deleteAccountSuccessSchema = z.object({
+  message: z.string(),
 });
 
 function wrapAccountHttpError(e: unknown): never {
@@ -227,4 +249,53 @@ export async function verifyEmailChange(
     kind: 'pending',
     message: parsed.data.message,
   };
+}
+
+/**
+ * `DELETE /api/account` — soft-deletes / anonymizes the account after
+ * password (and conditional TOTP) reauthentication.
+ *
+ * Pure API boundary: does not mutate AuthProvider Session state and does not
+ * return a replacement Session. Callers must clear local auth after success.
+ *
+ * Password, confirmation, and optional TOTP code are forwarded exactly
+ * (no trim/normalize). `totp_code` is omitted from the body when not provided.
+ */
+export async function deleteAccount(
+  params: DeleteAccountRequest,
+): Promise<DeleteAccountResult> {
+  const { token, currentPassword, confirmation, totpCode, signal } = params;
+
+  const requestBody: {
+    current_password: string;
+    confirmation: string;
+    totp_code?: string;
+  } = {
+    current_password: currentPassword,
+    confirmation,
+  };
+  if (totpCode !== undefined) {
+    requestBody.totp_code = totpCode;
+  }
+
+  let body: unknown;
+  try {
+    body = await requestApi({
+      baseUrl: getHypatiaBackendBaseUrl(),
+      path: HYPATIA_API_PATHS.accountDelete,
+      method: 'DELETE',
+      token,
+      body: requestBody,
+      signal,
+    });
+  } catch (e) {
+    wrapAccountHttpError(e);
+  }
+
+  const parsed = deleteAccountSuccessSchema.safeParse(body);
+  if (!parsed.success) {
+    throw new AccountApiError('Invalid delete-account payload', 500, body);
+  }
+
+  return { message: parsed.data.message };
 }

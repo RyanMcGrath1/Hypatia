@@ -15,6 +15,7 @@ import {
   render,
   screen,
   waitFor,
+  within,
 } from '@testing-library/react';
 import { readFileSync } from 'node:fs';
 import { resolve } from 'node:path';
@@ -254,6 +255,18 @@ vi.mock('@/components/profile/TotpDisableModal', () => {
   };
 });
 
+vi.mock('@/components/profile/DeleteAccountConfirmModal', () => {
+  const React = require('react') as typeof import('react');
+  return {
+    DeleteAccountConfirmModal: ({ visible }: { visible?: boolean }) =>
+      visible
+        ? React.createElement('div', {
+            'data-testid': 'delete-account-modal-stub',
+          })
+        : null,
+  };
+});
+
 vi.mock('@/hooks/useAuthSession', () => ({
   useAuthSession: () => ({
     token: 'opaque_session_tok_ProfileScreen',
@@ -441,7 +454,7 @@ describe('ProfilePageContent', () => {
       expect(screen.getByLabelText(/Date Joined:.*July 23, 2026/)).toBeTruthy();
     });
 
-    it('shows Edit in Personal Information; Change for Email and Password; Disable for Authenticator', () => {
+    it('shows Edit in Personal Information; Change for Email and Password; Disable for Authenticator; Delete Account', () => {
       renderPage({
         hasAuthenticatedSession: true,
         profile: SAMPLE_PROFILE,
@@ -459,7 +472,13 @@ describe('ProfilePageContent', () => {
       expect(
         screen.getByRole('button', { name: 'Disable authenticator app' }),
       ).toBeTruthy();
-      expect(screen.queryByRole('button', { name: /delete/i })).toBeNull();
+      expect(screen.getByTestId('profile-delete-account-section')).toBeTruthy();
+      expect(
+        within(screen.getByTestId('profile-delete-account-section')).getByRole(
+          'button',
+          { name: 'Delete Account' },
+        ),
+      ).toBeTruthy();
       expect(screen.queryByRole('button', { name: /logout/i })).toBeNull();
       expect(screen.queryByRole('button', { name: /log out/i })).toBeNull();
       expect(
@@ -936,6 +955,9 @@ describe('ProfilePageContent', () => {
       expect(screen.queryByText('Matthew')).toBeNull();
       expect(
         screen.queryByRole('button', { name: 'Edit personal information' }),
+      ).toBeNull();
+      expect(
+        screen.queryByTestId('profile-delete-account-section'),
       ).toBeNull();
       expect(updatePersonalInfo).not.toHaveBeenCalled();
     });

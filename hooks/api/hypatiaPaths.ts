@@ -11,6 +11,7 @@ export const HYPATIA_API_PATHS = {
   authLoginTotp: "/api/auth/login/totp",
   authLogout: "/api/auth/logout",
   profile: "/api/profile",
+  accountDelete: "/api/account",
   accountChangePassword: "/api/account/change-password",
   accountChangeEmail: "/api/account/change-email",
   accountVerifyEmailChange: "/api/account/change-email/verify",

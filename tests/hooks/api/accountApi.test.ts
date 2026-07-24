@@ -21,6 +21,7 @@ vi.mock('@/hooks/api/hypatiaBaseUrl', () => ({
 import {
   AccountApiError,
   changePassword,
+  deleteAccount,
   requestEmailChange,
   verifyEmailChange,
 } from '@/hooks/api/accountApi';
@@ -511,5 +512,227 @@ describe('accountApi.verifyEmailChange', () => {
       expect(err.message).not.toContain(VERIFY_TOKEN);
       expect(String(err.stack ?? '')).not.toContain(VERIFY_TOKEN);
     }
+  });
+});
+
+describe('accountApi.deleteAccount', () => {
+  const DELETE_SUCCESS = {
+    message: 'Your account has been deleted',
+  };
+
+  beforeEach(() => {
+    mockRequestApi.mockReset();
+  });
+
+  afterEach(() => {
+    vi.clearAllMocks();
+  });
+
+  it('DELETEs /api/account with Bearer Session and snake_case body without totp_code', async () => {
+    mockRequestApi.mockResolvedValueOnce(DELETE_SUCCESS);
+
+    const result = await deleteAccount({
+      token: SESSION_TOKEN,
+      currentPassword: 'validpassword12',
+      confirmation: 'DELETE',
+    });
+
+    expect(HYPATIA_API_PATHS.accountDelete).toBe('/api/account');
+    expect(mockRequestApi).toHaveBeenCalledWith({
+      baseUrl: 'http://test-backend.example',
+      path: HYPATIA_API_PATHS.accountDelete,
+      method: 'DELETE',
+      token: SESSION_TOKEN,
+      body: {
+        current_password: 'validpassword12',
+        confirmation: 'DELETE',
+      },
+      signal: undefined,
+    });
+    const body = (
+      mockRequestApi.mock.calls[0]![0] as { body: Record<string, string> }
+    ).body;
+    expect(body).not.toHaveProperty('totp_code');
+    expect(result).toEqual({ message: 'Your account has been deleted' });
+    expect(result).not.toHaveProperty('token');
+    expect(result).not.toHaveProperty('sessionToken');
+  });
+
+  it('includes totp_code when provided and preserves leading zeroes as a string', async () => {
+    mockRequestApi.mockResolvedValueOnce(DELETE_SUCCESS);
+
+    await deleteAccount({
+      token: SESSION_TOKEN,
+      currentPassword: 'validpassword12',
+      confirmation: 'DELETE',
+      totpCode: '012345',
+    });
+
+    const body = (
+      mockRequestApi.mock.calls[0]![0] as { body: Record<string, string> }
+    ).body;
+    expect(body).toEqual({
+      current_password: 'validpassword12',
+      confirmation: 'DELETE',
+      totp_code: '012345',
+    });
+    expect(typeof body.totp_code).toBe('string');
+    expect(body.totp_code).toBe('012345');
+  });
+
+  it('preserves password and confirmation whitespace exactly (no trim)', async () => {
+    mockRequestApi.mockResolvedValueOnce(DELETE_SUCCESS);
+
+    await deleteAccount({
+      token: SESSION_TOKEN,
+      currentPassword: '  current spaced ',
+      confirmation: 'DELETE ',
+    });
+
+    const body = (
+      mockRequestApi.mock.calls[0]![0] as { body: Record<string, string> }
+    ).body;
+    expect(body.current_password).toBe('  current spaced ');
+    expect(body.confirmation).toBe('DELETE ');
+  });
+
+  it('forwards AbortSignal', async () => {
+    const signal = new AbortController().signal;
+    mockRequestApi.mockResolvedValueOnce(DELETE_SUCCESS);
+
+    await deleteAccount({
+      token: SESSION_TOKEN,
+      currentPassword: 'validpassword12',
+      confirmation: 'DELETE',
+      signal,
+    });
+
+    expect(mockRequestApi.mock.calls[0]![0]).toMatchObject({ signal });
+  });
+
+  it('does not clear AuthProvider or persist credentials', async () => {
+    mockRequestApi.mockResolvedValueOnce(DELETE_SUCCESS);
+    const source = readFileSync(
+      resolve(__dirname, '../../../hooks/api/accountApi.ts'),
+      'utf8',
+    );
+
+    await deleteAccount({
+      token: SESSION_TOKEN,
+      currentPassword: 'validpassword12',
+      confirmation: 'DELETE',
+    });
+
+    expect(source).not.toMatch(
+      /from ['"]@\/lib\/auth\/tokenStorage['"]|from ['"]expo-secure-store['"]|from ['"]@\/components\/auth\/AuthProvider['"]|from ['"]@\/hooks\/useAuthSession['"]/,
+    );
+    expect(source).not.toMatch(
+      /\bsetSessionToken\b|\bestablishSession\b|\breplaceSession\b|\bclearSession\b/,
+    );
+  });
+
+  it('rejects malformed 2xx payloads', async () => {
+    mockRequestApi.mockResolvedValueOnce({ ok: true });
+
+    await expect(
+      deleteAccount({
+        token: SESSION_TOKEN,
+        currentPassword: 'validpassword12',
+        confirmation: 'DELETE',
+      }),
+    ).rejects.toMatchObject({
+      name: 'AccountApiError',
+      status: 500,
+      message: 'Invalid delete-account payload',
+    });
+  });
+
+  it('surfaces 400 safely without leaking credentials', async () => {
+    mockRequestApi.mockRejectedValueOnce(
+      new HttpApiError('Current password is incorrect', 400, {
+        error: 'Current password is incorrect',
+      }),
+    );
+
+    try {
+      await deleteAccount({
+        token: SESSION_TOKEN,
+        currentPassword: 'secret-delete-password',
+        confirmation: 'DELETE',
+        totpCode: '654321',
+      });
+      expect.unreachable('expected AccountApiError');
+    } catch (e) {
+      expect(e).toBeInstanceOf(AccountApiError);
+      const err = e as AccountApiError;
+      expect(err.status).toBe(400);
+      expect(err.message).toBe('Current password is incorrect');
+      expect(err.message).not.toContain('secret-delete-password');
+      expect(err.message).not.toContain('654321');
+      expect(err.message).not.toContain(SESSION_TOKEN);
+      expect(String(err.stack ?? '')).not.toContain('secret-delete-password');
+    }
+  });
+
+  it('surfaces 401 safely', async () => {
+    mockRequestApi.mockRejectedValueOnce(
+      new HttpApiError('Authentication required', 401, {
+        error: 'Authentication required',
+      }),
+    );
+
+    await expect(
+      deleteAccount({
+        token: SESSION_TOKEN,
+        currentPassword: 'validpassword12',
+        confirmation: 'DELETE',
+      }),
+    ).rejects.toMatchObject({
+      name: 'AccountApiError',
+      status: 401,
+      message: 'Authentication required',
+    });
+  });
+
+  it('surfaces TOTP failure safely', async () => {
+    mockRequestApi.mockRejectedValueOnce(
+      new HttpApiError('Invalid authenticator code', 400, {
+        error: 'Invalid authenticator code',
+      }),
+    );
+
+    try {
+      await deleteAccount({
+        token: SESSION_TOKEN,
+        currentPassword: 'validpassword12',
+        confirmation: 'DELETE',
+        totpCode: '012345',
+      });
+      expect.unreachable('expected AccountApiError');
+    } catch (e) {
+      const err = e as AccountApiError;
+      expect(err.status).toBe(400);
+      expect(err.message).toBe('Invalid authenticator code');
+      expect(err.message).not.toContain('012345');
+    }
+  });
+
+  it('surfaces 500/503 safely', async () => {
+    mockRequestApi.mockRejectedValueOnce(
+      new HttpApiError('Service unavailable', 503, {
+        error: 'Service unavailable',
+      }),
+    );
+
+    await expect(
+      deleteAccount({
+        token: SESSION_TOKEN,
+        currentPassword: 'validpassword12',
+        confirmation: 'DELETE',
+      }),
+    ).rejects.toMatchObject({
+      name: 'AccountApiError',
+      status: 503,
+    });
   });
 });

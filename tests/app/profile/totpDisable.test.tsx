@@ -304,6 +304,11 @@ vi.mock('@/hooks/api/accountApi', () => ({
   },
   changePassword: vi.fn(),
   requestEmailChange: vi.fn(),
+  deleteAccount: vi.fn(),
+}));
+
+vi.mock('@/components/profile/DeleteAccountConfirmModal', () => ({
+  DeleteAccountConfirmModal: () => null,
 }));
 
 const { ProfileApiError } = vi.hoisted(() => {
