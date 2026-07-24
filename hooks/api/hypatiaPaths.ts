@@ -6,6 +6,10 @@ export const HYPATIA_API_PATHS = {
   health: "/health",
   /** Legacy alias; backend registers the same handler as `health`. */
   hello: "/hello",
+  authRegister: "/api/auth/register",
+  authLogin: "/api/auth/login",
+  authLoginTotp: "/api/auth/login/totp",
+  authLogout: "/api/auth/logout",
   civicDivisionsByAddress: "/api/civic/divisions-by-address",
   civicRepresentatives: "/api/civic/representatives",
   economyDashboard: "/api/economy/dashboard",
