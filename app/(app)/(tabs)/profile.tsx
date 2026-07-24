@@ -1,22 +1,37 @@
-import { Stack } from 'expo-router';
+import { useCallback } from 'react';
 import { StyleSheet } from 'react-native';
+import { Stack } from 'expo-router';
 
-import { ThemedText } from '@/components/theme/ThemedText';
+import { ProfilePageContent } from '@/components/profile/ProfilePageContent';
 import { ThemedView } from '@/components/theme/ThemedView';
-import { Colors } from '@/constants/theme/Colors';
-import { Spacing } from '@/constants/theme/ThemeTokens';
-import { useColorScheme } from '@/hooks/useColorScheme';
+import { useAuthSession } from '@/hooks/useAuthSession';
+import { useProfile } from '@/hooks/useProfile';
 
+/**
+ * Read-only Profile route — wires auth + useProfile into ProfilePageContent.
+ * No edit / account-action controls in this baseline.
+ */
 export default function ProfileScreen() {
-  const colorScheme = useColorScheme() ?? 'light';
-  const theme = Colors[colorScheme];
+  const { isRestoring, isDevAuthBypass } = useAuthSession();
+  const { profile, isLoading, error, hasAuthenticatedSession, refresh } =
+    useProfile();
+
+  const onRetry = useCallback(() => {
+    void refresh();
+  }, [refresh]);
 
   return (
     <ThemedView style={styles.screen}>
       <Stack.Screen options={{ headerShown: false }} />
-      <ThemedText style={[styles.lead, { color: theme.icon }]}>
-        Account details and settings can go here when you wire up auth.
-      </ThemedText>
+      <ProfilePageContent
+        isRestoring={isRestoring}
+        isDevAuthBypass={isDevAuthBypass}
+        profile={profile}
+        isLoading={isLoading}
+        error={error}
+        hasAuthenticatedSession={hasAuthenticatedSession}
+        onRetry={onRetry}
+      />
     </ThemedView>
   );
 }
@@ -24,12 +39,5 @@ export default function ProfileScreen() {
 const styles = StyleSheet.create({
   screen: {
     flex: 1,
-    padding: Spacing.lg,
-    paddingTop: Spacing.md,
-  },
-  lead: {
-    fontSize: 15,
-    lineHeight: 22,
-    marginTop: Spacing.sm,
   },
 });

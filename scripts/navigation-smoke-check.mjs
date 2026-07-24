@@ -132,6 +132,28 @@ try {
     'TOTP success must route to the protected app home.',
   );
 
+  // AppBanner Profile affordance → protected Profile route under (app)/(tabs).
+  assertContains(
+    'components/navigation/AppBanner.tsx',
+    'AppRoutes.profile',
+    'AppBanner Profile icon must navigate via AppRoutes.profile.',
+  );
+  assertContains(
+    'constants/app/routes.ts',
+    "profile: '/(tabs)/profile'",
+    'Route constants must define the Profile path.',
+  );
+  assertContains(
+    'app/(app)/(tabs)/profile.tsx',
+    'useProfile',
+    'Profile route must load account data via useProfile.',
+  );
+  assertContains(
+    'app/(app)/(tabs)/_layout.tsx',
+    'name="profile"',
+    'Tabs layout must declare the Profile screen (href:null, banner entry).',
+  );
+
   console.log('Navigation smoke check passed.');
 } catch (error) {
   const message = error instanceof Error ? error.message : String(error);

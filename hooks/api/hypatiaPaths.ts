@@ -10,6 +10,7 @@ export const HYPATIA_API_PATHS = {
   authLogin: "/api/auth/login",
   authLoginTotp: "/api/auth/login/totp",
   authLogout: "/api/auth/logout",
+  profile: "/api/profile",
   civicDivisionsByAddress: "/api/civic/divisions-by-address",
   civicRepresentatives: "/api/civic/representatives",
   economyDashboard: "/api/economy/dashboard",
