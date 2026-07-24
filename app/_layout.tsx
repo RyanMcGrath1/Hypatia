@@ -14,6 +14,7 @@ import { View } from 'react-native';
 import 'react-native-reanimated';
 import { SafeAreaProvider, SafeAreaView } from 'react-native-safe-area-context';
 
+import { AuthProvider } from '@/components/auth/AuthProvider';
 import { AppBanner } from '@/components/navigation/AppBanner';
 import { Colors } from '@/constants/theme/Colors';
 import { getTabScreenCanvasTint } from '@/constants/theme/ThemeTokens';
@@ -85,24 +86,26 @@ export default function RootLayout() {
         };
 
   return (
-    <ThemeProvider value={navigationTheme}>
-      <SafeAreaProvider>
-        <SafeAreaView
-          style={{ flex: 1, backgroundColor: theme.background }}
-          edges={['top', 'left', 'right']}>
-          <AppBanner />
-          <View style={{ flex: 1, backgroundColor: contentBackground }}>
-            <Stack>
-              <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
-              <Stack.Screen name="+not-found" />
-            </Stack>
-          </View>
-        </SafeAreaView>
-        <StatusBar
-          style={colorScheme === 'dark' ? 'light' : 'dark'}
-          backgroundColor={theme.background}
-        />
-      </SafeAreaProvider>
-    </ThemeProvider>
+    <AuthProvider>
+      <ThemeProvider value={navigationTheme}>
+        <SafeAreaProvider>
+          <SafeAreaView
+            style={{ flex: 1, backgroundColor: theme.background }}
+            edges={['top', 'left', 'right']}>
+            <AppBanner />
+            <View style={{ flex: 1, backgroundColor: contentBackground }}>
+              <Stack>
+                <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
+                <Stack.Screen name="+not-found" />
+              </Stack>
+            </View>
+          </SafeAreaView>
+          <StatusBar
+            style={colorScheme === 'dark' ? 'light' : 'dark'}
+            backgroundColor={theme.background}
+          />
+        </SafeAreaProvider>
+      </ThemeProvider>
+    </AuthProvider>
   );
 }

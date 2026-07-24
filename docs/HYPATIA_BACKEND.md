@@ -37,5 +37,6 @@ See the backend repo:
 | `EXPO_PUBLIC_HYPATIA_BASE_URL` | Override base for **all** Hypatia APIs |
 | `EXPO_PUBLIC_NEWS_API_BASE_URL` | News/economy base if Hypatia URL unset |
 | `EXPO_PUBLIC_API_BASE_URL` | Legacy Flask override (still honored) |
+| `EXPO_PUBLIC_DEV_AUTH_BYPASS` | Dev-only frontend UI bypass (`true` exact). Requires `__DEV__`. Not a Session; backend auth unchanged |
 
 Web dev uses the Metro proxy in `metro.config.js` for loopback URLs so CORS is not required for `:5001`.
