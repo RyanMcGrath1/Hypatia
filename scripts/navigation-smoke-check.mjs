@@ -47,9 +47,19 @@ try {
     'Root layout must use Stack.Protected for auth/app gating.',
   );
   assertContains(
+    'app/(auth)/register.tsx',
+    'Create Account',
+    'Registration screen is missing.',
+  );
+  assertContains(
     'app/(auth)/index.tsx',
-    'Authentication setup in progress',
-    'Temporary auth landing screen is missing.',
+    'Redirect',
+    'Temporary auth index should redirect to Registration until Login exists.',
+  );
+  assertContains(
+    'app/(auth)/_layout.tsx',
+    'register',
+    'Auth group layout must declare the register screen.',
   );
 
   console.log('Navigation smoke check passed.');
