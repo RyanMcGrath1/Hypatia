@@ -8,13 +8,19 @@ import { useAuthSession } from '@/hooks/useAuthSession';
 import { useProfile } from '@/hooks/useProfile';
 
 /**
- * Read-only Profile route — wires auth + useProfile into ProfilePageContent.
- * No edit / account-action controls in this baseline.
+ * Profile route — wires auth + useProfile into ProfilePageContent.
+ * Supports Personal Information editing, Change Email, and Change Password.
  */
 export default function ProfileScreen() {
   const { isRestoring, isDevAuthBypass } = useAuthSession();
-  const { profile, isLoading, error, hasAuthenticatedSession, refresh } =
-    useProfile();
+  const {
+    profile,
+    isLoading,
+    error,
+    hasAuthenticatedSession,
+    refresh,
+    updatePersonalInfo,
+  } = useProfile();
 
   const onRetry = useCallback(() => {
     void refresh();
@@ -31,6 +37,9 @@ export default function ProfileScreen() {
         error={error}
         hasAuthenticatedSession={hasAuthenticatedSession}
         onRetry={onRetry}
+        updatePersonalInfo={
+          hasAuthenticatedSession ? updatePersonalInfo : undefined
+        }
       />
     </ThemedView>
   );

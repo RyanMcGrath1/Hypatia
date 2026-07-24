@@ -132,6 +132,43 @@ try {
     'TOTP success must route to the protected app home.',
   );
 
+  // Public email-change verification (outside auth/app protected groups).
+  assertContains(
+    'app/_layout.tsx',
+    'verify-email-change',
+    'Root layout must declare the public verify-email-change screen.',
+  );
+  assertContains(
+    'app.json',
+    '"scheme": "hypatia"',
+    'Expo scheme must remain hypatia for EMAIL_CHANGE_VERIFY_URL deep links.',
+  );
+  assertContains(
+    'constants/app/routes.ts',
+    "verifyEmailChange: '/verify-email-change'",
+    'Route constants must define the email-change verification path.',
+  );
+  assertContains(
+    'app/verify-email-change.tsx',
+    'verifyEmailChange',
+    'Verification screen must call accountApi.verifyEmailChange.',
+  );
+  assertContains(
+    'app/verify-email-change.tsx',
+    'clearSession',
+    'Completed email change must clear the local Session.',
+  );
+  assertContains(
+    'hooks/api/accountApi.ts',
+    'email_change_complete',
+    'verifyEmailChange must discriminate on email_change_complete, not message text.',
+  );
+  assertContains(
+    'app/verify-email-change.tsx',
+    "kind === 'completed'",
+    'Verification screen must branch on completed vs pending kinds.',
+  );
+
   // AppBanner Profile affordance → protected Profile route under (app)/(tabs).
   assertContains(
     'components/navigation/AppBanner.tsx',

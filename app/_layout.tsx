@@ -137,6 +137,9 @@ function RootNavigationChrome({
         edges={['top', 'left', 'right']}>
         <View style={{ flex: 1, backgroundColor: contentBackground }}>
           <Stack screenOptions={{ headerShown: false }}>
+            {/* Public utility route — available regardless of Session / bypass. */}
+            <Stack.Screen name="verify-email-change" />
+
             <Stack.Protected guard={authRouteGroupGuard(canAccessApp)}>
               <Stack.Screen name="(auth)" />
             </Stack.Protected>

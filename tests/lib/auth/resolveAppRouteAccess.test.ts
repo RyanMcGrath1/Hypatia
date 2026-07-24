@@ -75,5 +75,6 @@ describe('AppRoutes after (app) nesting', () => {
     expect(AppRoutes.economyDetail).toBe('/(tabs)/economy/[sectorId]');
     expect(AppRoutes.profile).toBe('/(tabs)/profile');
     expect(AppRoutes.article).toBe('/(tabs)/index/article');
+    expect(AppRoutes.verifyEmailChange).toBe('/verify-email-change');
   });
 });
