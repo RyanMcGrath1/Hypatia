@@ -230,6 +230,30 @@ vi.mock('@/components/profile/ChangeEmailModal', () => {
   };
 });
 
+vi.mock('@/components/profile/TotpSetupModal', () => {
+  const React = require('react') as typeof import('react');
+  return {
+    TotpSetupModal: ({ visible }: { visible?: boolean }) =>
+      visible
+        ? React.createElement('div', {
+            'data-testid': 'totp-setup-modal-stub',
+          })
+        : null,
+  };
+});
+
+vi.mock('@/components/profile/TotpDisableModal', () => {
+  const React = require('react') as typeof import('react');
+  return {
+    TotpDisableModal: ({ visible }: { visible?: boolean }) =>
+      visible
+        ? React.createElement('div', {
+            'data-testid': 'totp-disable-modal-stub',
+          })
+        : null,
+  };
+});
+
 vi.mock('@/hooks/useAuthSession', () => ({
   useAuthSession: () => ({
     token: 'opaque_session_tok_ProfileScreen',
@@ -417,7 +441,7 @@ describe('ProfilePageContent', () => {
       expect(screen.getByLabelText(/Date Joined:.*July 23, 2026/)).toBeTruthy();
     });
 
-    it('shows Edit in Personal Information; Change for Email and Password', () => {
+    it('shows Edit in Personal Information; Change for Email and Password; Disable for Authenticator', () => {
       renderPage({
         hasAuthenticatedSession: true,
         profile: SAMPLE_PROFILE,
@@ -432,11 +456,31 @@ describe('ProfilePageContent', () => {
       expect(
         screen.getByRole('button', { name: 'Change password' }),
       ).toBeTruthy();
+      expect(
+        screen.getByRole('button', { name: 'Disable authenticator app' }),
+      ).toBeTruthy();
       expect(screen.queryByRole('button', { name: /delete/i })).toBeNull();
       expect(screen.queryByRole('button', { name: /logout/i })).toBeNull();
       expect(screen.queryByRole('button', { name: /log out/i })).toBeNull();
-      expect(screen.queryByRole('button', { name: /enable/i })).toBeNull();
-      expect(screen.queryByRole('button', { name: /disable/i })).toBeNull();
+      expect(
+        screen.queryByRole('button', { name: 'Set up authenticator app' }),
+      ).toBeNull();
+    });
+
+    it('shows Set Up when totpEnabled is false', () => {
+      renderPage({
+        hasAuthenticatedSession: true,
+        profile: { ...SAMPLE_PROFILE, totpEnabled: false },
+      });
+
+      expect(screen.getByText('Disabled')).toBeTruthy();
+      expect(screen.queryByText('Enabled')).toBeNull();
+      expect(
+        screen.getByRole('button', { name: 'Set up authenticator app' }),
+      ).toBeTruthy();
+      expect(
+        screen.queryByRole('button', { name: 'Disable authenticator app' }),
+      ).toBeNull();
     });
 
     it('shows Disabled when totpEnabled is false', () => {

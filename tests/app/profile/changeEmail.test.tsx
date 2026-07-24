@@ -250,6 +250,14 @@ vi.mock('@/components/profile/ChangePasswordModal', () => ({
   ChangePasswordModal: () => null,
 }));
 
+vi.mock('@/components/profile/TotpSetupModal', () => ({
+  TotpSetupModal: () => null,
+}));
+
+vi.mock('@/components/profile/TotpDisableModal', () => ({
+  TotpDisableModal: () => null,
+}));
+
 vi.mock('@/hooks/useAuthSession', () => ({
   useAuthSession: () => ({
     token: authMocks.token,

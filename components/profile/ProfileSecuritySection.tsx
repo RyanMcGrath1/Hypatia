@@ -18,12 +18,18 @@ export type ProfileSecuritySectionProps = {
   totpEnabled: boolean;
   /** Opens Change Password when provided (authenticated Session only). */
   onChangePassword?: () => void;
+  /** Opens TOTP setup when provided and authenticator is disabled. */
+  onSetupTotp?: () => void;
+  /** Opens TOTP disable when provided and authenticator is enabled. */
+  onDisableTotp?: () => void;
 };
 
 export function ProfileSecuritySection({
   passwordChangedAt,
   totpEnabled,
   onChangePassword,
+  onSetupTotp,
+  onDisableTotp,
 }: ProfileSecuritySectionProps) {
   const colorScheme = useColorScheme() ?? 'light';
   const theme = Colors[colorScheme];
@@ -37,6 +43,24 @@ export function ProfileSecuritySection({
       ? '#4ADE80'
       : Brand.success
     : semantic.mutedText;
+
+  const totpAction = totpEnabled
+    ? onDisableTotp
+      ? {
+          label: 'Disable',
+          accessibilityLabel: 'Disable authenticator app',
+          testID: 'profile-disable-totp',
+          onPress: onDisableTotp,
+        }
+      : null
+    : onSetupTotp
+      ? {
+          label: 'Set Up',
+          accessibilityLabel: 'Set up authenticator app',
+          testID: 'profile-setup-totp',
+          onPress: onSetupTotp,
+        }
+      : null;
 
   return (
     <View style={styles.section}>
@@ -92,11 +116,43 @@ export function ProfileSecuritySection({
           label="Last Changed"
           value={formatPasswordChangedAt(passwordChangedAt)}
         />
-        <ProfileFieldRow
-          label="Authenticator App"
-          value={totpLabel}
-          valueColor={totpColor}
-        />
+        <View style={styles.passwordRow}>
+          <View
+            style={styles.passwordCopy}
+            accessibilityRole="text"
+            accessibilityLabel={`Authenticator App: ${totpLabel}`}
+          >
+            <ThemedText
+              style={[styles.label, { color: semantic.mutedText }]}
+              accessibilityElementsHidden
+              importantForAccessibility="no"
+            >
+              Authenticator App
+            </ThemedText>
+            <ThemedText
+              style={[styles.value, { color: totpColor }]}
+              accessibilityElementsHidden
+              importantForAccessibility="no"
+            >
+              {totpLabel}
+            </ThemedText>
+          </View>
+          {totpAction ? (
+            <Pressable
+              accessibilityRole="button"
+              accessibilityLabel={totpAction.accessibilityLabel}
+              onPress={totpAction.onPress}
+              hitSlop={8}
+              testID={totpAction.testID}
+            >
+              <ThemedText
+                style={[styles.changeAction, { color: interactive.primary }]}
+              >
+                {totpAction.label}
+              </ThemedText>
+            </Pressable>
+          ) : null}
+        </View>
       </SectionCard>
     </View>
   );

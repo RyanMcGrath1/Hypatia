@@ -10,6 +10,8 @@ import { ProfileAccountSection } from '@/components/profile/ProfileAccountSectio
 import { ProfileLoadingSkeleton } from '@/components/profile/ProfileLoadingSkeleton';
 import { ProfilePersonalInfoSection } from '@/components/profile/ProfilePersonalInfoSection';
 import { ProfileSecuritySection } from '@/components/profile/ProfileSecuritySection';
+import { TotpDisableModal } from '@/components/profile/TotpDisableModal';
+import { TotpSetupModal } from '@/components/profile/TotpSetupModal';
 import { StateNoticeCard } from '@/components/surfaces/StateNoticeCard';
 import { TAB_BAR_SCROLL_CLEARANCE } from '@/constants/navigation/floatingTabBar';
 import { TAB_SCREEN_CONTENT_INSETS } from '@/constants/navigation/tabScreenContentInsets';
@@ -52,8 +54,9 @@ function initialErrorCopy(error: ProfileApiError | Error | null): {
 }
 
 /**
- * Profile page body — name editing, Change Email, and Change Password.
- * TOTP Profile controls remain read-only in this step.
+ * Profile page body — name editing, Change Email, Change Password, and
+ * Authenticator App setup/disable. Profile.totpEnabled comes from the server
+ * after Session rotation + useProfile reload.
  */
 export function ProfilePageContent({
   isRestoring,
@@ -73,6 +76,8 @@ export function ProfilePageContent({
 
   const [changePasswordVisible, setChangePasswordVisible] = useState(false);
   const [changeEmailVisible, setChangeEmailVisible] = useState(false);
+  const [totpSetupVisible, setTotpSetupVisible] = useState(false);
+  const [totpDisableVisible, setTotpDisableVisible] = useState(false);
   const [accountNotice, setAccountNotice] = useState<{
     tone: 'success' | 'info' | 'error';
     message: string;
@@ -134,6 +139,16 @@ export function ProfilePageContent({
     setChangeEmailVisible(true);
   }, []);
 
+  const openTotpSetup = useCallback(() => {
+    setSecurityNotice(null);
+    setTotpSetupVisible(true);
+  }, []);
+
+  const openTotpDisable = useCallback(() => {
+    setSecurityNotice(null);
+    setTotpDisableVisible(true);
+  }, []);
+
   const handleChangePasswordSuccess = useCallback(() => {
     setChangePasswordVisible(false);
     setSecurityNotice({
@@ -156,6 +171,31 @@ export function ProfilePageContent({
       tone: 'info',
       message:
         'Verification emails were sent to your current and new email addresses. Confirm both to complete the change.',
+    });
+  }, []);
+
+  const handleTotpSetupSuccess = useCallback(() => {
+    setTotpSetupVisible(false);
+    setSecurityNotice({
+      tone: 'success',
+      message: 'Authenticator app enabled.',
+    });
+  }, []);
+
+  const handleTotpDisableSuccess = useCallback(() => {
+    setTotpDisableVisible(false);
+    setSecurityNotice({
+      tone: 'success',
+      message: 'Authenticator app disabled.',
+    });
+  }, []);
+
+  const handleTotpReauthRequired = useCallback((message: string) => {
+    setTotpSetupVisible(false);
+    setTotpDisableVisible(false);
+    setSecurityNotice({
+      tone: 'error',
+      message,
     });
   }, []);
 
@@ -246,6 +286,12 @@ export function ProfilePageContent({
               onChangePassword={
                 hasAuthenticatedSession ? openChangePassword : undefined
               }
+              onSetupTotp={
+                hasAuthenticatedSession ? openTotpSetup : undefined
+              }
+              onDisableTotp={
+                hasAuthenticatedSession ? openTotpDisable : undefined
+              }
             />
           </View>
         ) : null}
@@ -266,6 +312,24 @@ export function ProfilePageContent({
           onDismiss={() => setChangePasswordVisible(false)}
           onSuccess={handleChangePasswordSuccess}
           onReauthRequired={handleChangePasswordReauthRequired}
+        />
+      ) : null}
+
+      {hasAuthenticatedSession && profile && !profile.totpEnabled ? (
+        <TotpSetupModal
+          visible={totpSetupVisible}
+          onDismiss={() => setTotpSetupVisible(false)}
+          onSuccess={handleTotpSetupSuccess}
+          onReauthRequired={handleTotpReauthRequired}
+        />
+      ) : null}
+
+      {hasAuthenticatedSession && profile && profile.totpEnabled ? (
+        <TotpDisableModal
+          visible={totpDisableVisible}
+          onDismiss={() => setTotpDisableVisible(false)}
+          onSuccess={handleTotpDisableSuccess}
+          onReauthRequired={handleTotpReauthRequired}
         />
       ) : null}
     </>

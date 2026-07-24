@@ -293,6 +293,18 @@ vi.mock('@/hooks/api/accountApi', () => ({
   changePassword: accountApiMocks.changePassword,
 }));
 
+vi.mock('@/components/profile/TotpSetupModal', () => ({
+  TotpSetupModal: () => null,
+}));
+
+vi.mock('@/components/profile/TotpDisableModal', () => ({
+  TotpDisableModal: () => null,
+}));
+
+vi.mock('@/components/profile/ChangeEmailModal', () => ({
+  ChangeEmailModal: () => null,
+}));
+
 const { ProfileApiError } = vi.hoisted(() => {
   class ProfileApiError extends Error {
     constructor(
@@ -402,9 +414,11 @@ describe('Change Password', () => {
       expect(
         screen.getByRole('button', { name: 'Change password' }),
       ).toBeTruthy();
-      expect(screen.queryByRole('button', { name: /enable/i })).toBeNull();
-      expect(screen.queryByRole('button', { name: /disable/i })).toBeNull();
       expect(screen.getByText('Last Changed')).toBeTruthy();
+      // Authenticator Disable is present when totpEnabled (covered by totpDisable tests).
+      expect(
+        screen.getByRole('button', { name: 'Disable authenticator app' }),
+      ).toBeTruthy();
     });
 
     it('hides Change Password when there is no authenticated Profile', () => {
