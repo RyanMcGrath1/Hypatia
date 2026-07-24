@@ -262,6 +262,10 @@ vi.mock('@/components/profile/DeleteAccountConfirmModal', () => ({
   DeleteAccountConfirmModal: () => null,
 }));
 
+vi.mock('@/components/profile/ProfileLogoutButton', () => ({
+  ProfileLogoutButton: () => null,
+}));
+
 vi.mock('@/hooks/useAuthSession', () => ({
   useAuthSession: () => ({
     token: authMocks.token,

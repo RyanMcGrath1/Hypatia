@@ -267,6 +267,28 @@ vi.mock('@/components/profile/DeleteAccountConfirmModal', () => {
   };
 });
 
+const authApiMocks = vi.hoisted(() => {
+  class AuthApiError extends Error {
+    constructor(
+      message: string,
+      public readonly status: number,
+      public readonly body: unknown = null,
+    ) {
+      super(message);
+      this.name = 'AuthApiError';
+    }
+  }
+  return {
+    AuthApiError,
+    logout: vi.fn(async () => ({ message: 'Logout successful' })),
+  };
+});
+
+vi.mock('@/hooks/api/authApi', () => ({
+  AuthApiError: authApiMocks.AuthApiError,
+  logout: authApiMocks.logout,
+}));
+
 vi.mock('@/hooks/useAuthSession', () => ({
   useAuthSession: () => ({
     token: 'opaque_session_tok_ProfileScreen',
@@ -454,7 +476,7 @@ describe('ProfilePageContent', () => {
       expect(screen.getByLabelText(/Date Joined:.*July 23, 2026/)).toBeTruthy();
     });
 
-    it('shows Edit in Personal Information; Change for Email and Password; Disable for Authenticator; Delete Account', () => {
+    it('shows Edit in Personal Information; Change for Email and Password; Disable for Authenticator; Delete Account; Log Out', () => {
       renderPage({
         hasAuthenticatedSession: true,
         profile: SAMPLE_PROFILE,
@@ -479,8 +501,13 @@ describe('ProfilePageContent', () => {
           { name: 'Delete Account' },
         ),
       ).toBeTruthy();
-      expect(screen.queryByRole('button', { name: /logout/i })).toBeNull();
-      expect(screen.queryByRole('button', { name: /log out/i })).toBeNull();
+      expect(screen.getByRole('button', { name: 'Log Out' })).toBeTruthy();
+      expect(
+        within(screen.getByTestId('profile-delete-account-section')).queryByRole(
+          'button',
+          { name: 'Log Out' },
+        ),
+      ).toBeNull();
       expect(
         screen.queryByRole('button', { name: 'Set up authenticator app' }),
       ).toBeNull();
@@ -935,7 +962,7 @@ describe('ProfilePageContent', () => {
   });
 
   describe('dev bypass only', () => {
-    it('shows developer notice, no Edit, and never calls updatePersonalInfo', () => {
+    it('shows developer notice, no Edit, no Log Out, and never calls updatePersonalInfo', () => {
       const updatePersonalInfo = vi.fn();
       renderPage({
         isDevAuthBypass: true,
@@ -959,6 +986,8 @@ describe('ProfilePageContent', () => {
       expect(
         screen.queryByTestId('profile-delete-account-section'),
       ).toBeNull();
+      expect(screen.queryByRole('button', { name: 'Log Out' })).toBeNull();
+      expect(screen.queryByTestId('profile-logout-section')).toBeNull();
       expect(updatePersonalInfo).not.toHaveBeenCalled();
     });
   });
@@ -1015,7 +1044,7 @@ describe('ProfilePageContent', () => {
 });
 
 describe('Profile route wiring', () => {
-  it('wires updatePersonalInfo from useProfile without clearSession / logout', () => {
+  it('wires updatePersonalInfo from useProfile without clearSession / logout in the route', () => {
     const source = readFileSync(
       resolve(__dirname, '../../../app/(app)/(tabs)/profile.tsx'),
       'utf8',

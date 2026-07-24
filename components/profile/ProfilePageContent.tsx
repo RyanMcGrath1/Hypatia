@@ -9,6 +9,7 @@ import { ChangePasswordModal } from '@/components/profile/ChangePasswordModal';
 import { DeleteAccountConfirmModal } from '@/components/profile/DeleteAccountConfirmModal';
 import { ProfileAccountSection } from '@/components/profile/ProfileAccountSection';
 import { ProfileLoadingSkeleton } from '@/components/profile/ProfileLoadingSkeleton';
+import { ProfileLogoutButton } from '@/components/profile/ProfileLogoutButton';
 import { ProfilePersonalInfoSection } from '@/components/profile/ProfilePersonalInfoSection';
 import { ProfileSecuritySection } from '@/components/profile/ProfileSecuritySection';
 import { TotpDisableModal } from '@/components/profile/TotpDisableModal';
@@ -56,7 +57,7 @@ function initialErrorCopy(error: ProfileApiError | Error | null): {
 
 /**
  * Profile page body — name editing, Change Email, Change Password,
- * Authenticator App setup/disable, and Delete Account.
+ * Authenticator App setup/disable, Delete Account, and Log Out.
  * Profile.totpEnabled comes from the server after Session rotation +
  * useProfile reload (and gates conditional TOTP on delete).
  */
@@ -321,7 +322,14 @@ export function ProfilePageContent({
                 hasAuthenticatedSession ? openTotpDisable : undefined
               }
             />
+            {hasAuthenticatedSession ? <ProfileLogoutButton /> : null}
           </View>
+        ) : null}
+
+        {hasAuthenticatedSession &&
+        !showLoading &&
+        !showLoadedProfile ? (
+          <ProfileLogoutButton />
         ) : null}
       </ScrollView>
 

@@ -9,7 +9,7 @@ import { useProfile } from '@/hooks/useProfile';
 
 /**
  * Profile route — wires auth + useProfile into ProfilePageContent.
- * Supports Personal Information editing, Change Email, and Change Password.
+ * Account actions (email/password/TOTP/delete/logout) live in page content.
  */
 export default function ProfileScreen() {
   const { isRestoring, isDevAuthBypass } = useAuthSession();

@@ -312,6 +312,10 @@ vi.mock('@/components/profile/DeleteAccountConfirmModal', () => ({
   DeleteAccountConfirmModal: () => null,
 }));
 
+vi.mock('@/components/profile/ProfileLogoutButton', () => ({
+  ProfileLogoutButton: () => null,
+}));
+
 const { ProfileApiError } = vi.hoisted(() => {
   class ProfileApiError extends Error {
     constructor(
