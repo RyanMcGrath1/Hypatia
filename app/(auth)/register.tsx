@@ -3,6 +3,7 @@ import { useCallback, useState } from 'react';
 import {
   KeyboardAvoidingView,
   Platform,
+  Pressable,
   ScrollView,
   StyleSheet,
   View,
@@ -18,6 +19,7 @@ import { AppRoutes } from '@/constants/app/routes';
 import { Spacing } from '@/constants/theme/ThemeTokens';
 import { AuthApiError, register as registerAccount } from '@/hooks/api/authApi';
 import { useAuthSession } from '@/hooks/useAuthSession';
+import { useThemeInteractive } from '@/hooks/useThemeInteractive';
 
 const NAME_MAX_LENGTH = 128;
 const EMAIL_MAX_LENGTH = 255;
@@ -101,6 +103,7 @@ function mapRegisterApiError(error: unknown): string {
  */
 export default function RegisterScreen() {
   const { establishSession } = useAuthSession();
+  const interactive = useThemeInteractive();
 
   const [firstName, setFirstName] = useState('');
   const [lastName, setLastName] = useState('');
@@ -293,14 +296,23 @@ export default function RegisterScreen() {
             <ThemedText style={styles.loginPrompt}>
               Already have an account?
             </ThemedText>
-            <ThemedText
-              style={styles.loginLinkDisabled}
-              accessibilityRole="text"
-              accessibilityState={{ disabled: true }}
-              accessibilityLabel="Log In (coming soon)"
+            <Pressable
+              accessibilityRole="link"
+              accessibilityLabel="Log In"
+              disabled={isSubmitting}
+              onPress={() => {
+                router.push(
+                  AppRoutes.authLogin as Parameters<typeof router.push>[0],
+                );
+              }}
+              hitSlop={8}
             >
-              Log In
-            </ThemedText>
+              <ThemedText
+                style={[styles.loginLink, { color: interactive.primary }]}
+              >
+                Log In
+              </ThemedText>
+            </Pressable>
           </View>
         </ScrollView>
       </KeyboardAvoidingView>
@@ -342,8 +354,7 @@ const styles = StyleSheet.create({
   loginPrompt: {
     opacity: 0.85,
   },
-  loginLinkDisabled: {
-    opacity: 0.45,
+  loginLink: {
     fontWeight: '600',
   },
 });

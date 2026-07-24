@@ -260,11 +260,13 @@ vi.mock('@/hooks/useColorScheme', () => ({
   useColorScheme: () => 'light',
 }));
 
-const { mockRegister, mockEstablishSession, mockReplace } = vi.hoisted(() => ({
-  mockRegister: vi.fn(),
-  mockEstablishSession: vi.fn(),
-  mockReplace: vi.fn(),
-}));
+const { mockRegister, mockEstablishSession, mockReplace, mockPush } =
+  vi.hoisted(() => ({
+    mockRegister: vi.fn(),
+    mockEstablishSession: vi.fn(),
+    mockReplace: vi.fn(),
+    mockPush: vi.fn(),
+  }));
 
 vi.mock('@/hooks/api/authApi', () => {
   class AuthApiError extends Error {
@@ -299,6 +301,7 @@ vi.mock('@/hooks/useAuthSession', () => ({
 vi.mock('expo-router', () => ({
   router: {
     replace: (...args: unknown[]) => mockReplace(...args),
+    push: (...args: unknown[]) => mockPush(...args),
   },
 }));
 
@@ -342,6 +345,7 @@ beforeEach(() => {
   mockRegister.mockReset();
   mockEstablishSession.mockReset();
   mockReplace.mockReset();
+  mockPush.mockReset();
   mockEstablishSession.mockResolvedValue(undefined);
 });
 
@@ -359,7 +363,13 @@ describe('RegisterScreen rendering', () => {
     ).toBeTruthy();
     expect(screen.getByText('Use at least 15 characters.')).toBeTruthy();
     expect(screen.getByText('Already have an account?')).toBeTruthy();
-    expect(screen.getByText('Log In')).toBeTruthy();
+    expect(screen.getByLabelText('Log In')).toBeTruthy();
+  });
+
+  it('Log In navigates to the Login route', () => {
+    render(<RegisterScreen />);
+    fireEvent.click(screen.getByLabelText('Log In'));
+    expect(mockPush).toHaveBeenCalledWith(AppRoutes.authLogin);
   });
 
   it('does not render AppBanner and does not call SecureStore directly', () => {

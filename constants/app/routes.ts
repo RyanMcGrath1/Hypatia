@@ -1,4 +1,7 @@
 export const AppRoutes = {
+  /** Unauthenticated auth-group entry points (`canAccessApp === false`). */
+  authLogin: '/login',
+  authRegister: '/register',
   tabsRoot: '/(tabs)',
   tabsExplore: '/(tabs)/explore',
   tabsEconomy: '/(tabs)/economy',

@@ -47,6 +47,11 @@ try {
     'Root layout must use Stack.Protected for auth/app gating.',
   );
   assertContains(
+    'app/(auth)/login.tsx',
+    'Log In',
+    'Login screen is missing.',
+  );
+  assertContains(
     'app/(auth)/register.tsx',
     'Create Account',
     'Registration screen is missing.',
@@ -54,12 +59,32 @@ try {
   assertContains(
     'app/(auth)/index.tsx',
     'Redirect',
-    'Temporary auth index should redirect to Registration until Login exists.',
+    'Auth index should redirect to Login.',
+  );
+  assertContains(
+    'app/(auth)/index.tsx',
+    'authLogin',
+    'Auth index must redirect to the Login route constant.',
+  );
+  assertContains(
+    'app/(auth)/_layout.tsx',
+    'login',
+    'Auth group layout must declare the login screen.',
   );
   assertContains(
     'app/(auth)/_layout.tsx',
     'register',
     'Auth group layout must declare the register screen.',
+  );
+  assertContains(
+    'constants/app/routes.ts',
+    "authLogin: '/login'",
+    'Route constants must define the Login path.',
+  );
+  assertContains(
+    'constants/app/routes.ts',
+    "authRegister: '/register'",
+    'Route constants must define the Registration path.',
   );
 
   console.log('Navigation smoke check passed.');
