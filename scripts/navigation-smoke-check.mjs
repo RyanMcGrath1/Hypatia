@@ -11,16 +11,21 @@ function assertContains(filePath, expected, message) {
 try {
   // Economy tile navigation should route to detail screen.
   assertContains(
-    'app/(tabs)/economy/index.tsx',
+    'components/economy/tab/EconomySectorFeedList.tsx',
     'pathname: AppRoutes.economyDetail',
     'Economy tile navigation route changed unexpectedly.',
   );
 
   // Detail stack lives under the Economy tab so the tab bar stays visible.
   assertContains(
-    'app/(tabs)/economy/_layout.tsx',
-    'gestureEnabled: true',
+    'app/(app)/(tabs)/economy/_layout.tsx',
+    'forgivingStackScreenOptions',
     'Economy tab stack gesture navigation is not configured.',
+  );
+  assertContains(
+    'constants/navigation/stackScreenOptions.ts',
+    'gestureEnabled: true',
+    'Shared stack options must keep gestures enabled.',
   );
 
   // Route constants should keep tabs + detail route contract centralized.
@@ -28,6 +33,23 @@ try {
     'constants/app/routes.ts',
     "economyDetail: '/(tabs)/economy/[sectorId]'",
     'Route constants do not define economy detail path.',
+  );
+
+  // Protected app shell owns AppBanner (not the auth group).
+  assertContains(
+    'app/(app)/_layout.tsx',
+    'AppBanner',
+    'Protected app layout must render AppBanner.',
+  );
+  assertContains(
+    'app/_layout.tsx',
+    'Stack.Protected',
+    'Root layout must use Stack.Protected for auth/app gating.',
+  );
+  assertContains(
+    'app/(auth)/index.tsx',
+    'Authentication setup in progress',
+    'Temporary auth landing screen is missing.',
   );
 
   console.log('Navigation smoke check passed.');
