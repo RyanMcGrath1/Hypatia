@@ -20,6 +20,7 @@ vi.mock('@/hooks/api/hypatiaBaseUrl', () => ({
 
 import {
   SecurityTotpApiError,
+  cancelTotpSetup,
   disableTotp,
   enableTotp,
   setupTotp,
@@ -50,8 +51,12 @@ const DISABLE_SUCCESS_BODY = {
   totp_enabled: false,
 };
 
+const CANCEL_SETUP_SUCCESS_BODY = {
+  message: 'Authenticator setup cancelled',
+};
+
 describe('securityTotpApi paths', () => {
-  it('exposes the three security TOTP paths', () => {
+  it('exposes the security TOTP paths (cancel reuses setup path)', () => {
     expect(HYPATIA_API_PATHS.securityTotpSetup).toBe(
       '/api/security/totp/setup',
     );
@@ -322,6 +327,74 @@ describe('securityTotpApi.disableTotp', () => {
       name: 'SecurityTotpApiError',
       status: 500,
       message: 'Invalid TOTP disable payload',
+    });
+  });
+});
+
+describe('securityTotpApi.cancelTotpSetup', () => {
+  beforeEach(() => {
+    mockRequestApi.mockReset();
+  });
+
+  afterEach(() => {
+    vi.clearAllMocks();
+  });
+
+  it('DELETEs setup with Bearer Session and no body/secret', async () => {
+    mockRequestApi.mockResolvedValueOnce(CANCEL_SETUP_SUCCESS_BODY);
+
+    const result = await cancelTotpSetup({ token: SESSION_TOKEN });
+
+    expect(mockRequestApi).toHaveBeenCalledWith({
+      baseUrl: 'http://test-backend.example',
+      path: HYPATIA_API_PATHS.securityTotpSetup,
+      method: 'DELETE',
+      token: SESSION_TOKEN,
+      signal: undefined,
+    });
+    expect(result).toEqual({
+      message: 'Authenticator setup cancelled',
+    });
+    const call = mockRequestApi.mock.calls[0]![0] as {
+      body?: unknown;
+    };
+    expect(call.body).toBeUndefined();
+  });
+
+  it('forwards AbortSignal', async () => {
+    const signal = new AbortController().signal;
+    mockRequestApi.mockResolvedValueOnce(CANCEL_SETUP_SUCCESS_BODY);
+
+    await cancelTotpSetup({ token: SESSION_TOKEN, signal });
+
+    expect(mockRequestApi.mock.calls[0]![0]).toMatchObject({ signal });
+  });
+
+  it('rejects malformed 2xx payloads', async () => {
+    mockRequestApi.mockResolvedValueOnce({});
+
+    await expect(
+      cancelTotpSetup({ token: SESSION_TOKEN }),
+    ).rejects.toMatchObject({
+      name: 'SecurityTotpApiError',
+      status: 500,
+      message: 'Invalid TOTP setup cancel payload',
+    });
+  });
+
+  it('maps HTTP errors to SecurityTotpApiError', async () => {
+    mockRequestApi.mockRejectedValueOnce(
+      new HttpApiError('Authentication required', 401, {
+        error: 'Authentication required',
+      }),
+    );
+
+    await expect(
+      cancelTotpSetup({ token: SESSION_TOKEN }),
+    ).rejects.toMatchObject({
+      name: 'SecurityTotpApiError',
+      status: 401,
+      message: 'Authentication required',
     });
   });
 });

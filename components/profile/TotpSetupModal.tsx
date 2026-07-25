@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import {
   KeyboardAvoidingView,
   Modal,
@@ -23,6 +23,7 @@ import {
 import { Fonts } from '@/constants/theme/Typography';
 import {
   SecurityTotpApiError,
+  cancelTotpSetup as cancelTotpSetupRequest,
   enableTotp as enableTotpRequest,
   setupTotp as setupTotpRequest,
 } from '@/hooks/api/securityTotpApi';
@@ -38,10 +39,22 @@ const SESSION_PERSISTENCE_FAILURE_MESSAGE =
 
 type SetupPhase = 'password' | 'configure';
 
+type ErrorContext = 'setup' | 'enable' | 'cancel';
+
 type FieldErrors = {
   currentPassword?: string;
   code?: string;
 };
+
+function noticeTitleFor(context: ErrorContext): string {
+  if (context === 'setup') {
+    return 'Unable to start setup';
+  }
+  if (context === 'cancel') {
+    return 'Unable to cancel setup';
+  }
+  return 'Unable to enable authenticator';
+}
 
 /**
  * Normalize authenticator code for validation/submission.
@@ -114,6 +127,24 @@ function mapEnableApiError(error: unknown): string {
   return 'Unable to enable authenticator. Please try again.';
 }
 
+function mapCancelApiError(error: unknown): string {
+  if (error instanceof SecurityTotpApiError) {
+    if (error.status === 401) {
+      return 'Authenticator setup could not be cancelled with the current session.';
+    }
+    // Prefer a stable client message for transport/server failures so Cancel
+    // retry remains obvious; do not surface opaque 5xx text as success/cleanup.
+    if (error.status >= 500 || error.status === 0) {
+      return 'Unable to cancel authenticator setup. Please try again.';
+    }
+    const message = error.message.trim();
+    if (isSafeApiMessage(message)) {
+      return message;
+    }
+  }
+  return 'Unable to cancel authenticator setup. Please try again.';
+}
+
 export type TotpSetupModalProps = {
   visible: boolean;
   /** Cancel / backdrop / hardware back — clear secrets and close. */
@@ -140,10 +171,9 @@ export type TotpSetupModalProps = {
  * QR rendering is not currently available because the project has no QR
  * dependency — manual setup key path is fully usable.
  *
- * Backend pending-setup note: there is no cancel endpoint. Cancel clears local
- * state only; a disabled pending method may remain server-side until another
- * setup replaces it or enable completes. Profile still shows Disabled
- * (totpEnabled === false).
+ * After setup succeeds and before enable completes, intentional Cancel/close
+ * calls cancelTotpSetup so abandoned disabled enrollment is removed server-side.
+ * Successful enable never triggers cancel cleanup.
  */
 export function TotpSetupModal({
   visible,
@@ -167,7 +197,15 @@ export function TotpSetupModal({
   const [code, setCode] = useState('');
   const [fieldErrors, setFieldErrors] = useState<FieldErrors>({});
   const [submitError, setSubmitError] = useState<string | null>(null);
+  const [errorContext, setErrorContext] = useState<ErrorContext>('setup');
   const [isSubmitting, setIsSubmitting] = useState(false);
+
+  /** True after POST /setup succeeded and until enable completes or cancel clears it. */
+  const pendingSetupRef = useRef(false);
+  /** True after enable succeeds — suppress any subsequent cancel cleanup. */
+  const enableSucceededRef = useRef(false);
+  /** Guards Cancel/dismiss against double-submit before isSubmitting re-renders. */
+  const dismissInFlightRef = useRef(false);
 
   const clearSensitiveState = useCallback(() => {
     setCurrentPassword('');
@@ -175,6 +213,7 @@ export function TotpSetupModal({
     setCode('');
     setFieldErrors({});
     setSubmitError(null);
+    setErrorContext('setup');
     setPhase('password');
   }, []);
 
@@ -182,15 +221,55 @@ export function TotpSetupModal({
   useEffect(() => {
     clearSensitiveState();
     setIsSubmitting(false);
+    pendingSetupRef.current = false;
+    enableSucceededRef.current = false;
+    dismissInFlightRef.current = false;
   }, [visible, clearSensitiveState]);
 
-  const handleDismiss = useCallback(() => {
-    if (isSubmitting) {
+  const handleDismiss = useCallback(async () => {
+    if (isSubmitting || dismissInFlightRef.current) {
       return;
     }
-    clearSensitiveState();
-    onDismiss();
-  }, [isSubmitting, onDismiss, clearSensitiveState]);
+
+    // Enable already completed — never cancel an enabled authenticator.
+    if (enableSucceededRef.current) {
+      clearSensitiveState();
+      onDismiss();
+      return;
+    }
+
+    // No server-side incomplete enrollment yet — local dismiss only.
+    if (!pendingSetupRef.current) {
+      clearSensitiveState();
+      onDismiss();
+      return;
+    }
+
+    if (!token) {
+      setErrorContext('cancel');
+      setSubmitError(
+        'Authenticator setup could not be cancelled with the current session.',
+      );
+      return;
+    }
+
+    dismissInFlightRef.current = true;
+    setIsSubmitting(true);
+    setSubmitError(null);
+    try {
+      await cancelTotpSetupRequest({ token });
+      pendingSetupRef.current = false;
+      clearSensitiveState();
+      onDismiss();
+    } catch (error) {
+      // Keep modal + secrets so the user can retry Cancel. Do not claim cleanup.
+      setErrorContext('cancel');
+      setSubmitError(mapCancelApiError(error));
+    } finally {
+      dismissInFlightRef.current = false;
+      setIsSubmitting(false);
+    }
+  }, [clearSensitiveState, isSubmitting, onDismiss, token]);
 
   const clearFieldError = useCallback((field: keyof FieldErrors) => {
     setFieldErrors((prev) => {
@@ -211,12 +290,14 @@ export function TotpSetupModal({
     const passwordError = validateCurrentPassword(currentPassword);
     setFieldErrors({ currentPassword: passwordError });
     setSubmitError(null);
+    setErrorContext('setup');
 
     if (passwordError) {
       return;
     }
 
     if (!token) {
+      setErrorContext('setup');
       setSubmitError(
         'Authenticator setup could not continue with the current session.',
       );
@@ -234,8 +315,10 @@ export function TotpSetupModal({
         manualKey: result.manualKey,
       });
       setCurrentPassword('');
+      pendingSetupRef.current = true;
       setPhase('configure');
     } catch (error) {
+      setErrorContext('setup');
       setSubmitError(mapSetupApiError(error));
     } finally {
       setIsSubmitting(false);
@@ -250,12 +333,14 @@ export function TotpSetupModal({
     const codeError = validateTotpCode(code);
     setFieldErrors({ code: codeError });
     setSubmitError(null);
+    setErrorContext('enable');
 
     if (codeError) {
       return;
     }
 
     if (!token) {
+      setErrorContext('enable');
       setSubmitError(
         'Authenticator could not be enabled with the current session.',
       );
@@ -270,6 +355,10 @@ export function TotpSetupModal({
         token,
         code: normalizedCode,
       });
+
+      // Mark completed before any close path so cancel cleanup cannot run.
+      enableSucceededRef.current = true;
+      pendingSetupRef.current = false;
 
       try {
         await replaceSession(result.sessionToken);
@@ -287,6 +376,7 @@ export function TotpSetupModal({
       clearSensitiveState();
       onSuccess();
     } catch (error) {
+      setErrorContext('enable');
       setSubmitError(mapEnableApiError(error));
     } finally {
       setIsSubmitting(false);
@@ -307,7 +397,9 @@ export function TotpSetupModal({
       visible={visible}
       transparent
       animationType="slide"
-      onRequestClose={handleDismiss}
+      onRequestClose={() => {
+        void handleDismiss();
+      }}
     >
       <View style={styles.modalRoot} pointerEvents="box-none">
         <Pressable
@@ -315,7 +407,9 @@ export function TotpSetupModal({
           accessibilityLabel="Dismiss authenticator setup"
           style={[styles.scrim, { backgroundColor: semantic.overlayScrim }]}
           disabled={isSubmitting}
-          onPress={handleDismiss}
+          onPress={() => {
+            void handleDismiss();
+          }}
         />
         <KeyboardAvoidingView
           behavior={Platform.OS === 'ios' ? 'padding' : undefined}
@@ -350,7 +444,9 @@ export function TotpSetupModal({
                   accessibilityState={{ disabled: isSubmitting }}
                   disabled={isSubmitting}
                   hitSlop={12}
-                  onPress={handleDismiss}
+                  onPress={() => {
+                    void handleDismiss();
+                  }}
                   testID="totp-setup-cancel"
                 >
                   <ThemedText
@@ -370,11 +466,7 @@ export function TotpSetupModal({
               {submitError ? (
                 <FormNotice
                   tone="error"
-                  title={
-                    phase === 'password'
-                      ? 'Unable to start setup'
-                      : 'Unable to enable authenticator'
-                  }
+                  title={noticeTitleFor(errorContext)}
                   message={submitError}
                 />
               ) : null}

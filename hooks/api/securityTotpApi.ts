@@ -68,6 +68,15 @@ export type TotpDisableResult = {
   totpEnabled: false;
 };
 
+export type CancelTotpSetupRequest = {
+  token: SessionToken;
+  signal?: AbortSignal;
+};
+
+export type TotpCancelSetupResult = {
+  message: string;
+};
+
 const nonEmptyString = z.string().min(1);
 
 const totpSetupSuccessSchema = z.object({
@@ -85,6 +94,10 @@ const totpDisableSuccessSchema = z.object({
   message: z.string(),
   token: nonEmptyString,
   totp_enabled: z.literal(false),
+});
+
+const totpCancelSetupSuccessSchema = z.object({
+  message: z.string(),
 });
 
 function wrapSecurityTotpHttpError(e: unknown): never {
@@ -132,6 +145,41 @@ export async function setupTotp(
     provisioningUri: parsed.data.provisioning_uri,
     manualKey: parsed.data.manual_entry_key,
   };
+}
+
+/**
+ * `DELETE /api/security/totp/setup` — cancels incomplete (disabled) enrollment.
+ * Idempotent. Does not rotate Session. Does not require the plaintext secret.
+ * Never deletes an already-enabled authenticator (server-enforced).
+ */
+export async function cancelTotpSetup(
+  params: CancelTotpSetupRequest,
+): Promise<TotpCancelSetupResult> {
+  const { token, signal } = params;
+
+  let body: unknown;
+  try {
+    body = await requestApi({
+      baseUrl: getHypatiaBackendBaseUrl(),
+      path: HYPATIA_API_PATHS.securityTotpSetup,
+      method: 'DELETE',
+      token,
+      signal,
+    });
+  } catch (e) {
+    wrapSecurityTotpHttpError(e);
+  }
+
+  const parsed = totpCancelSetupSuccessSchema.safeParse(body);
+  if (!parsed.success) {
+    throw new SecurityTotpApiError(
+      'Invalid TOTP setup cancel payload',
+      500,
+      body,
+    );
+  }
+
+  return { message: parsed.data.message };
 }
 
 /**

@@ -43,6 +43,7 @@ const securityTotpApiMocks = vi.hoisted(() => {
     setupTotp: vi.fn(),
     enableTotp: vi.fn(),
     disableTotp: vi.fn(),
+    cancelTotpSetup: vi.fn(),
   };
 });
 
@@ -296,6 +297,7 @@ vi.mock('@/hooks/api/securityTotpApi', () => ({
   setupTotp: securityTotpApiMocks.setupTotp,
   enableTotp: securityTotpApiMocks.enableTotp,
   disableTotp: securityTotpApiMocks.disableTotp,
+  cancelTotpSetup: securityTotpApiMocks.cancelTotpSetup,
 }));
 
 vi.mock('@/hooks/api/accountApi', () => ({
@@ -403,6 +405,7 @@ describe('Profile TOTP setup / enable', () => {
     securityTotpApiMocks.setupTotp.mockReset();
     securityTotpApiMocks.enableTotp.mockReset();
     securityTotpApiMocks.disableTotp.mockReset();
+    securityTotpApiMocks.cancelTotpSetup.mockReset();
     securityTotpApiMocks.setupTotp.mockResolvedValue({
       provisioningUri: PROVISIONING_URI,
       manualKey: MANUAL_KEY,
@@ -411,6 +414,9 @@ describe('Profile TOTP setup / enable', () => {
       message: 'Authenticator app enabled',
       sessionToken: REPLACEMENT_TOKEN,
       totpEnabled: true,
+    });
+    securityTotpApiMocks.cancelTotpSetup.mockResolvedValue({
+      message: 'Authenticator setup cancelled',
     });
   });
 
@@ -676,19 +682,26 @@ describe('Profile TOTP setup / enable', () => {
   });
 
   describe('setup cancel', () => {
-    it('clears secrets without enable call after setup response is visible', async () => {
+    it('calls cancelTotpSetup once after setup is created, then clears secrets', async () => {
       renderProfile();
       openSetup();
       await completeSetupPhase();
 
       expect(screen.getByText(MANUAL_KEY)).toBeTruthy();
-      fireEvent.click(screen.getByTestId('totp-setup-cancel'));
+      await act(async () => {
+        fireEvent.click(screen.getByTestId('totp-setup-cancel'));
+      });
 
+      await waitFor(() => {
+        expect(securityTotpApiMocks.cancelTotpSetup).toHaveBeenCalledTimes(1);
+      });
+      expect(securityTotpApiMocks.cancelTotpSetup).toHaveBeenCalledWith({
+        token: authMocks.token,
+      });
       expect(securityTotpApiMocks.enableTotp).not.toHaveBeenCalled();
       expect(screen.queryByTestId('totp-setup-modal')).toBeNull();
       expect(document.body.innerHTML).not.toContain(MANUAL_KEY);
       expect(document.body.innerHTML).not.toContain(PROVISIONING_URI);
-      // Profile still Disabled — no fake mutation; backend pending setup left alone.
       expect(screen.getByText('Disabled')).toBeTruthy();
 
       openSetup();
@@ -696,6 +709,102 @@ describe('Profile TOTP setup / enable', () => {
         (screen.getByLabelText('Current Password') as HTMLInputElement).value,
       ).toBe('');
       expect(screen.queryByTestId('totp-manual-key')).toBeNull();
+    });
+
+    it('does not call cancel before setup is created', async () => {
+      renderProfile();
+      openSetup();
+
+      await act(async () => {
+        fireEvent.click(screen.getByTestId('totp-setup-cancel'));
+      });
+
+      expect(securityTotpApiMocks.cancelTotpSetup).not.toHaveBeenCalled();
+      expect(securityTotpApiMocks.setupTotp).not.toHaveBeenCalled();
+      expect(screen.queryByTestId('totp-setup-modal')).toBeNull();
+    });
+
+    it('does not call cancel after enable succeeds', async () => {
+      renderProfile();
+      openSetup();
+      await completeSetupPhase();
+
+      fireEvent.change(screen.getByLabelText('Authenticator Code'), {
+        target: { value: '012345' },
+      });
+      await act(async () => {
+        fireEvent.click(
+          screen.getByRole('button', { name: 'Enable Authenticator' }),
+        );
+      });
+
+      await waitFor(() => {
+        expect(screen.queryByTestId('totp-setup-modal')).toBeNull();
+      });
+      expect(securityTotpApiMocks.enableTotp).toHaveBeenCalledTimes(1);
+      expect(securityTotpApiMocks.cancelTotpSetup).not.toHaveBeenCalled();
+    });
+
+    it('keeps modal open and secrets visible when cancel fails', async () => {
+      securityTotpApiMocks.cancelTotpSetup.mockRejectedValueOnce(
+        new securityTotpApiMocks.SecurityTotpApiError('Request failed (500)', 500),
+      );
+      renderProfile();
+      openSetup();
+      await completeSetupPhase();
+
+      await act(async () => {
+        fireEvent.click(screen.getByTestId('totp-setup-cancel'));
+      });
+
+      await waitFor(() => {
+        expect(
+          screen.getByText('Unable to cancel authenticator setup. Please try again.'),
+        ).toBeTruthy();
+      });
+      expect(screen.getByTestId('totp-setup-modal')).toBeTruthy();
+      expect(screen.getByText(MANUAL_KEY)).toBeTruthy();
+      expect(securityTotpApiMocks.cancelTotpSetup).toHaveBeenCalledTimes(1);
+
+      securityTotpApiMocks.cancelTotpSetup.mockResolvedValueOnce({
+        message: 'Authenticator setup cancelled',
+      });
+      await act(async () => {
+        fireEvent.click(screen.getByTestId('totp-setup-cancel'));
+      });
+      await waitFor(() => {
+        expect(screen.queryByTestId('totp-setup-modal')).toBeNull();
+      });
+      expect(securityTotpApiMocks.cancelTotpSetup).toHaveBeenCalledTimes(2);
+    });
+
+    it('does not issue uncontrolled duplicate cancel calls while cancel is in flight', async () => {
+      let resolveCancel: ((value: { message: string }) => void) | undefined;
+      securityTotpApiMocks.cancelTotpSetup.mockImplementationOnce(
+        () =>
+          new Promise((resolve) => {
+            resolveCancel = resolve;
+          }),
+      );
+      renderProfile();
+      openSetup();
+      await completeSetupPhase();
+
+      await act(async () => {
+        fireEvent.click(screen.getByTestId('totp-setup-cancel'));
+      });
+      fireEvent.click(screen.getByTestId('totp-setup-cancel'));
+      fireEvent.click(screen.getByRole('button', { name: 'Hardware back' }));
+
+      expect(securityTotpApiMocks.cancelTotpSetup).toHaveBeenCalledTimes(1);
+
+      await act(async () => {
+        resolveCancel?.({ message: 'Authenticator setup cancelled' });
+      });
+      await waitFor(() => {
+        expect(screen.queryByTestId('totp-setup-modal')).toBeNull();
+      });
+      expect(securityTotpApiMocks.cancelTotpSetup).toHaveBeenCalledTimes(1);
     });
   });
 
