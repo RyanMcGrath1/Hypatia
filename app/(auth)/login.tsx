@@ -1,3 +1,4 @@
+import { Image } from 'expo-image';
 import { router } from 'expo-router';
 import { useCallback, useState } from 'react';
 import {
@@ -9,6 +10,8 @@ import {
   View,
 } from 'react-native';
 
+import darkLogo from '@/assets/images/dark-logo.png';
+import lightLogo from '@/assets/images/light-logo.png';
 import { FormButton } from '@/components/forms/FormButton';
 import { FormNotice } from '@/components/forms/FormNotice';
 import { FormTextField } from '@/components/forms/FormTextField';
@@ -20,6 +23,7 @@ import { Spacing } from '@/constants/theme/ThemeTokens';
 import { AuthApiError, login as loginAccount } from '@/hooks/api/authApi';
 import { useAuthFlow } from '@/hooks/useAuthFlow';
 import { useAuthSession } from '@/hooks/useAuthSession';
+import { useColorScheme } from '@/hooks/useColorScheme';
 import { useThemeInteractive } from '@/hooks/useThemeInteractive';
 
 const EMAIL_MAX_LENGTH = 255;
@@ -94,6 +98,8 @@ export default function LoginScreen() {
   const { establishSession } = useAuthSession();
   const { beginTotpLogin, clearTotpLogin } = useAuthFlow();
   const interactive = useThemeInteractive();
+  const colorScheme = useColorScheme() ?? 'light';
+  const logoSource = colorScheme === 'dark' ? darkLogo : lightLogo;
 
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
@@ -196,6 +202,15 @@ export default function LoginScreen() {
           contentContainerStyle={styles.scrollContent}
           showsVerticalScrollIndicator={false}
         >
+          <View style={styles.logoWrap}>
+            <Image
+              source={logoSource}
+              style={styles.logo}
+              contentFit="contain"
+              accessibilityLabel="Hypatia"
+            />
+          </View>
+
           <View style={styles.header}>
             <ThemedText type="title" accessibilityRole="header">
               Log in
@@ -308,6 +323,14 @@ const styles = StyleSheet.create({
     paddingHorizontal: Spacing.containerPadding,
     paddingVertical: Spacing.xl,
     gap: Spacing.lg,
+  },
+  logoWrap: {
+    alignItems: 'center',
+    marginTop: -Spacing.lg,
+  },
+  logo: {
+    width: 360,
+    height: 110,
   },
   header: {
     gap: Spacing.xs,

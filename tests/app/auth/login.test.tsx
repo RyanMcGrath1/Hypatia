@@ -256,6 +256,22 @@ vi.mock('@expo/vector-icons/Feather', () => ({
     createElement('span', { 'data-testid': `icon-${name}` }, name),
 }));
 
+vi.mock('expo-image', () => ({
+  Image: ({
+    accessibilityLabel,
+    style,
+  }: {
+    accessibilityLabel?: string;
+    style?: unknown;
+  }) =>
+    createElement('img', {
+      alt: accessibilityLabel,
+      'aria-label': accessibilityLabel,
+      'data-testid': 'hypatia-logo',
+      'data-style': JSON.stringify(style ?? null),
+    }),
+}));
+
 vi.mock('@/hooks/useColorScheme', () => ({
   useColorScheme: () => 'light',
 }));
