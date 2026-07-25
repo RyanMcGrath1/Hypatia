@@ -472,4 +472,32 @@ describe('authenticated session invalidation (Finding #3)', () => {
       process.off('unhandledRejection', rejectionSpy);
     }
   });
+
+  it('current-token Bearer 401 invokes clearSessionToken (durable invalidation path)', async () => {
+    const { result } = await renderAuth();
+    await act(async () => {
+      await result.current.establishSession(TOKEN_A);
+    });
+    clearSessionToken.mockClear();
+
+    (global.fetch as ReturnType<typeof vi.fn>).mockResolvedValueOnce(
+      mockJsonResponse({ error: 'Unauthorized' }, { status: 401 }),
+    );
+
+    await expect(
+      requestApi({
+        baseUrl: 'http://127.0.0.1:5001',
+        path: '/api/profile',
+        method: 'GET',
+        token: TOKEN_A,
+      }),
+    ).rejects.toMatchObject({ status: 401 });
+
+    await waitFor(() => {
+      expect(result.current.token).toBeNull();
+    });
+    // Finding #11 durability lives in clearSessionToken; AuthProvider still
+    // routes authenticated 401 through the same clearSession → storage clear.
+    expect(clearSessionToken).toHaveBeenCalledTimes(1);
+  });
 });

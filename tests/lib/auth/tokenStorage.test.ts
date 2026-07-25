@@ -25,7 +25,26 @@ import {
 } from '@/lib/auth/tokenStorage';
 
 const STORAGE_KEY = 'hypatia.session_token';
+const INVALIDATED_KEY = 'hypatia.session_invalidated';
+const INVALIDATED_VALUE = '1';
 const SAMPLE_TOKEN = 'opaque_tok_AbC123-XyZ_!@#';
+const TOKEN_A = 'opaque_tok_A_Finding11';
+const TOKEN_B = 'opaque_tok_B_Finding11';
+
+/** In-memory SecureStore for restart / crash-window simulations. */
+function installMapBackedSecureStore(initial?: Record<string, string>) {
+  const store = new Map<string, string>(Object.entries(initial ?? {}));
+
+  getItemAsync.mockImplementation(async (key: string) => store.get(key) ?? null);
+  setItemAsync.mockImplementation(async (key: string, value: string) => {
+    store.set(key, value);
+  });
+  deleteItemAsync.mockImplementation(async (key: string) => {
+    store.delete(key);
+  });
+
+  return store;
+}
 
 describe('tokenStorage', () => {
   beforeEach(() => {
@@ -50,25 +69,36 @@ describe('tokenStorage', () => {
       platformState.OS = 'ios';
     });
 
-    it('setSessionToken calls SecureStore.setItemAsync with the exact token', async () => {
+    it('setSessionToken clears invalidation marker then stores the exact token', async () => {
       await setSessionToken(SAMPLE_TOKEN);
-      expect(setItemAsync).toHaveBeenCalledTimes(1);
+      expect(deleteItemAsync).toHaveBeenCalledWith(INVALIDATED_KEY);
       expect(setItemAsync).toHaveBeenCalledWith(STORAGE_KEY, SAMPLE_TOKEN);
+      expect(deleteItemAsync.mock.invocationCallOrder[0]).toBeLessThan(
+        setItemAsync.mock.invocationCallOrder[0],
+      );
     });
 
-    it('getSessionToken calls SecureStore.getItemAsync', async () => {
-      getItemAsync.mockResolvedValueOnce(SAMPLE_TOKEN);
+    it('getSessionToken reads the marker first, then the session token', async () => {
+      getItemAsync
+        .mockResolvedValueOnce(null)
+        .mockResolvedValueOnce(SAMPLE_TOKEN);
       await expect(getSessionToken()).resolves.toBe(SAMPLE_TOKEN);
-      expect(getItemAsync).toHaveBeenCalledWith(STORAGE_KEY);
+      expect(getItemAsync).toHaveBeenNthCalledWith(1, INVALIDATED_KEY);
+      expect(getItemAsync).toHaveBeenNthCalledWith(2, STORAGE_KEY);
     });
 
-    it('clearSessionToken calls SecureStore.deleteItemAsync', async () => {
+    it('clearSessionToken writes marker, deletes token, then removes marker', async () => {
       await clearSessionToken();
+      expect(setItemAsync).toHaveBeenCalledWith(INVALIDATED_KEY, INVALIDATED_VALUE);
       expect(deleteItemAsync).toHaveBeenCalledWith(STORAGE_KEY);
+      expect(deleteItemAsync).toHaveBeenCalledWith(INVALIDATED_KEY);
+      expect(setItemAsync.mock.invocationCallOrder[0]).toBeLessThan(
+        deleteItemAsync.mock.invocationCallOrder[0],
+      );
     });
 
     it('returns null when no value is stored', async () => {
-      getItemAsync.mockResolvedValueOnce(null);
+      getItemAsync.mockResolvedValue(null);
       await expect(getSessionToken()).resolves.toBeNull();
     });
 
@@ -77,6 +107,7 @@ describe('tokenStorage', () => {
         SessionTokenStorageError,
       );
       expect(setItemAsync).not.toHaveBeenCalled();
+      expect(deleteItemAsync).not.toHaveBeenCalled();
     });
 
     it('preserves the token exactly (no trim / case change)', async () => {
@@ -86,9 +117,172 @@ describe('tokenStorage', () => {
     });
 
     it('clearing an absent token is safe', async () => {
-      deleteItemAsync.mockResolvedValueOnce(undefined);
       await expect(clearSessionToken()).resolves.toBeUndefined();
-      expect(deleteItemAsync).toHaveBeenCalledTimes(1);
+      expect(setItemAsync).toHaveBeenCalledWith(INVALIDATED_KEY, INVALIDATED_VALUE);
+      expect(deleteItemAsync).toHaveBeenCalledWith(STORAGE_KEY);
+      expect(deleteItemAsync).toHaveBeenCalledWith(INVALIDATED_KEY);
+    });
+
+    it('normal lifecycle: set A → get A → clear → null → set B → get B', async () => {
+      const store = installMapBackedSecureStore();
+
+      await setSessionToken(TOKEN_A);
+      await expect(getSessionToken()).resolves.toBe(TOKEN_A);
+
+      await clearSessionToken();
+      await expect(getSessionToken()).resolves.toBeNull();
+      expect(store.has(STORAGE_KEY)).toBe(false);
+      expect(store.has(INVALIDATED_KEY)).toBe(false);
+
+      await setSessionToken(TOKEN_B);
+      await expect(getSessionToken()).resolves.toBe(TOKEN_B);
+    });
+
+    it('successful clear leaves neither token nor invalidation marker', async () => {
+      const store = installMapBackedSecureStore({ [STORAGE_KEY]: TOKEN_A });
+      await clearSessionToken();
+      expect(store.has(STORAGE_KEY)).toBe(false);
+      expect(store.has(INVALIDATED_KEY)).toBe(false);
+      await expect(getSessionToken()).resolves.toBeNull();
+    });
+  });
+
+  describe('native invalidation marker (Finding #11)', () => {
+    beforeEach(() => {
+      platformState.OS = 'ios';
+    });
+
+    it('delete failure after marker write: restart restore returns null, not stale token', async () => {
+      const store = installMapBackedSecureStore({ [STORAGE_KEY]: TOKEN_A });
+
+      deleteItemAsync.mockImplementation(async (key: string) => {
+        if (key === STORAGE_KEY) {
+          throw new Error('SecureStore delete failed');
+        }
+        store.delete(key);
+      });
+
+      await expect(clearSessionToken()).rejects.toBeInstanceOf(
+        SessionTokenStorageError,
+      );
+      expect(store.get(INVALIDATED_KEY)).toBe(INVALIDATED_VALUE);
+      expect(store.get(STORAGE_KEY)).toBe(TOKEN_A);
+
+      // Simulate a later cold start with a fresh Map-backed store snapshot.
+      const restartStore = new Map(store);
+      getItemAsync.mockImplementation(
+        async (key: string) => restartStore.get(key) ?? null,
+      );
+      deleteItemAsync.mockImplementation(async (key: string) => {
+        restartStore.delete(key);
+      });
+      setItemAsync.mockImplementation(async (key: string, value: string) => {
+        restartStore.set(key, value);
+      });
+
+      await expect(getSessionToken()).resolves.toBeNull();
+      expect(restartStore.get(STORAGE_KEY)).toBeUndefined();
+    });
+
+    it('crash window: marker + token present without completed clear → get returns null', async () => {
+      const store = installMapBackedSecureStore({
+        [STORAGE_KEY]: TOKEN_A,
+        [INVALIDATED_KEY]: INVALIDATED_VALUE,
+      });
+
+      await expect(getSessionToken()).resolves.toBeNull();
+      // Best-effort stale cleanup.
+      expect(store.has(STORAGE_KEY)).toBe(false);
+      expect(store.has(INVALIDATED_KEY)).toBe(false);
+    });
+
+    it('crash window: cleanup failure still never authenticates with the dead token', async () => {
+      installMapBackedSecureStore({
+        [STORAGE_KEY]: TOKEN_A,
+        [INVALIDATED_KEY]: INVALIDATED_VALUE,
+      });
+
+      deleteItemAsync.mockRejectedValue(new Error('cleanup unavailable'));
+
+      await expect(getSessionToken()).resolves.toBeNull();
+    });
+
+    it('marker delete failure after token delete: restore stays signed out', async () => {
+      const store = installMapBackedSecureStore({ [STORAGE_KEY]: TOKEN_A });
+
+      deleteItemAsync.mockImplementation(async (key: string) => {
+        if (key === INVALIDATED_KEY && store.has(STORAGE_KEY) === false) {
+          // After token delete, marker cleanup fails.
+          throw new Error('marker delete failed');
+        }
+        store.delete(key);
+      });
+
+      await expect(clearSessionToken()).rejects.toBeInstanceOf(
+        SessionTokenStorageError,
+      );
+      expect(store.has(STORAGE_KEY)).toBe(false);
+      expect(store.get(INVALIDATED_KEY)).toBe(INVALIDATED_VALUE);
+
+      // Restart restore remains fail-closed.
+      deleteItemAsync.mockImplementation(async (key: string) => {
+        store.delete(key);
+      });
+      await expect(getSessionToken()).resolves.toBeNull();
+    });
+
+    it('setSessionToken after tombstone clears marker and restores the new Session', async () => {
+      const store = installMapBackedSecureStore({
+        [STORAGE_KEY]: TOKEN_A,
+        [INVALIDATED_KEY]: INVALIDATED_VALUE,
+      });
+
+      await setSessionToken(TOKEN_B);
+      expect(store.has(INVALIDATED_KEY)).toBe(false);
+      expect(store.get(STORAGE_KEY)).toBe(TOKEN_B);
+      await expect(getSessionToken()).resolves.toBe(TOKEN_B);
+    });
+
+    it('setSessionToken fails when stale marker cannot be cleared', async () => {
+      installMapBackedSecureStore({
+        [STORAGE_KEY]: TOKEN_A,
+        [INVALIDATED_KEY]: INVALIDATED_VALUE,
+      });
+      deleteItemAsync.mockImplementation(async (key: string) => {
+        if (key === INVALIDATED_KEY) {
+          throw new Error('cannot clear marker');
+        }
+      });
+
+      await expect(setSessionToken(TOKEN_B)).rejects.toMatchObject({
+        name: 'SessionTokenStorageError',
+        message: 'Unable to store session token',
+      });
+      expect(setItemAsync).not.toHaveBeenCalledWith(STORAGE_KEY, TOKEN_B);
+    });
+
+    it('marker write failure still clears when token delete succeeds', async () => {
+      const store = installMapBackedSecureStore({ [STORAGE_KEY]: TOKEN_A });
+      setItemAsync.mockImplementation(async (key: string, value: string) => {
+        if (key === INVALIDATED_KEY) {
+          throw new Error('marker write failed');
+        }
+        store.set(key, value);
+      });
+
+      await expect(clearSessionToken()).resolves.toBeUndefined();
+      expect(store.has(STORAGE_KEY)).toBe(false);
+    });
+
+    it('marker write failure + token delete failure reports clear failure', async () => {
+      installMapBackedSecureStore({ [STORAGE_KEY]: TOKEN_A });
+      setItemAsync.mockRejectedValue(new Error('marker write failed'));
+      deleteItemAsync.mockRejectedValue(new Error('token delete failed'));
+
+      await expect(clearSessionToken()).rejects.toMatchObject({
+        name: 'SessionTokenStorageError',
+        message: 'Unable to clear session token',
+      });
     });
   });
 
@@ -156,6 +350,14 @@ describe('tokenStorage', () => {
         message: 'Session token must be a non-empty string',
       });
     });
+
+    it('does not use an invalidation marker on web', async () => {
+      await setSessionToken(SAMPLE_TOKEN);
+      await clearSessionToken();
+      expect(setItemAsync).not.toHaveBeenCalled();
+      expect(getItemAsync).not.toHaveBeenCalled();
+      expect(deleteItemAsync).not.toHaveBeenCalled();
+    });
   });
 
   describe('errors', () => {
@@ -178,6 +380,7 @@ describe('tokenStorage', () => {
     });
 
     it('wraps SecureStore write failures without exposing the token', async () => {
+      deleteItemAsync.mockResolvedValueOnce(undefined);
       setItemAsync.mockRejectedValueOnce(new Error(`write failed for ${SAMPLE_TOKEN}`));
       try {
         await setSessionToken(SAMPLE_TOKEN);
@@ -192,6 +395,7 @@ describe('tokenStorage', () => {
     });
 
     it('wraps SecureStore delete failures safely', async () => {
+      setItemAsync.mockResolvedValueOnce(undefined);
       deleteItemAsync.mockRejectedValueOnce(new Error(`delete failed ${SAMPLE_TOKEN}`));
       try {
         await clearSessionToken();
@@ -212,7 +416,7 @@ describe('tokenStorage', () => {
       const warn = vi.spyOn(console, 'warn').mockImplementation(() => {});
       const error = vi.spyOn(console, 'error').mockImplementation(() => {});
 
-      getItemAsync.mockResolvedValueOnce(SAMPLE_TOKEN);
+      installMapBackedSecureStore();
       await setSessionToken(SAMPLE_TOKEN);
       await getSessionToken();
       await clearSessionToken();
@@ -232,6 +436,14 @@ describe('tokenStorage', () => {
       expect(setItemAsync).not.toHaveBeenCalled();
       expect(getItemAsync).not.toHaveBeenCalled();
       expect(deleteItemAsync).not.toHaveBeenCalled();
+    });
+
+    it('never returns a sentinel fake bearer as a Session token', async () => {
+      installMapBackedSecureStore({
+        [STORAGE_KEY]: 'INVALID',
+        [INVALIDATED_KEY]: INVALIDATED_VALUE,
+      });
+      await expect(getSessionToken()).resolves.toBeNull();
     });
   });
 });
