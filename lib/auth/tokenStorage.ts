@@ -79,10 +79,12 @@ export async function getSessionToken(): Promise<string | null> {
  * Persist an opaque session token exactly as provided.
  * Rejects empty strings. Does not trim, normalize, or parse the value.
  *
- * Ordering (native): clear any stale invalidation marker first, then write
- * the new token. That way a leftover tombstone cannot suppress a newly
- * authenticated Session. If marker cleanup fails, persistence fails —
- * callers must not treat the Session as stored.
+ * Ordering (native): write the new token first, then clear any stale
+ * invalidation marker. A leftover tombstone must not be removed while an
+ * old invalidated credential could still be the only durable value — that
+ * would let a failed write of the new token restore a dead Session on the
+ * next cold start. If marker cleanup fails after a successful write,
+ * persistence still fails (fail closed: restore stays suppressed).
  */
 export async function setSessionToken(token: string): Promise<void> {
   assertNonEmptyToken(token);
@@ -93,13 +95,16 @@ export async function setSessionToken(token: string): Promise<void> {
   }
 
   try {
-    await SecureStore.deleteItemAsync(SESSION_INVALIDATED_KEY);
+    await SecureStore.setItemAsync(SESSION_TOKEN_KEY, token);
   } catch (cause) {
     throw new SessionTokenStorageError('Unable to store session token', { cause });
   }
 
+  // Token is durable. Only now drop a prior clear tombstone so restore can
+  // return the new Session. If this fails, leave the marker — suppress a
+  // valid new token rather than risk restoring an invalidated one.
   try {
-    await SecureStore.setItemAsync(SESSION_TOKEN_KEY, token);
+    await SecureStore.deleteItemAsync(SESSION_INVALIDATED_KEY);
   } catch (cause) {
     throw new SessionTokenStorageError('Unable to store session token', { cause });
   }

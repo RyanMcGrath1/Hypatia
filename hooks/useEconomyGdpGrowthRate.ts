@@ -14,6 +14,10 @@ import { getHypatiaBackendNetworkErrorMessage } from "@/hooks/api/hypatiaBaseUrl
 
 const STALE_TIME_MS = 60 * 60 * 1000;
 
+type CacheFreshnessEntry = {
+  fetchedAt: number;
+};
+
 type CacheEntry = {
   fetchedAt: number;
   data: GdpGrowthRateResponse;
@@ -25,7 +29,7 @@ function isAbort(e: unknown): boolean {
   return e instanceof Error && e.name === "AbortError";
 }
 
-function isFresh(entry: CacheEntry, now: number): boolean {
+function isFresh(entry: CacheFreshnessEntry, now: number): boolean {
   return now - entry.fetchedAt < STALE_TIME_MS;
 }
 
