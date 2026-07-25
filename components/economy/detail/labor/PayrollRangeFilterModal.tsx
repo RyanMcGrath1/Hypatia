@@ -100,7 +100,6 @@ function decadeStartList(seriesLastMonthKey: string): number[] {
 function yearsInDecade(decadeBase: number, seriesLastMonthKey: string): number[] {
   const last = clampPayrollSeriesLastMonthKey(seriesLastMonthKey);
   const ly = parseInt(last.slice(0, 4), 10);
-  const lm = parseInt(last.slice(5, 7), 10);
   const ys: number[] = [];
   for (let y = decadeBase + 9; y >= decadeBase; y--) {
     if (y >= 1948 && y <= ly) {

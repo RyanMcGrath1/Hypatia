@@ -332,6 +332,7 @@ export default function HomeScreen() {
     [
       feedPending,
       headlines.length,
+      semantic.accent,
       semantic.cardBackground,
       semantic.cardBorder,
       semantic.cardSubtleBackground,
