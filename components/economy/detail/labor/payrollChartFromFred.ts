@@ -394,13 +394,14 @@ export type PayrollObservationWindow = {
 export function buildPayrollChartForObservationWindow(
   observations: FredObservationRow[],
   fetchWindow: PayrollObservationWindow,
+  now: Date = new Date(),
 ): PayrollChartFromFred | null {
   if (observations.length === 0) {
     return null;
   }
   const startKey = fetchWindow.observationStart.trim().slice(0, 7);
   const endKey = fetchWindow.observationEnd.trim().slice(0, 7);
-  if (payrollYtdMatchesMonthKeys(startKey, endKey)) {
+  if (payrollYtdMatchesMonthKeys(startKey, endKey, now)) {
     const calendarYear = resolvePayrollYtdCalendarYear(observations);
     if (calendarYear != null) {
       return buildPayrollYearToDateChartWithSkeleton(calendarYear, observations);
