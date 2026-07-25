@@ -1,5 +1,6 @@
-import { useState, type ReactNode } from "react";
+import { type ReactNode } from "react";
 import {
+  Platform,
   StyleSheet,
   TextInput,
   View,
@@ -18,7 +19,6 @@ import {
 } from "@/constants/theme/ThemeTokens";
 import { Fonts } from "@/constants/theme/Typography";
 import { useColorScheme } from "@/hooks/useColorScheme";
-import { useThemeInteractive } from "@/hooks/useThemeInteractive";
 
 export type FormTextFieldProps = Omit<TextInputProps, "style" | "editable"> & {
   label: string;
@@ -49,23 +49,15 @@ export function FormTextField({
   containerStyle,
   inputStyle,
   placeholder,
-  onFocus,
-  onBlur,
   accessibilityLabel,
   ...textInputProps
 }: FormTextFieldProps) {
   const scheme = useColorScheme() ?? "light";
   const theme = Colors[scheme];
   const semantic = getSemanticColors(scheme);
-  const interactive = useThemeInteractive();
-  const [focused, setFocused] = useState(false);
 
   const hasError = typeof error === "string" && error.length > 0;
-  const borderColor = hasError
-    ? semantic.danger
-    : focused
-      ? interactive.primary
-      : semantic.hairline;
+  const borderColor = hasError ? semantic.danger : semantic.hairline;
   const backgroundColor = disabled
     ? semantic.cardSubtleBackground
     : semantic.cardBackground;
@@ -99,17 +91,16 @@ export function FormTextField({
           placeholder={placeholder}
           placeholderTextColor={semantic.mutedText}
           editable={!disabled}
-          onFocus={(e) => {
-            setFocused(true);
-            onFocus?.(e);
-          }}
-          onBlur={(e) => {
-            setFocused(false);
-            onBlur?.(e);
-          }}
           accessibilityLabel={accessibilityLabel ?? label}
           accessibilityState={{ disabled }}
-          style={[styles.input, { color: theme.text }, inputStyle]}
+          style={[
+            styles.input,
+            { color: theme.text, caretColor: theme.text },
+            Platform.OS === "web"
+              ? ({ outlineStyle: "none", outlineWidth: 0 } as TextStyle)
+              : null,
+            inputStyle,
+          ]}
         />
         {trailing ? <View style={styles.trailing}>{trailing}</View> : null}
       </View>
