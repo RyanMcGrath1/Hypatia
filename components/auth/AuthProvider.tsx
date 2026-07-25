@@ -13,11 +13,16 @@ import {
   useCallback,
   useEffect,
   useMemo,
+  useRef,
   useState,
   type ReactNode,
 } from 'react';
 
 import { resolveDevAuthBypass } from '@/lib/auth/resolveDevAuthBypass';
+import {
+  fingerprintSessionToken,
+  subscribeToSessionInvalidation,
+} from '@/lib/auth/sessionInvalidation';
 import {
   clearSessionToken,
   getSessionToken,
@@ -63,11 +68,15 @@ type AuthProviderProps = {
 export function AuthProvider({ children }: AuthProviderProps) {
   const [token, setToken] = useState<string | null>(null);
   const [isRestoring, setIsRestoring] = useState(true);
+  const tokenRef = useRef<string | null>(null);
+  const clearingFromInvalidationRef = useRef(false);
 
   const isDevAuthBypass = resolveDevAuthBypass({
     isDevBuild: __DEV__,
     envValue: process.env.EXPO_PUBLIC_DEV_AUTH_BYPASS,
   });
+
+  tokenRef.current = token;
 
   useEffect(() => {
     let cancelled = false;
@@ -132,6 +141,47 @@ export function AuthProvider({ children }: AuthProviderProps) {
       throw storageError;
     }
   }, []);
+
+  // Authenticated Bearer 401 → clear only when the rejected token is still current.
+  useEffect(() => {
+    return subscribeToSessionInvalidation((event) => {
+      void (async () => {
+        const current = tokenRef.current;
+        if (current === null) {
+          return;
+        }
+        if (clearingFromInvalidationRef.current) {
+          return;
+        }
+
+        let currentFingerprint: string;
+        try {
+          currentFingerprint = await fingerprintSessionToken(current);
+        } catch {
+          return;
+        }
+
+        if (currentFingerprint !== event.tokenFingerprint) {
+          // Stale 401 for a rotated-away Session — keep the replacement.
+          return;
+        }
+        // Token may have rotated while awaiting the fingerprint.
+        if (tokenRef.current !== current) {
+          return;
+        }
+
+        clearingFromInvalidationRef.current = true;
+        try {
+          await clearSession();
+        } catch {
+          // clearSession already nulls in-memory token; storage errors must not
+          // surface as unhandled rejections from the HTTP invalidation path.
+        } finally {
+          clearingFromInvalidationRef.current = false;
+        }
+      })();
+    });
+  }, [clearSession]);
 
   const value = useMemo<AuthSessionContextValue>(() => {
     const isAuthenticated = token !== null;

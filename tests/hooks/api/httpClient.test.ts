@@ -7,6 +7,11 @@ import {
   requestApi,
 } from '@/hooks/api/httpClient';
 import { fetchApiGet } from '@/hooks/api/httpGet';
+import {
+  clearSessionInvalidationListenersForTests,
+  fingerprintSessionToken,
+  subscribeToSessionInvalidation,
+} from '@/lib/auth/sessionInvalidation';
 
 function mockJsonResponse(
   data: unknown,
@@ -39,10 +44,12 @@ function mockEmptyResponse(status: number): Response {
 
 describe('requestApi', () => {
   beforeEach(() => {
+    clearSessionInvalidationListenersForTests();
     global.fetch = vi.fn().mockResolvedValue(mockJsonResponse({ ok: true }));
   });
 
   afterEach(() => {
+    clearSessionInvalidationListenersForTests();
     vi.restoreAllMocks();
   });
 
@@ -343,6 +350,79 @@ describe('requestApi', () => {
         expect(String(err)).not.toContain('super-secret-token');
         expect(String(err)).not.toContain('hunter2');
       }
+    });
+
+    it('notifies session invalidation for Bearer 401 with fingerprint only', async () => {
+      const listener = vi.fn();
+      const unsubscribe = subscribeToSessionInvalidation(listener);
+      const token = 'session-token-for-401-notify';
+      const expectedFp = await fingerprintSessionToken(token);
+
+      (global.fetch as ReturnType<typeof vi.fn>).mockResolvedValueOnce(
+        mockJsonResponse({ error: 'Unauthorized' }, { status: 401 }),
+      );
+
+      await expect(
+        requestApi({
+          baseUrl: 'http://127.0.0.1:5001',
+          path: '/api/profile',
+          method: 'GET',
+          token,
+        }),
+      ).rejects.toBeInstanceOf(HttpApiError);
+
+      await vi.waitFor(() => {
+        expect(listener).toHaveBeenCalledTimes(1);
+      });
+      expect(listener).toHaveBeenCalledWith({ tokenFingerprint: expectedFp });
+      const payload = JSON.stringify(listener.mock.calls[0]?.[0]);
+      expect(payload).not.toContain(token);
+      unsubscribe();
+    });
+
+    it('does not notify session invalidation for public 401 without Bearer', async () => {
+      const listener = vi.fn();
+      const unsubscribe = subscribeToSessionInvalidation(listener);
+
+      (global.fetch as ReturnType<typeof vi.fn>).mockResolvedValueOnce(
+        mockJsonResponse({ error: 'Invalid credentials' }, { status: 401 }),
+      );
+
+      await expect(
+        requestApi({
+          baseUrl: 'http://127.0.0.1:5001',
+          path: '/api/auth/login',
+          method: 'POST',
+          body: { email: 'a@b.com', password: 'wrong' },
+        }),
+      ).rejects.toMatchObject({ status: 401 });
+
+      await Promise.resolve();
+      expect(listener).not.toHaveBeenCalled();
+      unsubscribe();
+    });
+
+    it('does not notify session invalidation for Bearer non-401 errors', async () => {
+      const listener = vi.fn();
+      const unsubscribe = subscribeToSessionInvalidation(listener);
+
+      for (const status of [400, 403, 429, 500]) {
+        (global.fetch as ReturnType<typeof vi.fn>).mockResolvedValueOnce(
+          mockJsonResponse({ error: `e${status}` }, { status }),
+        );
+        await expect(
+          requestApi({
+            baseUrl: 'http://127.0.0.1:5001',
+            path: '/api/profile',
+            method: 'GET',
+            token: 'session-token-abc',
+          }),
+        ).rejects.toMatchObject({ status });
+      }
+
+      await Promise.resolve();
+      expect(listener).not.toHaveBeenCalled();
+      unsubscribe();
     });
   });
 

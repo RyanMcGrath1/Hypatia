@@ -2,7 +2,14 @@
  * Generalized HTTP client for hypatia-backend JSON APIs.
  * Supports GET / POST / PATCH / DELETE with optional Bearer auth.
  * Sends **X-Request-ID** so hypatia-backend logs can correlate with the client.
+ *
+ * When a non-empty Bearer token was supplied and the response is HTTP 401,
+ * notifies the session-invalidation bridge (opaque fingerprint only). Does not
+ * import AuthProvider or clear storage itself. Public unauthenticated 401s
+ * (e.g. login) do not notify.
  */
+
+import { notifyAuthenticatedSessionRejected } from '@/lib/auth/sessionInvalidation';
 
 export type HttpMethod = 'GET' | 'POST' | 'PATCH' | 'DELETE';
 
@@ -96,8 +103,10 @@ export async function requestApi(options: RequestApiOptions): Promise<unknown> {
     'X-Request-ID': createRequestId(),
   };
 
-  if (token !== undefined && token !== '') {
-    headers.Authorization = `Bearer ${token}`;
+  const bearerToken =
+    token !== undefined && token !== '' ? token : null;
+  if (bearerToken !== null) {
+    headers.Authorization = `Bearer ${bearerToken}`;
   }
 
   const init: RequestInit = {
@@ -124,6 +133,12 @@ export async function requestApi(options: RequestApiOptions): Promise<unknown> {
   const text = await response.text();
   const parsed = parseResponseBody(text);
   if (!response.ok) {
+    if (response.status === 401 && bearerToken !== null) {
+      // Await fingerprint + sync notify so stale events cannot leak across
+      // callers. AuthProvider still clears asynchronously; HttpApiError is
+      // thrown afterward so the original failure is never swallowed.
+      await notifyAuthenticatedSessionRejected(bearerToken);
+    }
     throw new HttpApiError(
       errorMessageFromApiBody(parsed, response.status),
       response.status,

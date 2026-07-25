@@ -73,7 +73,9 @@ export function ProfileLogoutButton() {
       }
     } catch (err) {
       if (err instanceof AuthApiError && err.status === 401) {
-        // Session already unusable server-side — do not trap the user.
+        // Bearer 401 also notifies AuthProvider centrally; clear again here so
+        // storage-cleanup warnings still surface if persistent deletion fails.
+        // clearSession is idempotent when invalidation already ran.
         const warning = await clearLocalSession();
         if (warning) {
           setCleanupWarning(warning);
