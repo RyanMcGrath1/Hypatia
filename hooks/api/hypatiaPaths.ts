@@ -8,7 +8,7 @@ export const HYPATIA_API_PATHS = {
   economyGdpGrowthRate: "/api/economy/gdp/growth-rate",
   economyGdpGrowthHeadwinds: "/api/economy/gdp/growth-headwinds",
   economyGdpSectorContribution: "/api/economy/gdp/sector-contribution",
-  economyCpi: "/api/economy/cpi",
+  economyCpi: "/api/economy/inflation/cpi",
   economyInflationPceVsTarget: "/api/economy/inflation/pce-vs-target",
   economyInflationCpiComponents: "/api/economy/inflation/cpi-components",
   economyRatesFedFundsTarget: "/api/economy/rates/fed-funds-target",
@@ -16,7 +16,7 @@ export const HYPATIA_API_PATHS = {
   economyLaborSector: "/api/economy/labor/sector",
   economyLaborEarningsInflation: "/api/economy/labor/earnings-inflation",
   economyLaborAgeMetrics: "/api/economy/labor/age-metrics",
-  economyPayemsDelta: "/api/economy/fred/series/PAYEMS/delta",
+  economyPayemsDelta: "/api/economy/labor/payems/delta",
   newsTopHeadlines: "/api/news/top-headlines",
   fecCandidates: "/api/fec/candidates",
 } as const;

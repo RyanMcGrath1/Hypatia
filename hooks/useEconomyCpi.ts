@@ -1,5 +1,5 @@
 /**
- * Cached fetcher for `GET /api/economy/cpi` (CPIAUCSL index levels).
+ * Cached fetcher for `GET /api/economy/inflation/cpi` (CPIAUCSL index levels).
  */
 import { useCallback, useEffect, useRef, useState } from "react";
 

@@ -8,16 +8,16 @@ The Expo app talks to a single Flask service (`hypatia-backend`, default **port 
 |----------------------|---------|
 | `hypatiaPaths.ts` | Path constants (keep in sync with server routes) |
 | `hypatiaBaseUrl.ts` | Base URL: `EXPO_PUBLIC_HYPATIA_BASE_URL` → `EXPO_PUBLIC_API_BASE_URL` → news URL / Metro proxy |
-| `economyDashboardApi.ts` | `routes/economy/dashboard.py` |
+| `economyDashboardApi.ts` | `routes/economy/economy_controller.py` → `/api/economy/dashboard` |
 | `economyGdpGrowthRateApi.ts` / `economyGdpSectorContributionApi.ts` | `routes/economy/detail.py` (GDP widgets) |
-| `economyCpiApi.ts` | `routes/economy/cpi.py` |
-| `economyInflationPceVsTargetApi.ts` | `routes/economy/inflation_pce_vs_target.py` |
-| `economyInflationCpiComponentsApi.ts` | `routes/economy/inflation_cpi_components.py` |
-| `economyRatesFedFundsTargetApi.ts` | `routes/economy/rates_fed_funds_target.py` |
-| `economyRatesKeyMetricsApi.ts` | `routes/economy/rates_key_metrics.py` |
-| `economySectorApi.ts` | `routes/economy/labor_sector.py` |
+| `economyCpiApi.ts` | `routes/economy/inflation_controller.py` → `/api/economy/inflation/cpi` |
+| `economyInflationPceVsTargetApi.ts` | `routes/economy/inflation_controller.py` → `/api/economy/inflation/pce-vs-target` |
+| `economyInflationCpiComponentsApi.ts` | `routes/economy/inflation_controller.py` → `/api/economy/inflation/cpi-components` |
+| `economyRatesFedFundsTargetApi.ts` | `routes/economy/interest_rates_controller.py` → `/api/economy/rates/fed-funds-target` |
+| `economyRatesKeyMetricsApi.ts` | `routes/economy/interest_rates_controller.py` → `/api/economy/rates/key-metrics` |
+| `economySectorApi.ts` | `routes/economy/labor_market_controller.py` → `/api/economy/labor/sector` |
 | `economyLaborEarningsInflationApi.ts` / `economyLaborAgeMetricsApi.ts` | labor earnings + age routes |
-| `fredObservations.ts` | `routes/economy/fred.py` (PAYEMS delta) |
+| `fredObservations.ts` | `routes/economy/labor_market_controller.py` → `/api/economy/labor/payems/delta` |
 | `newsApi.ts` | `routes/news/` |
 | `fecCandidatesApi.ts` | `routes/fec/` |
 
