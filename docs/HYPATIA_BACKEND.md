@@ -9,15 +9,15 @@ The Expo app talks to a single Flask service (`hypatia-backend`, default **port 
 | `hypatiaPaths.ts` | Path constants (keep in sync with server routes) |
 | `hypatiaBaseUrl.ts` | Base URL: `EXPO_PUBLIC_HYPATIA_BASE_URL` → `EXPO_PUBLIC_API_BASE_URL` → news URL / Metro proxy |
 | `economyDashboardApi.ts` | `routes/economy/dashboard.py` |
-| `economyDetailApi.ts` | `routes/economy/detail.py` |
+| `economyGdpGrowthRateApi.ts` / `economyGdpSectorContributionApi.ts` | `routes/economy/detail.py` (GDP widgets) |
 | `economyCpiApi.ts` | `routes/economy/cpi.py` |
 | `economyInflationPceVsTargetApi.ts` | `routes/economy/inflation_pce_vs_target.py` |
 | `economyInflationCpiComponentsApi.ts` | `routes/economy/inflation_cpi_components.py` |
 | `economyRatesFedFundsTargetApi.ts` | `routes/economy/rates_fed_funds_target.py` |
 | `economyRatesKeyMetricsApi.ts` | `routes/economy/rates_key_metrics.py` |
 | `economySectorApi.ts` | `routes/economy/labor_sector.py` |
-| `fredObservations.ts` | `routes/economy/fred.py` |
-| `flaskMainApi.ts` | `routes/civic/`, `routes/health.py` |
+| `economyLaborEarningsInflationApi.ts` / `economyLaborAgeMetricsApi.ts` | labor earnings + age routes |
+| `fredObservations.ts` | `routes/economy/fred.py` (PAYEMS delta) |
 | `newsApi.ts` | `routes/news/` |
 | `fecCandidatesApi.ts` | `routes/fec/` |
 
