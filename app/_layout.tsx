@@ -137,7 +137,10 @@ function RootNavigationChrome({
         edges={['top', 'left', 'right']}>
         <View style={{ flex: 1, backgroundColor: contentBackground }}>
           <Stack screenOptions={{ headerShown: false }}>
-            {/* Public utility route — available regardless of Session / bypass. */}
+            {/* Explicit `/` — never rely on Stack order for the default route. */}
+            <Stack.Screen name="index" />
+
+            {/* Public utility / deep-link route — not an unauthenticated fallback. */}
             <Stack.Screen name="verify-email-change" />
 
             <Stack.Protected guard={authRouteGroupGuard(canAccessApp)}>

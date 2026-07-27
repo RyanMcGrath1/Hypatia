@@ -151,6 +151,7 @@ vi.mock('@/hooks/api/accountApi', () => ({
 }));
 
 import VerifyEmailChangeScreen from '@/app/verify-email-change';
+import { AppRoutes } from '@/constants/app/routes';
 
 const FIXTURE_TOKEN = 'opaque_email_verify_fixture_token_abc';
 
@@ -180,6 +181,17 @@ describe('VerifyEmailChangeScreen', () => {
     expect(screen.getByText('Invalid email verification link.')).toBeTruthy();
     expect(accountApiMocks.verifyEmailChange).not.toHaveBeenCalled();
     expect(screen.getByRole('button', { name: 'Log In' })).toBeTruthy();
+    // Direct /verify-email-change stays on this screen — no auto-redirect to Login.
+    expect(routerMocks.replace).not.toHaveBeenCalled();
+  });
+
+  it('Log In button navigates to the canonical Login route', () => {
+    searchParams.token = undefined;
+    renderScreen();
+
+    fireEvent.click(screen.getByRole('button', { name: 'Log In' }));
+    expect(routerMocks.replace).toHaveBeenCalledTimes(1);
+    expect(routerMocks.replace).toHaveBeenCalledWith(AppRoutes.authLogin);
   });
 
   it('valid token verifies once with exact token and no Bearer Session', async () => {

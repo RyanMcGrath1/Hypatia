@@ -95,9 +95,13 @@ export function FormTextField({
           accessibilityState={{ disabled }}
           style={[
             styles.input,
-            { color: theme.text, caretColor: theme.text },
+            { color: theme.text },
             Platform.OS === "web"
-              ? ({ outlineStyle: "none", outlineWidth: 0 } as TextStyle)
+              ? ({
+                  caretColor: theme.text,
+                  outlineStyle: "none",
+                  outlineWidth: 0,
+                } as unknown as TextStyle)
               : null,
             inputStyle,
           ]}

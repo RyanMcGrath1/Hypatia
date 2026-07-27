@@ -132,6 +132,64 @@ try {
     'TOTP success must route to the protected app home.',
   );
 
+  // Canonical root (`/`) must explicitly choose Login vs app — never fall through
+  // to the first public Stack screen (verify-email-change).
+  assertContains(
+    'app/index.tsx',
+    'resolveRootRedirect',
+    'Root index must use resolveRootRedirect for the `/` destination.',
+  );
+  assertContains(
+    'app/index.tsx',
+    'Redirect',
+    'Root index must Redirect to Login or protected app home.',
+  );
+  assertContains(
+    'app/_layout.tsx',
+    'name="index"',
+    'Root layout must declare the explicit index screen for `/`.',
+  );
+  assertContains(
+    'lib/auth/resolveRootRedirect.ts',
+    'AppRoutes.authLogin',
+    'Unauthenticated `/` must resolve to the canonical Login route.',
+  );
+  assertContains(
+    'lib/auth/resolveRootRedirect.ts',
+    'AppRoutes.tabsRoot',
+    'Authenticated / bypass `/` must resolve to protected app home.',
+  );
+  {
+    const indexSource = readFileSync(
+      resolve(process.cwd(), 'app/index.tsx'),
+      'utf8',
+    );
+    // Destination check: Redirect href must come from resolveRootRedirect,
+    // which only returns authLogin or tabsRoot — never the public verify utility.
+    if (!indexSource.includes('resolveRootRedirect')) {
+      throw new Error('Root index must decide `/` via resolveRootRedirect.');
+    }
+    if (
+      /Redirect\s+href=\{[^}]*verify/i.test(indexSource) ||
+      /href:\s*AppRoutes\.verifyEmailChange/.test(indexSource)
+    ) {
+      throw new Error(
+        'Root index must never redirect to the email verification utility route.',
+      );
+    }
+    const layoutSource = readFileSync(
+      resolve(process.cwd(), 'app/_layout.tsx'),
+      'utf8',
+    );
+    const indexDecl = layoutSource.indexOf('name="index"');
+    const verifyDecl = layoutSource.indexOf('name="verify-email-change"');
+    if (indexDecl < 0 || verifyDecl < 0 || indexDecl >= verifyDecl) {
+      throw new Error(
+        'Root layout must declare index before verify-email-change so `/` is explicit.',
+      );
+    }
+  }
+
   // Public email-change verification (outside auth/app protected groups).
   assertContains(
     'app/_layout.tsx',

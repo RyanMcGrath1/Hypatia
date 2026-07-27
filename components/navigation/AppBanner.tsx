@@ -1,7 +1,7 @@
 import FontAwesome from "@expo/vector-icons/FontAwesome";
 import Ionicons from "@expo/vector-icons/Ionicons";
 import { Image } from "expo-image";
-import { usePathname, useRouter } from "expo-router";
+import { usePathname, useRouter, type Href } from "expo-router";
 import { useMemo } from "react";
 import { Pressable, StyleSheet, View } from "react-native";
 
@@ -25,7 +25,7 @@ export function AppBanner() {
 
   const openProfile = () => {
     if (pathname !== AppRoutes.profile) {
-      router.push(AppRoutes.profile);
+      router.push(AppRoutes.profile as Href);
     }
   };
 

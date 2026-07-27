@@ -136,7 +136,7 @@ export function usePoliticianSearch() {
     router.push({
       pathname: AppRoutes.politicianDetail,
       params: { name: q },
-    });
+    } as unknown as Parameters<typeof router.push>[0]);
   }, []);
 
   const onBlurSearchField = useCallback(() => {
