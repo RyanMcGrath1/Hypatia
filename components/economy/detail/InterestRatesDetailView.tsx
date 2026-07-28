@@ -95,18 +95,6 @@ export function InterestRatesDetailView() {
             { color: theme.text, marginBottom: Spacing.sm },
           ]}
         >
-          INTERPRETATION
-        </ThemedText>
-        <ThemedText style={styles.copy}>{RATES_SECTOR.interpretation}</ThemedText>
-      </EconomyCard>
-
-      <EconomyCard>
-        <ThemedText
-          style={[
-            laborStyles.tableTitle,
-            { color: theme.text, marginBottom: Spacing.sm },
-          ]}
-        >
           KEY METRICS
         </ThemedText>
         {keyMetricsWidget.metrics.map((metric) => (

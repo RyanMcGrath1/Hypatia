@@ -1,5 +1,5 @@
 /**
- * `GET {API_BASE}/api/economy/cpi` — CPIAUCSL level observations (FRED key stays server-side).
+ * `GET {API_BASE}/api/economy/inflation/cpi` — CPIAUCSL level observations (FRED key stays server-side).
  */
 import { fetchApiGet, HttpApiError } from "@/hooks/api/httpGet";
 import { getHypatiaBackendBaseUrl } from "@/hooks/api/hypatiaBaseUrl";
@@ -67,7 +67,7 @@ function parseObservations(raw: unknown): EconomyCpiObservation[] {
   return out;
 }
 
-/** Normalize `/api/economy/cpi` JSON into a typed response. */
+/** Normalize `/api/economy/inflation/cpi` JSON into a typed response. */
 export function parseEconomyCpiResponse(raw: unknown): EconomyCpiResponse | null {
   if (!raw || typeof raw !== "object") {
     return null;
@@ -92,7 +92,7 @@ export function parseEconomyCpiResponse(raw: unknown): EconomyCpiResponse | null
   };
 }
 
-/** GET `/api/economy/cpi` — returns CPIAUCSL index observations. */
+/** GET `/api/economy/inflation/cpi` — returns CPIAUCSL index observations. */
 export async function fetchEconomyCpi(
   signal?: AbortSignal,
 ): Promise<EconomyCpiResponse> {
