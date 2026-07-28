@@ -99,6 +99,7 @@ Recent improvements introduced:
 - `EXPO_PUBLIC_*` variables are bundled into the client and are public.
 - Use `.env` for local client config (for example `EXPO_PUBLIC_API_BASE_URL`).
 - Store secret API keys only in your backend/Flask environment, never in the Expo app.
+- `EXPO_PUBLIC_DEV_AUTH_BYPASS` — local frontend UI access only. Set to `true` in your private `.env` when developing without an account. It works **only** when `__DEV__` is true; it is **not** authentication, does not create a Session token, and backend protected endpoints still return 401 without a real login. Keep the tracked example at `false`.
 
 ## Useful scripts
 

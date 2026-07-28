@@ -74,7 +74,7 @@ export function EconomySectorFeedList({
           router.push({
             pathname: AppRoutes.economyDetail,
             params: { sectorId: row.id },
-          });
+          } as unknown as Parameters<typeof router.push>[0]);
 
         return (
           <View

@@ -2,8 +2,7 @@ import { View } from "react-native";
 
 import { economyDashboardStyles as styles } from "@/components/economy/tab/economyDashboardStyles";
 import { Skeleton } from "@/components/ui/Skeleton";
-import { Radius } from "@/constants/theme/ThemeTokens";
-import { getSemanticColors } from "@/constants/theme/ThemeTokens";
+import { getSemanticColors, Radius } from "@/constants/theme/ThemeTokens";
 import { useColorScheme } from "@/hooks/useColorScheme";
 
 const BAR_HEIGHTS = [14, 22, 18, 26, 16, 24, 20, 12];

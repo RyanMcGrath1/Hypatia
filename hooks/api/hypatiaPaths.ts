@@ -4,6 +4,22 @@
  */
 export const HYPATIA_API_PATHS = {
   health: "/health",
+  /** Legacy alias; backend registers the same handler as `health`. */
+  hello: "/hello",
+  authRegister: "/api/auth/register",
+  authLogin: "/api/auth/login",
+  authLoginTotp: "/api/auth/login/totp",
+  authLogout: "/api/auth/logout",
+  profile: "/api/profile",
+  accountDelete: "/api/account",
+  accountChangePassword: "/api/account/change-password",
+  accountChangeEmail: "/api/account/change-email",
+  accountVerifyEmailChange: "/api/account/change-email/verify",
+  securityTotpSetup: "/api/security/totp/setup",
+  securityTotpEnable: "/api/security/totp/enable",
+  securityTotpDisable: "/api/security/totp/disable",
+  civicDivisionsByAddress: "/api/civic/divisions-by-address",
+  civicRepresentatives: "/api/civic/representatives",
   economyDashboard: "/api/economy/dashboard",
   economyGdpGrowthRate: "/api/economy/gdp/growth-rate",
   economyGdpGrowthHeadwinds: "/api/economy/gdp/growth-headwinds",

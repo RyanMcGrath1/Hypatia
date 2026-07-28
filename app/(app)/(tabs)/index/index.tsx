@@ -123,7 +123,7 @@ export default function HomeScreen() {
     router.push({
       pathname: AppRoutes.article,
       params: { url, title },
-    });
+    } as unknown as Parameters<typeof router.push>[0]);
   }, []);
 
   const renderHeadlineItem = useCallback(
@@ -332,6 +332,7 @@ export default function HomeScreen() {
     [
       feedPending,
       headlines.length,
+      semantic.accent,
       semantic.cardBackground,
       semantic.cardBorder,
       semantic.cardSubtleBackground,

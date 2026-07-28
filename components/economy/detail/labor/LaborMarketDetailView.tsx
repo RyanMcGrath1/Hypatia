@@ -116,18 +116,20 @@ export function LaborMarketDetailView() {
     danger: interactive.danger,
   });
 
+  const { observationStart, observationEnd } = payrollFetchWindow;
+
   const {
     data: sectorApi,
     isLoading: sectorLoading,
     error: sectorError,
   } = useEconomySector({
-    observationStart: payrollFetchWindow.observationStart,
-    observationEnd: payrollFetchWindow.observationEnd,
+    observationStart,
+    observationEnd,
   });
 
   const earningsInflationFetchWindow = useMemo(
-    () => laborEarningsInflationFetchWindow(payrollFetchWindow),
-    [payrollFetchWindow.observationStart, payrollFetchWindow.observationEnd],
+    () => laborEarningsInflationFetchWindow({ observationStart, observationEnd }),
+    [observationStart, observationEnd],
   );
 
   const {
@@ -137,12 +139,12 @@ export function LaborMarketDetailView() {
   } = useEconomyLaborEarningsInflation(earningsInflationFetchWindow);
 
   const wagesInflationCard = useMemo(
-    () => wagesInflationCardFromApi(earningsInflationApi, payrollFetchWindow),
-    [
-      earningsInflationApi,
-      payrollFetchWindow.observationStart,
-      payrollFetchWindow.observationEnd,
-    ],
+    () =>
+      wagesInflationCardFromApi(earningsInflationApi, {
+        observationStart,
+        observationEnd,
+      }),
+    [earningsInflationApi, observationStart, observationEnd],
   );
 
   const payrollHasChart = (payrollChart?.bars?.length ?? 0) > 0;

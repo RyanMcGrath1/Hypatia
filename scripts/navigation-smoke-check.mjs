@@ -11,16 +11,21 @@ function assertContains(filePath, expected, message) {
 try {
   // Economy tile navigation should route to detail screen.
   assertContains(
-    'app/(tabs)/economy/index.tsx',
+    'components/economy/tab/EconomySectorFeedList.tsx',
     'pathname: AppRoutes.economyDetail',
     'Economy tile navigation route changed unexpectedly.',
   );
 
   // Detail stack lives under the Economy tab so the tab bar stays visible.
   assertContains(
-    'app/(tabs)/economy/_layout.tsx',
-    'gestureEnabled: true',
+    'app/(app)/(tabs)/economy/_layout.tsx',
+    'forgivingStackScreenOptions',
     'Economy tab stack gesture navigation is not configured.',
+  );
+  assertContains(
+    'constants/navigation/stackScreenOptions.ts',
+    'gestureEnabled: true',
+    'Shared stack options must keep gestures enabled.',
   );
 
   // Route constants should keep tabs + detail route contract centralized.
@@ -28,6 +33,220 @@ try {
     'constants/app/routes.ts',
     "economyDetail: '/(tabs)/economy/[sectorId]'",
     'Route constants do not define economy detail path.',
+  );
+
+  // Protected app shell owns AppBanner (not the auth group).
+  assertContains(
+    'app/(app)/_layout.tsx',
+    'AppBanner',
+    'Protected app layout must render AppBanner.',
+  );
+  assertContains(
+    'app/_layout.tsx',
+    'Stack.Protected',
+    'Root layout must use Stack.Protected for auth/app gating.',
+  );
+  assertContains(
+    'app/(auth)/login.tsx',
+    'Log In',
+    'Login screen is missing.',
+  );
+  assertContains(
+    'app/(auth)/register.tsx',
+    'Create Account',
+    'Registration screen is missing.',
+  );
+  assertContains(
+    'app/(auth)/index.tsx',
+    'Redirect',
+    'Auth index should redirect to Login.',
+  );
+  assertContains(
+    'app/(auth)/index.tsx',
+    'authLogin',
+    'Auth index must redirect to the Login route constant.',
+  );
+  assertContains(
+    'app/(auth)/_layout.tsx',
+    'login',
+    'Auth group layout must declare the login screen.',
+  );
+  assertContains(
+    'app/(auth)/_layout.tsx',
+    'register',
+    'Auth group layout must declare the register screen.',
+  );
+  assertContains(
+    'app/(auth)/_layout.tsx',
+    'login-totp',
+    'Auth group layout must declare the TOTP login screen.',
+  );
+  assertContains(
+    'app/(auth)/_layout.tsx',
+    'AuthFlowProvider',
+    'Auth group layout must mount AuthFlowProvider for MFA challenge handoff.',
+  );
+  assertContains(
+    'constants/app/routes.ts',
+    "authLogin: '/login'",
+    'Route constants must define the Login path.',
+  );
+  assertContains(
+    'constants/app/routes.ts',
+    "authRegister: '/register'",
+    'Route constants must define the Registration path.',
+  );
+  assertContains(
+    'constants/app/routes.ts',
+    "authLoginTotp: '/login-totp'",
+    'Route constants must define the TOTP login path.',
+  );
+  assertContains(
+    'app/(auth)/login-totp.tsx',
+    'Verify',
+    'TOTP login screen is missing.',
+  );
+  assertContains(
+    'app/(auth)/login.tsx',
+    'authLoginTotp',
+    'Login must navigate to TOTP when totp_required.',
+  );
+  assertContains(
+    'app/(auth)/login.tsx',
+    'beginTotpLogin',
+    'Login must store MFA challenge via beginTotpLogin.',
+  );
+  assertContains(
+    'app/(auth)/login-totp.tsx',
+    'completeTotpLogin',
+    'TOTP screen must complete login via completeTotpLogin.',
+  );
+  assertContains(
+    'app/(auth)/login-totp.tsx',
+    'establishSession',
+    'TOTP success must establish a session.',
+  );
+  assertContains(
+    'app/(auth)/login-totp.tsx',
+    'tabsRoot',
+    'TOTP success must route to the protected app home.',
+  );
+
+  // Canonical root (`/`) must explicitly choose Login vs app — never fall through
+  // to the first public Stack screen (verify-email-change).
+  assertContains(
+    'app/index.tsx',
+    'resolveRootRedirect',
+    'Root index must use resolveRootRedirect for the `/` destination.',
+  );
+  assertContains(
+    'app/index.tsx',
+    'Redirect',
+    'Root index must Redirect to Login or protected app home.',
+  );
+  assertContains(
+    'app/_layout.tsx',
+    'name="index"',
+    'Root layout must declare the explicit index screen for `/`.',
+  );
+  assertContains(
+    'lib/auth/resolveRootRedirect.ts',
+    'AppRoutes.authLogin',
+    'Unauthenticated `/` must resolve to the canonical Login route.',
+  );
+  assertContains(
+    'lib/auth/resolveRootRedirect.ts',
+    'AppRoutes.tabsRoot',
+    'Authenticated / bypass `/` must resolve to protected app home.',
+  );
+  {
+    const indexSource = readFileSync(
+      resolve(process.cwd(), 'app/index.tsx'),
+      'utf8',
+    );
+    // Destination check: Redirect href must come from resolveRootRedirect,
+    // which only returns authLogin or tabsRoot — never the public verify utility.
+    if (!indexSource.includes('resolveRootRedirect')) {
+      throw new Error('Root index must decide `/` via resolveRootRedirect.');
+    }
+    if (
+      /Redirect\s+href=\{[^}]*verify/i.test(indexSource) ||
+      /href:\s*AppRoutes\.verifyEmailChange/.test(indexSource)
+    ) {
+      throw new Error(
+        'Root index must never redirect to the email verification utility route.',
+      );
+    }
+    const layoutSource = readFileSync(
+      resolve(process.cwd(), 'app/_layout.tsx'),
+      'utf8',
+    );
+    const indexDecl = layoutSource.indexOf('name="index"');
+    const verifyDecl = layoutSource.indexOf('name="verify-email-change"');
+    if (indexDecl < 0 || verifyDecl < 0 || indexDecl >= verifyDecl) {
+      throw new Error(
+        'Root layout must declare index before verify-email-change so `/` is explicit.',
+      );
+    }
+  }
+
+  // Public email-change verification (outside auth/app protected groups).
+  assertContains(
+    'app/_layout.tsx',
+    'verify-email-change',
+    'Root layout must declare the public verify-email-change screen.',
+  );
+  assertContains(
+    'app.json',
+    '"scheme": "hypatia"',
+    'Expo scheme must remain hypatia for EMAIL_CHANGE_VERIFY_URL deep links.',
+  );
+  assertContains(
+    'constants/app/routes.ts',
+    "verifyEmailChange: '/verify-email-change'",
+    'Route constants must define the email-change verification path.',
+  );
+  assertContains(
+    'app/verify-email-change.tsx',
+    'verifyEmailChange',
+    'Verification screen must call accountApi.verifyEmailChange.',
+  );
+  assertContains(
+    'app/verify-email-change.tsx',
+    'clearSession',
+    'Completed email change must clear the local Session.',
+  );
+  assertContains(
+    'hooks/api/accountApi.ts',
+    'email_change_complete',
+    'verifyEmailChange must discriminate on email_change_complete, not message text.',
+  );
+  assertContains(
+    'app/verify-email-change.tsx',
+    "kind === 'completed'",
+    'Verification screen must branch on completed vs pending kinds.',
+  );
+
+  // AppBanner Profile affordance → protected Profile route under (app)/(tabs).
+  assertContains(
+    'components/navigation/AppBanner.tsx',
+    'AppRoutes.profile',
+    'AppBanner Profile icon must navigate via AppRoutes.profile.',
+  );
+  assertContains(
+    'constants/app/routes.ts',
+    "profile: '/(tabs)/profile'",
+    'Route constants must define the Profile path.',
+  );
+  assertContains(
+    'app/(app)/(tabs)/profile.tsx',
+    'useProfile',
+    'Profile route must load account data via useProfile.',
+  );
+  assertContains(
+    'app/(app)/(tabs)/_layout.tsx',
+    'name="profile"',
+    'Tabs layout must declare the Profile screen (href:null, banner entry).',
   );
 
   console.log('Navigation smoke check passed.');

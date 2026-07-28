@@ -96,7 +96,7 @@ export default function TabLayout() {
           tabBarIcon: ({ color, focused }) => (
             <AnimatedTabIcon focused={focused}>
               <Ionicons
-                name={focused ? "school" : "school-outline"}
+                name={focused ? "people" : "people-outline"}
                 size={26}
                 color={color}
               />

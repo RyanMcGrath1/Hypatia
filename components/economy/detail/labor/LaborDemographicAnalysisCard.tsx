@@ -157,12 +157,10 @@ export function LaborDemographicAnalysisCard({
 
   const comparisonChartWidth = Math.max(windowWidth - Spacing.lg * 4, 280);
 
+  const { observationStart, observationEnd } = payrollFetchWindow;
   const fetchParams = useMemo(
-    () => laborEarningsInflationFetchWindow(payrollFetchWindow),
-    [
-      payrollFetchWindow.observationStart,
-      payrollFetchWindow.observationEnd,
-    ],
+    () => laborEarningsInflationFetchWindow({ observationStart, observationEnd }),
+    [observationStart, observationEnd],
   );
 
   const { data: ageMetricsApi, isLoading, error } = useEconomyLaborAgeMetrics(

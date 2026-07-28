@@ -1,12 +1,31 @@
 /**
- * Pathname segments for top-level tab screens (Expo may omit the `(tabs)` group).
- * Keep in sync with `app/(tabs)/_layout.tsx` screen names.
+ * Pathname helpers for AppBanner back affordance.
+ * Route groups like `(app)` / `(tabs)` are stripped so nested moves stay stable.
+ */
+
+/** Drop Expo Router group segments such as `(app)` or `(tabs)`. */
+function withoutRouteGroups(pathname: string): string {
+  const cleaned = pathname
+    .split('/')
+    .filter((segment) => {
+      if (!segment) {
+        return false;
+      }
+      return !(segment.startsWith('(') && segment.endsWith(')'));
+    })
+    .join('/');
+  return cleaned ? `/${cleaned}` : '/';
+}
+
+/**
+ * Pathname segments for top-level tab screens.
+ * Keep in sync with `app/(app)/(tabs)/_layout.tsx` screen names.
  */
 const MAIN_TAB_SEGMENTS = new Set([
-  "index",
-  "economy",
-  "politician",
-  "explore",
+  'index',
+  'economy',
+  'politician',
+  'explore',
 ]);
 
 /**
@@ -14,19 +33,13 @@ const MAIN_TAB_SEGMENTS = new Set([
  * (e.g. `/economy/labor`, `/article`, `/profile`).
  */
 export function isMainTabPathname(pathname: string): boolean {
-  const path = pathname.replace(/\/$/, "") || "/";
+  const path = withoutRouteGroups(pathname.replace(/\/$/, '') || '/');
 
-  if (path === "/" || path === "/(tabs)") {
+  if (path === '/' || path === '/index') {
     return true;
   }
 
-  if (path.startsWith("/(tabs)/")) {
-    const rest = path.slice("/(tabs)/".length);
-    const first = rest.split("/").filter(Boolean)[0];
-    return first === undefined || MAIN_TAB_SEGMENTS.has(first);
-  }
-
-  const segments = path.split("/").filter(Boolean);
+  const segments = path.split('/').filter(Boolean);
   if (segments.length === 0) {
     return true;
   }
