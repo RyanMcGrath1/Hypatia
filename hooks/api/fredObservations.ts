@@ -1,6 +1,6 @@
 /**
  * Hypatia backend proxy for PAYEMS monthly deltas (`FRED_API_KEY` stays server-side).
- * GET `{newsApiBase}/api/economy/fred/series/PAYEMS/delta?...`
+ * GET `{newsApiBase}/api/economy/labor/payems/delta?...`
  *
  * Base URL matches {@link fetchEconomyOverview} / news stack so Expo web dev can use the Metro proxy.
  */
@@ -120,7 +120,7 @@ function validateFredObservationsPayload(raw: unknown): FredObservationsResponse
 }
 
 /**
- * GET `/api/economy/fred/series/PAYEMS/delta` — query string only, never sends `api_key`.
+ * GET `/api/economy/labor/payems/delta` — query string only, never sends `api_key`.
  */
 export async function getFredObservations(
   params: GetFredObservationsParams,
