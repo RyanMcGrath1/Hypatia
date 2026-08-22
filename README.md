@@ -12,11 +12,11 @@ The app currently includes:
 
 ## Screenshots
 
-| News | Economy |
-| :---: | :---: |
-| ![News home feed](./assets/images/screenshot1.png) | ![Economy labor market](./assets/images/screenshot2.png) |
-| **Politician** | **Explore** |
-| ![Politician intelligence](./assets/images/screenshot3.png) | ![Explore discover](./assets/images/screenshot4.png) |
+|                            News                             |                         Economy                          |
+| :---------------------------------------------------------: | :------------------------------------------------------: |
+|     ![News home feed](./assets/images/screenshot1.png)      | ![Economy labor market](./assets/images/screenshot2.png) |
+|                       **Politician**                        |                       **Explore**                        |
+| ![Politician intelligence](./assets/images/screenshot3.png) |   ![Explore discover](./assets/images/screenshot4.png)   |
 
 ## Core features
 
