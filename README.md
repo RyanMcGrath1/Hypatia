@@ -1,4 +1,6 @@
-![Hypatia logo](./assets/images/light-logo.png)
+<p align="center">
+  <img src="./assets/images/light-logo.png" alt="Hypatia" width="320" />
+</p>
 
 Hypatia is an Expo + React Native app with a tab-first mobile UX for exploring economic signals, political intelligence, and AI-curated news.
 
