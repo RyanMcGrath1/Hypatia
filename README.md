@@ -10,6 +10,14 @@ The app currently includes:
 - a news-first **Home** tab with sticky topic filters and article category stamps,
 - a redesigned **Explore/Discover** tab for quick entry into major app domains.
 
+## Screenshots
+
+| News | Economy |
+| :---: | :---: |
+| ![News home feed](./assets/images/screenshot1.png) | ![Economy labor market](./assets/images/screenshot2.png) |
+| **Politician** | **Explore** |
+| ![Politician intelligence](./assets/images/screenshot3.png) | ![Explore discover](./assets/images/screenshot4.png) |
+
 ## Core features
 
 ### Economy
