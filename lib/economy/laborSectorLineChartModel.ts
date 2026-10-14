@@ -306,14 +306,9 @@ function scaleModeFromData(dataMin: number, dataMax: number): LaborSectorScaleMo
   return "negative-only";
 }
 
-function buildChartSubtitle(
-  periodRangeLabel: string,
-  dataCrossesZero: boolean,
-): string {
-  if (dataCrossesZero) {
-    return `${periodRangeLabel} · dashed = unchanged`;
-  }
-  return periodRangeLabel;
+/** The date range is shown once for the whole screen, so this only explains chart marks. */
+function buildChartSubtitle(dataCrossesZero: boolean): string {
+  return dataCrossesZero ? "Dashed line = no change" : "";
 }
 
 function buildXTicks(
@@ -518,10 +513,7 @@ export function buildLaborSectorLineChartModel(
     lines,
     xTicks: buildXTicks(plotTimeline, innerW, PAD_X),
     periodRangeLabel: periodRangeLabel(response, plotTimeline),
-    chartSubtitle: buildChartSubtitle(
-      periodRangeLabel(response, plotTimeline),
-      dataCrossesZero,
-    ),
+    chartSubtitle: buildChartSubtitle(dataCrossesZero),
   };
 }
 

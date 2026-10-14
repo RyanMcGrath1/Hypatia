@@ -179,9 +179,7 @@ export function buildLaborSectorHeatmapModel(
   return {
     tiles,
     periodRangeLabel,
-    subtitle: periodRangeLabel
-      ? `Net payroll change over selected period · ${periodRangeLabel}`
-      : "Net payroll change over the selected period.",
+    subtitle: "Net payroll change over the selected period",
     legendLowLabel: "Weaker period",
     legendHighLabel: "Stronger period",
     defaultSelectedId: best?.id ?? tiles[0]?.id ?? null,

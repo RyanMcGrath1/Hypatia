@@ -20,7 +20,7 @@ import {
   type FredObservationRow,
 } from "@/hooks/api/fredObservations";
 import {
-  formatMonthYearShortDisplay,
+  formatMonthRangeCompact,
   monthKeyFromObservationDate,
   payrollDefaultSeriesLastMonthKeyUtc,
   payrollDefaultYtdBoundsUtc,
@@ -166,16 +166,40 @@ export function useLaborMarketPayrollSection(heroTheme: LaborMarketPayrollHeroTh
     setSelectedBarIndex(null);
   }, [payrollChart]);
 
-  const payrollRangeA11yLabel = useMemo(() => {
+  const payrollRangeBounds = useMemo(() => {
     if (payrollObservationsRaw.length === 0) {
-      return "Chart time range";
+      return {
+        start: payrollFetchWindow.observationStart,
+        end: payrollFetchWindow.observationEnd,
+      };
     }
-    const a = formatMonthYearShortDisplay(payrollObservationsRaw[0]?.date);
-    const b = formatMonthYearShortDisplay(
-      payrollObservationsRaw[payrollObservationsRaw.length - 1]?.date,
-    );
-    return `${a} through ${b}`;
-  }, [payrollObservationsRaw]);
+    return {
+      start: payrollObservationsRaw[0]?.date,
+      end: payrollObservationsRaw[payrollObservationsRaw.length - 1]?.date,
+    };
+  }, [payrollObservationsRaw, payrollFetchWindow]);
+
+  /** Single scope label for every card on the screen, e.g. "Jan – Sep 2026". */
+  const payrollRangeLabel = useMemo(
+    () => formatMonthRangeCompact(payrollRangeBounds.start, payrollRangeBounds.end),
+    [payrollRangeBounds],
+  );
+
+  const payrollRangeA11yLabel = useMemo(() => {
+    const longMonth = (iso: string | undefined) => {
+      if (!iso) return "";
+      const d = new Date(`${iso.slice(0, 10)}T12:00:00`);
+      return Number.isNaN(d.getTime())
+        ? ""
+        : d.toLocaleDateString("en-US", { month: "long", year: "numeric" });
+    };
+    const a = longMonth(payrollRangeBounds.start);
+    const b = longMonth(payrollRangeBounds.end);
+    if (!a || !b) {
+      return "Data range";
+    }
+    return a === b ? `Data for ${a}` : `Data from ${a} through ${b}`;
+  }, [payrollRangeBounds]);
 
   const onPayrollRangeFilterModalClose = useCallback(
     (reason: PayrollRangeFilterCloseReason, commit?: PayrollRangeCommitPayload) => {
@@ -221,28 +245,6 @@ export function useLaborMarketPayrollSection(heroTheme: LaborMarketPayrollHeroTh
     return computeDisplayedChartNetLevelDeltaThousands(payrollChart);
   }, [payrollLoading, payrollChart]);
 
-  const yearlyTotalJobsSubtitle = useMemo(() => {
-    if (payrollChart?.calendarContextYear != null) {
-      const y = payrollChart.calendarContextYear;
-      const start = formatMonthYearShortDisplay(`${y}-01-01`);
-      const end = formatMonthYearShortDisplay(`${y}-12-01`);
-      if (start && end) {
-        return `${start} - ${end}`;
-      }
-    }
-    if (payrollObservationsRaw.length === 0) {
-      return undefined;
-    }
-    const start = formatMonthYearShortDisplay(payrollObservationsRaw[0]?.date);
-    const end = formatMonthYearShortDisplay(
-      payrollObservationsRaw[payrollObservationsRaw.length - 1]?.date,
-    );
-    if (!start || !end) {
-      return undefined;
-    }
-    return `${start} - ${end}`;
-  }, [payrollChart, payrollObservationsRaw]);
-
   const yearlyTotalJobsBadgeLabel = useMemo(() => {
     if (
       payrollLoading ||
@@ -278,6 +280,7 @@ export function useLaborMarketPayrollSection(heroTheme: LaborMarketPayrollHeroTh
     payrollFetchWindow,
     payrollSeriesLatestMonthKey,
     onPayrollRangeFilterModalClose,
+    payrollRangeLabel,
     payrollRangeA11yLabel,
     payrollChart,
     selectedBarIndex,
@@ -287,7 +290,6 @@ export function useLaborMarketPayrollSection(heroTheme: LaborMarketPayrollHeroTh
     payrollHeroDisplay,
     payrollAxis,
     yearlyTotalJobsNetThousands,
-    yearlyTotalJobsSubtitle,
     yearlyTotalJobsBadgeLabel,
   };
 }

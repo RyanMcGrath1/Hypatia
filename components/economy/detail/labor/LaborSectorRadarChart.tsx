@@ -70,12 +70,14 @@ export function LaborSectorRadarChart({ data, width }: LaborSectorRadarChartProp
 
   return (
     <View style={styles.wrap}>
-      <ThemedText
-        style={[styles.chartSubtitle, { color: semantic.mutedText }]}
-        numberOfLines={2}
-      >
-        {model.chartSubtitle}
-      </ThemedText>
+      {model.chartSubtitle ? (
+        <ThemedText
+          style={[styles.chartSubtitle, { color: semantic.mutedText }]}
+          numberOfLines={2}
+        >
+          {model.chartSubtitle}
+        </ThemedText>
+      ) : null}
 
       <View
         style={[

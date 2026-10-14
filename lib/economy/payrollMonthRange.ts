@@ -207,6 +207,36 @@ export function formatMonthYearShortDisplay(date: string | undefined): string {
   return `${mon}, ${year}`;
 }
 
+/**
+ * Compact month span for a single scope label: "Mar 2026", "Jan – Sep 2026",
+ * or "Nov 2025 – Oct 2026" when the years differ.
+ */
+export function formatMonthRangeCompact(
+  startIso: string | undefined,
+  endIso: string | undefined,
+): string {
+  const parse = (iso: string | undefined) => {
+    if (!iso?.trim()) return null;
+    const d = new Date(`${iso.trim().slice(0, 10)}T12:00:00`);
+    return Number.isNaN(d.getTime()) ? null : d;
+  };
+  const a = parse(startIso);
+  const b = parse(endIso);
+  const month = (d: Date) => d.toLocaleDateString("en-US", { month: "short" });
+  if (!a && !b) return "";
+  if (!a || !b) {
+    const d = (a ?? b)!;
+    return `${month(d)} ${d.getFullYear()}`;
+  }
+  if (a.getFullYear() === b.getFullYear()) {
+    if (a.getMonth() === b.getMonth()) {
+      return `${month(a)} ${a.getFullYear()}`;
+    }
+    return `${month(a)} – ${month(b)} ${b.getFullYear()}`;
+  }
+  return `${month(a)} ${a.getFullYear()} – ${month(b)} ${b.getFullYear()}`;
+}
+
 export function parseMonthKeyInput(raw: string): string | null {
   const t = raw.trim().replace(/\//g, "-");
   const m = /^(\d{4})-(\d{1,2})/.exec(t);

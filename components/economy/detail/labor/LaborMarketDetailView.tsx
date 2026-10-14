@@ -1,6 +1,6 @@
 import FontAwesome from "@expo/vector-icons/FontAwesome";
-import { useMemo, useRef, useState } from "react";
-import { Animated, Platform, Pressable, useWindowDimensions, View } from "react-native";
+import { useMemo, useState } from "react";
+import { Pressable, useWindowDimensions, View } from "react-native";
 
 import { laborMarketDetailStyles as styles } from "@/components/economy/detail/labor/LaborMarketDetailView.styles";
 import {
@@ -20,7 +20,7 @@ import {
     EconomyDetailShell,
 } from "@/components/economy/detail/shared/EconomyDetailShell";
 import { ThemedText } from "@/components/theme/ThemedText";
-import { FilterIconButton } from "@/components/ui/FilterIconButton";
+import { DataRangeCapsule } from "@/components/ui/DataRangeCapsule";
 import { Colors } from "@/constants/theme/Colors";
 import {
     getSemanticColors,
@@ -37,10 +37,6 @@ import { laborEarningsInflationFetchWindow } from "@/lib/economy/laborEarningsIn
 import { wagesInflationCardFromApi } from "@/lib/economy/laborEarningsInflationViewModel";
 import { isEconomyDataPending } from "@/lib/economy/economyDataPending";
 import { sectorRowsFromApi } from "@/lib/economy/sectorRowsFromApi";
-
-const PAYROLL_FAB_SCROLL_RANGE = 96;
-const PAYROLL_FAB_MIN_SCALE = 0.72;
-const PAYROLL_FAB_SIZE = 68;
 
 export function LaborMarketDetailView() {
   const { width: windowWidth } = useWindowDimensions();
@@ -61,36 +57,6 @@ export function LaborMarketDetailView() {
   );
 
   const [sectorView, setSectorView] = useState<"heatmap" | "list">("heatmap");
-  const scrollY = useRef(new Animated.Value(0)).current;
-
-  const fabScale = useMemo(
-    () =>
-      scrollY.interpolate({
-        inputRange: [0, PAYROLL_FAB_SCROLL_RANGE],
-        outputRange: [1, PAYROLL_FAB_MIN_SCALE],
-        extrapolate: "clamp",
-      }),
-    [scrollY],
-  );
-
-  const fabCornerNudge = useMemo(
-    () =>
-      scrollY.interpolate({
-        inputRange: [0, PAYROLL_FAB_SCROLL_RANGE],
-        outputRange: [0, (PAYROLL_FAB_SIZE * (1 - PAYROLL_FAB_MIN_SCALE)) / 2],
-        extrapolate: "clamp",
-      }),
-    [scrollY],
-  );
-
-  const onPayrollFabScroll = useMemo(
-    () =>
-      Animated.event([{ nativeEvent: { contentOffset: { y: scrollY } } }], {
-        useNativeDriver: true,
-      }),
-    [scrollY],
-  );
-
   const {
     payrollLoading,
     payrollError,
@@ -98,6 +64,7 @@ export function LaborMarketDetailView() {
     payrollFetchWindow,
     payrollSeriesLatestMonthKey,
     onPayrollRangeFilterModalClose,
+    payrollRangeLabel,
     payrollRangeA11yLabel,
     payrollChart,
     selectedBarIndex,
@@ -107,7 +74,6 @@ export function LaborMarketDetailView() {
     payrollHeroDisplay,
     payrollAxis,
     yearlyTotalJobsNetThousands,
-    yearlyTotalJobsSubtitle,
     yearlyTotalJobsBadgeLabel,
   } = useLaborMarketPayrollSection({
     mutedText: semantic.mutedText,
@@ -193,67 +159,28 @@ export function LaborMarketDetailView() {
       kickerLabel: "TOTAL JOBS",
       netThousands: yearlyTotalJobsNetThousands,
       badgeLabel: yearlyTotalJobsBadgeLabel,
-      subtitle: yearlyTotalJobsSubtitle,
     };
   }, [
     payrollPending,
     payrollHasChart,
     yearlyTotalJobsNetThousands,
     yearlyTotalJobsBadgeLabel,
-    yearlyTotalJobsSubtitle,
   ]);
 
-  const payrollFabShadow = useMemo(
-    () =>
-      Platform.select({
-        ios: {
-          shadowColor: "#000000",
-          shadowOffset: { width: 0, height: 4 },
-          shadowOpacity: 0.18,
-          shadowRadius: 10,
-        },
-        default: {
-          elevation: 8,
-        },
-      }),
-    [],
-  );
-
   const floatingAction = useMemo(() => {
-    if (payrollObservationsRaw.length === 0) {
+    if (payrollObservationsRaw.length === 0 || !payrollRangeLabel) {
       return null;
     }
     return (
-      <Animated.View
-        style={[
-          styles.payrollFabWrap,
-          {
-            backgroundColor: semantic.cardBackground,
-            borderColor: semantic.hairline,
-            transform: [
-              { translateX: fabCornerNudge },
-              { translateY: fabCornerNudge },
-              { scale: fabScale },
-            ],
-            ...payrollFabShadow,
-          },
-        ]}
-      >
-        <FilterIconButton
-          accessibilityLabel={`Chart time range, ${payrollRangeA11yLabel}. Opens options.`}
-          onPress={() => setRangeFilterOpen(true)}
-          iconSize={30}
-          style={styles.payrollFabHit}
-        />
-      </Animated.View>
+      <DataRangeCapsule
+        label={payrollRangeLabel}
+        accessibilityLabel={payrollRangeA11yLabel}
+        onPress={() => setRangeFilterOpen(true)}
+      />
     );
   }, [
     payrollObservationsRaw.length,
-    semantic.cardBackground,
-    semantic.hairline,
-    fabScale,
-    fabCornerNudge,
-    payrollFabShadow,
+    payrollRangeLabel,
     payrollRangeA11yLabel,
     setRangeFilterOpen,
   ]);
@@ -265,7 +192,6 @@ export function LaborMarketDetailView() {
       headerLayout="sectorInline"
       inlineHeaderIcon="users"
       updatedDisplay={updatedDisplay}
-      onScroll={onPayrollFabScroll}
       floatingAction={floatingAction}
     >
       <LaborPayrollJobsCreatedCard
@@ -490,9 +416,6 @@ export function LaborMarketDetailView() {
             <View style={styles.cardTopRow}>
               <ThemedText style={[styles.tableTitle, { color: theme.text }]}>
                 WAGES VS. INFLATION
-              </ThemedText>
-              <ThemedText style={[styles.periodLabel, { color: theme.text }]}>
-                {wagesInflationCard.periodLabel}
               </ThemedText>
             </View>
             <View style={styles.splitMetricRow}>

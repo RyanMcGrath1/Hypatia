@@ -39,7 +39,7 @@ type EconomyDetailShellProps = {
   pageTitle: string;
   children: ReactNode;
   /**
-   * Pinned to the bottom-right of the screen, above the scroll body (e.g. chart range FAB).
+   * Pinned to the bottom-center of the screen, above the scroll body (e.g. data range control).
    * Parent supplies layout/visuals; shell only anchors and applies safe-area padding.
    */
   floatingAction?: ReactNode;
@@ -296,7 +296,6 @@ export function EconomyDetailShell({
                   6 +
                   Spacing.md +
                   Spacing.sm,
-                paddingRight: Spacing.lg,
               },
             ]}
           >
@@ -321,7 +320,7 @@ const styles = StyleSheet.create({
   fabOverlay: {
     ...StyleSheet.absoluteFill,
     justifyContent: "flex-end",
-    alignItems: "flex-end",
+    alignItems: "center",
   },
   scroll: {
     paddingHorizontal: Spacing.lg,

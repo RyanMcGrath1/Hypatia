@@ -1,4 +1,4 @@
-import { Platform, StyleSheet } from "react-native";
+import { StyleSheet } from "react-native";
 
 import {
   PAYROLL_BARS_ROW_PAD_TOP,
@@ -22,15 +22,6 @@ export const laborMarketDetailStyles = StyleSheet.create({
     rowGap: 6,
     columnGap: Spacing.sm,
     marginBottom: Spacing.sm,
-  },
-  periodLabel: {
-    fontSize: 11,
-    fontFamily: Fonts.bodySemiBold,
-    letterSpacing: 0.2,
-    textAlign: "right",
-    flexGrow: 1,
-    flexShrink: 1,
-    minWidth: 0,
   },
   heroMetricRow: {
     flexDirection: "row",
@@ -58,19 +49,6 @@ export const laborMarketDetailStyles = StyleSheet.create({
   },
   heroTrendIcon: {
     flexShrink: 0,
-  },
-  payrollFabWrap: {
-    width: 68,
-    height: 68,
-    borderRadius: 34,
-    alignItems: "center",
-    justifyContent: "center",
-    borderWidth: StyleSheet.hairlineWidth,
-    overflow: Platform.OS === "android" ? "hidden" : "visible",
-  },
-  payrollFabHit: {
-    minWidth: 64,
-    minHeight: 64,
   },
   consensusRow: {
     flexDirection: "row",

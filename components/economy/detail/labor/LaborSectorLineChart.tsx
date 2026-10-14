@@ -54,12 +54,14 @@ export function LaborSectorLineChart({ data, width }: LaborSectorLineChartProps)
 
   return (
     <View style={styles.wrap}>
-      <ThemedText
-        style={[styles.chartSubtitle, { color: semantic.mutedText }]}
-        numberOfLines={2}
-      >
-        {model.chartSubtitle}
-      </ThemedText>
+      {model.chartSubtitle ? (
+        <ThemedText
+          style={[styles.chartSubtitle, { color: semantic.mutedText }]}
+          numberOfLines={2}
+        >
+          {model.chartSubtitle}
+        </ThemedText>
+      ) : null}
 
       <View style={styles.plotRow}>
         <View style={[styles.yAxisCol, { width: model.yAxisWidth }]}>

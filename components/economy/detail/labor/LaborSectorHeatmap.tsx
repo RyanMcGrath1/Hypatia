@@ -191,7 +191,7 @@ function SectorDetailCard({
           </ThemedText>
         )}
         <ThemedText style={[styles.sparkCaption, { color: semantic.mutedText }]}>
-          Growth vs. period start{periodLabel ? ` (${periodLabel})` : ""}
+          Growth vs. period start
         </ThemedText>
       </View>
     </View>
