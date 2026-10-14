@@ -160,6 +160,7 @@ export type ThemeInteractive = {
   infoSoft: string;
   danger: string;
   dangerSoft: string;
+  warning: string;
   warningSoft: string;
 };
 
@@ -180,6 +181,7 @@ export function getThemeInteractive(
       infoSoft: "rgba(96, 212, 251, 0.14)",
       danger: Brand.darkError,
       dangerSoft: "rgba(255, 180, 171, 0.14)",
+      warning: "#F59E0B",
       warningSoft: "rgba(255, 182, 142, 0.14)",
     };
   }
@@ -196,6 +198,7 @@ export function getThemeInteractive(
     infoSoft: Brand.infoSoft,
     danger: Brand.danger,
     dangerSoft: Brand.dangerSoft,
+    warning: "#D97706",
     warningSoft: Brand.warningSoft,
   };
 }

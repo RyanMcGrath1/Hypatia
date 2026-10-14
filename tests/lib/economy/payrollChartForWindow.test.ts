@@ -21,8 +21,8 @@ describe("buildPayrollChartForObservationWindow", () => {
     expect(chart!.bars.filter((b) => b.hasObservation)).toHaveLength(3);
     expect(chart!.bars.filter((b) => !b.hasObservation)).toHaveLength(9);
     expect(chart!.calendarContextYear).toBe(2026);
-    expect(chart!.bars[0]!.label).toBe("JAN");
-    expect(chart!.bars[11]!.label).toBe("DEC");
+    expect(chart!.bars[0]!.label).toBe("Jan");
+    expect(chart!.bars[11]!.label).toBe("Dec");
   });
 
   it("uses one bar per observation when the same window is not current YTD for now", () => {

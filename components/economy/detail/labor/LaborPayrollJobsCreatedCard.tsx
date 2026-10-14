@@ -1,18 +1,13 @@
 import Feather from "@expo/vector-icons/Feather";
-import { useEffect, useRef, useState } from "react";
-import { Pressable, ScrollView, View } from "react-native";
+import { View } from "react-native";
 
+import { laborMarketDetailStyles as styles } from "@/components/economy/detail/labor/LaborMarketDetailView.styles";
 import {
-  laborMarketDetailStyles as styles,
-  PAYROLL_BARS_ROW_GAP,
-  PAYROLL_BARS_ROW_PAD_H,
-} from "@/components/economy/detail/labor/LaborMarketDetailView.styles";
-import {
-  PAYROLL_BARS_ROW_PAD_TOP,
-  PAYROLL_DIVERGE_HALF_PX,
-  PAYROLL_NEG_BAND_TOP,
-  PAYROLL_ZERO_LINE_Y,
-  payrollMomBarFillColor,
+  PAYROLL_BREAK_EVEN_THOUSANDS,
+  PAYROLL_TREND_WINDOW_MONTHS,
+  payrollJobsSpoken,
+  payrollMonthYearLabel,
+  payrollMovingAverage,
   type PayrollAxisModel,
   type PayrollHeroDisplay,
 } from "@/components/economy/detail/labor/laborMarketPayrollChart";
@@ -22,7 +17,7 @@ import {
   type PayrollRangeFilterCloseReason,
 } from "@/components/economy/detail/labor/PayrollRangeFilterModal";
 import type { PayrollChartFromFred } from "@/components/economy/detail/labor/payrollChartFromFred";
-import { PAYROLL_CHART_VIEWPORT_MONTH_COUNT } from "@/components/economy/detail/labor/payrollChartFromFred";
+import { PayrollTrendBarChart } from "@/components/economy/detail/labor/PayrollTrendBarChart";
 import {
   LaborPayrollChartSkeleton,
   LaborPayrollHeroSkeleton,
@@ -30,7 +25,7 @@ import {
 import { YearlyTotalJobsPrimaryCard } from "@/components/economy/detail/labor/YearlyTotalJobsPrimaryCard";
 import { EconomyCard } from "@/components/economy/detail/shared/EconomyCard";
 import { ThemedText } from "@/components/theme/ThemedText";
-import { Colors, Palette, type ThemeInteractive } from "@/constants/theme/Colors";
+import { Colors, type ThemeInteractive } from "@/constants/theme/Colors";
 import type { AppColorScheme } from "@/constants/theme/ThemeTokens";
 import type { FredObservationRow } from "@/hooks/api/fredObservations";
 
@@ -47,10 +42,11 @@ export type LaborPrimaryMetricOpen = {
 export type LaborPrimaryMetric = LaborPrimaryMetricClosed | LaborPrimaryMetricOpen;
 
 export type LaborPayrollJobsCreatedCardProps = {
-  semantic: { mutedText: string; hairline: string };
+  semantic: { mutedText: string; hairline: string; cardBackground: string };
   colorScheme: AppColorScheme;
-  isDark: boolean;
-  interactive: Pick<ThemeInteractive, "danger" | "primary" | "dangerSoft">;
+  interactive: Pick<ThemeInteractive, "danger" | "warning" | "primary">;
+  /** Fill for months with job gains; matches the headline trend color. */
+  positiveColor: string;
   payrollLoading: boolean;
   payrollError: string | null;
   payrollObservationsRaw: FredObservationRow[];
@@ -61,7 +57,8 @@ export type LaborPayrollJobsCreatedCardProps = {
   payrollAxis: PayrollAxisModel;
   payrollChart: PayrollChartFromFred | null;
   selectedBarIndex: number | null;
-  onSelectBarIndex: (index: number) => void;
+  /** `null` returns the headline to the latest month. */
+  onSelectBarIndex: (index: number | null) => void;
   rangeFilterOpen: boolean;
   onRequestCloseRangeFilter: (
     reason: PayrollRangeFilterCloseReason,
@@ -73,8 +70,8 @@ export type LaborPayrollJobsCreatedCardProps = {
 export function LaborPayrollJobsCreatedCard({
   semantic,
   colorScheme,
-  isDark,
   interactive,
+  positiveColor,
   payrollLoading,
   payrollError,
   payrollObservationsRaw,
@@ -91,129 +88,8 @@ export function LaborPayrollJobsCreatedCard({
   primaryMetricCard,
 }: LaborPayrollJobsCreatedCardProps) {
   const theme = Colors[colorScheme];
-  const [plotWidth, setPlotWidth] = useState(0);
-  const barsScrollRef = useRef<ScrollView>(null);
-  const barCount = payrollChart?.bars.length ?? 0;
-  const plotInnerWidth = Math.max(0, plotWidth - PAYROLL_BARS_ROW_PAD_H * 2);
-  const barSlotWidth =
-    plotInnerWidth > 0
-      ? (plotInnerWidth -
-          PAYROLL_BARS_ROW_GAP * (PAYROLL_CHART_VIEWPORT_MONTH_COUNT - 1)) /
-        PAYROLL_CHART_VIEWPORT_MONTH_COUNT
-      : 0;
-  const barsContentWidth =
-    barCount > 0 && barSlotWidth > 0
-      ? PAYROLL_BARS_ROW_PAD_H * 2 +
-        barCount * barSlotWidth +
-        PAYROLL_BARS_ROW_GAP * Math.max(0, barCount - 1)
-      : 0;
-  const barsScrollable = barCount > PAYROLL_CHART_VIEWPORT_MONTH_COUNT;
-  const maxBarsScrollX = Math.max(0, barsContentWidth - plotWidth);
-  const isYtdCalendarChart = payrollChart?.calendarContextYear != null;
-  const initialBarsScrollX = isYtdCalendarChart ? 0 : maxBarsScrollX;
-
-  useEffect(() => {
-    if (!barsScrollable || barCount === 0) {
-      return;
-    }
-    if (!isYtdCalendarChart && maxBarsScrollX <= 0) {
-      return;
-    }
-    const id = requestAnimationFrame(() => {
-      barsScrollRef.current?.scrollTo({ x: initialBarsScrollX, animated: false });
-    });
-    return () => cancelAnimationFrame(id);
-  }, [
-    barsScrollable,
-    barCount,
-    initialBarsScrollX,
-    isYtdCalendarChart,
-    maxBarsScrollX,
-    payrollChart?.bars,
-  ]);
-
-  const renderPayrollBars = () => {
-    if (!payrollChart?.bars.length) {
-      return null;
-    }
-    return payrollChart.bars.map((bar, i) => {
-      const delta = bar.momVsPriorThousands;
-      const isSelectable = delta != null;
-      const isSelected = selectedBarIndex === i;
-      const magnitude = delta == null ? 0 : Math.abs(delta);
-      const scaledHeight =
-        magnitude === 0
-          ? 0
-          : payrollAxis.scaleMax === 0
-            ? 54
-            : Math.max(
-                12,
-                Math.round((magnitude / payrollAxis.scaleMax) * 54),
-              );
-      const isPositive = (delta ?? 0) >= 0;
-      const barFill = payrollMomBarFillColor(
-        isPositive,
-        isSelected,
-        colorScheme,
-        interactive.primary,
-        interactive.danger,
-      );
-      return (
-        <Pressable
-          key={`${bar.observationDate}-${i}`}
-          accessibilityRole="button"
-          accessibilityLabel={
-            delta == null
-              ? `${bar.label}, no data`
-              : `${bar.label}, ${isPositive ? "gained" : "lost"} ${Math.round(magnitude)} thousand jobs`
-          }
-          accessibilityState={{ selected: isSelected, disabled: !isSelectable }}
-          disabled={!isSelectable}
-          onPress={() => onSelectBarIndex(i)}
-          style={({ pressed }) => [
-            styles.barCol,
-            barSlotWidth > 0 && { width: barSlotWidth, flex: 0 },
-            { opacity: pressed && isSelectable ? 0.86 : 1 },
-          ]}
-        >
-          <View style={styles.barHalfTop}>
-            {isSelectable && isPositive ? (
-              <View
-                style={[
-                  styles.barFill,
-                  {
-                    height: scaledHeight,
-                    backgroundColor: barFill,
-                  },
-                ]}
-              />
-            ) : null}
-          </View>
-          <View style={styles.barHalfBottom}>
-            {isSelectable && !isPositive ? (
-              <View
-                style={[
-                  styles.barFill,
-                  {
-                    height: scaledHeight,
-                    backgroundColor: barFill,
-                  },
-                ]}
-              />
-            ) : null}
-          </View>
-          <ThemedText
-            style={[styles.monthLabel, { color: theme.text }]}
-            numberOfLines={1}
-            adjustsFontSizeToFit
-            minimumFontScale={0.6}
-          >
-            {bar.label}
-          </ThemedText>
-        </Pressable>
-      );
-    });
-  };
+  const hasSelection = selectedBarIndex != null;
+  const chartSummary = buildPayrollChartSummary(payrollChart);
 
   return (
     <EconomyCard style={styles.payrollCard}>
@@ -222,8 +98,12 @@ export function LaborPayrollJobsCreatedCard({
       ) : (
         <>
           <View style={styles.cardTopRow}>
-            <ThemedText style={[styles.tableTitle, { color: theme.text }]}>
-              JOBS CREATED/LOST
+            <ThemedText
+              accessibilityRole="header"
+              accessibilityLabel={`Jobs added or lost. ${chartSummary}`}
+              style={[styles.tableTitle, { color: theme.text }]}
+            >
+              JOBS ADDED OR LOST
             </ThemedText>
           </View>
           <View style={styles.heroMetricRow}>
@@ -251,128 +131,45 @@ export function LaborPayrollJobsCreatedCard({
                 { color: payrollHeroDisplay.trend.color },
               ]}
             >
-              {payrollHeroDisplay.trend.label}
+              {payrollHeroDisplay.contextLabel}
             </ThemedText>
           </View>
+          {payrollHeroDisplay.breakEvenLabel || payrollHeroDisplay.averageLabel ? (
+            <ThemedText style={[styles.heroSubline, { color: semantic.mutedText }]}>
+              {[payrollHeroDisplay.breakEvenLabel, payrollHeroDisplay.averageLabel]
+                .filter(Boolean)
+                .join(" · ")}
+            </ThemedText>
+          ) : null}
         </>
       )}
       <View style={styles.chartArea}>
         {payrollLoading ? (
           <LaborPayrollChartSkeleton />
         ) : payrollChart?.bars?.length ? (
-          <View
-            style={[
-              styles.chartNativeWrap,
-              { borderColor: semantic.hairline },
-            ]}
-          >
-            <View style={styles.chartPlotRow}>
-              <View
-                style={[
-                  styles.yAxisColumn,
-                  { borderRightColor: semantic.hairline },
-                ]}
-              >
-                <View style={styles.yAxisTrack}>
-                  {payrollAxis.ticks.map((t) => (
-                    <ThemedText
-                      key={t.key}
-                      style={[
-                        styles.yAxisTick,
-                        t.emphasis ? styles.yAxisTickEmphasis : null,
-                        t.bottom != null
-                          ? { bottom: t.bottom }
-                          : { top: t.top ?? 0 },
-                        {
-                          color: t.emphasis ? theme.text : semantic.mutedText,
-                        },
-                      ]}
-                      numberOfLines={1}
-                    >
-                      {t.label}
-                    </ThemedText>
-                  ))}
-                </View>
-              </View>
-              <View
-                style={styles.chartPlotMain}
-                onLayout={(e) => {
-                  const w = e.nativeEvent.layout.width;
-                  if (w > 0 && w !== plotWidth) {
-                    setPlotWidth(w);
-                  }
-                }}
-              >
-                <View
-                  pointerEvents="none"
-                  style={[
-                    styles.payrollPlotBand,
-                    {
-                      top: PAYROLL_BARS_ROW_PAD_TOP,
-                      height: PAYROLL_DIVERGE_HALF_PX,
-                      backgroundColor: isDark
-                        ? "rgba(22, 163, 74, 0.18)"
-                        : Palette.successSoft,
-                      opacity: isDark ? 1 : 0.32,
-                    },
-                  ]}
-                />
-                <View
-                  pointerEvents="none"
-                  style={[
-                    styles.payrollPlotBand,
-                    {
-                      top: PAYROLL_NEG_BAND_TOP,
-                      height: PAYROLL_DIVERGE_HALF_PX,
-                      backgroundColor: interactive.dangerSoft,
-                      opacity: isDark ? 0.12 : 0.2,
-                    },
-                  ]}
-                />
-                {payrollAxis.midGuides.map((g, idx) => (
-                  <View
-                    key={`guide-${idx}`}
-                    pointerEvents="none"
-                    style={[
-                      styles.payrollGridLine,
-                      {
-                        top: g.top,
-                        backgroundColor: semantic.hairline,
-                      },
-                    ]}
-                  />
-                ))}
-                <View
-                  style={[
-                    styles.zeroLine,
-                    {
-                      top: PAYROLL_ZERO_LINE_Y,
-                      backgroundColor: semantic.mutedText,
-                    },
-                  ]}
-                />
-                {barSlotWidth > 0 && barsScrollable ? (
-                  <ScrollView
-                    ref={barsScrollRef}
-                    horizontal
-                    nestedScrollEnabled
-                    directionalLockEnabled
-                    showsHorizontalScrollIndicator
-                    scrollEventThrottle={16}
-                    contentContainerStyle={[
-                      styles.barsRow,
-                      barsContentWidth > 0 ? { width: barsContentWidth } : null,
-                    ]}
-                    style={styles.barsScroll}
-                  >
-                    {renderPayrollBars()}
-                  </ScrollView>
-                ) : (
-                  <View style={styles.barsRow}>{renderPayrollBars()}</View>
-                )}
-              </View>
-            </View>
-          </View>
+          <>
+          <PayrollTrendBarChart
+            chart={payrollChart}
+            axis={payrollAxis}
+            selectedIndex={selectedBarIndex}
+            onSelectIndex={onSelectBarIndex}
+            colors={{
+              aboveBreakEven: positiveColor,
+              belowBreakEven: interactive.warning,
+              loss: interactive.danger,
+              accent: interactive.primary,
+              text: theme.text,
+              mutedText: semantic.mutedText,
+              hairline: semantic.hairline,
+              surface: semantic.cardBackground,
+            }}
+          />
+          <ThemedText style={[styles.chartHint, { color: semantic.mutedText }]}>
+            {hasSelection
+              ? "Tap the same month again to return to the latest."
+              : "Tap or drag across the chart to see a month."}
+          </ThemedText>
+          </>
         ) : (
           <ThemedText
             style={[styles.payrollEmpty, { color: semantic.mutedText }]}
@@ -402,4 +199,24 @@ export function LaborPayrollJobsCreatedCard({
       />
     </EconomyCard>
   );
+}
+
+function buildPayrollChartSummary(chart: PayrollChartFromFred | null): string {
+  const bars = chart?.bars ?? [];
+  const withData = bars.filter((b) => b.momVsPriorThousands != null);
+  if (withData.length === 0) {
+    return "No data in this range.";
+  }
+  const first = payrollMonthYearLabel(withData[0]!.observationDate);
+  const last = payrollMonthYearLabel(withData[withData.length - 1]!.observationDate);
+  const above = withData.filter(
+    (b) => b.momVsPriorThousands! >= PAYROLL_BREAK_EVEN_THOUSANDS,
+  ).length;
+  const losses = withData.filter((b) => b.momVsPriorThousands! < 0).length;
+  const averages = payrollMovingAverage(bars).filter((v): v is number => v != null);
+  const trend =
+    averages.length >= 2
+      ? ` The ${PAYROLL_TREND_WINDOW_MONTHS}-month average moved from ${averages[0]! < 0 ? "minus " : ""}${payrollJobsSpoken(averages[0]!)} to ${averages[averages.length - 1]! < 0 ? "minus " : ""}${payrollJobsSpoken(averages[averages.length - 1]!)}.`
+      : "";
+  return `Bar chart of monthly change in jobs, ${first} to ${last}, with a break-even line at ${payrollJobsSpoken(PAYROLL_BREAK_EVEN_THOUSANDS)}. ${above} of ${withData.length} months were at or above break-even and ${losses} lost jobs.${trend}`;
 }

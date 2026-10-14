@@ -49,7 +49,6 @@ export function LaborMarketDetailView() {
     [windowWidth],
   );
   const colorScheme = (useColorScheme() ?? "light") as AppColorScheme;
-  const isDark = colorScheme === "dark";
   const semantic = getSemanticColors(colorScheme);
   const theme = Colors[colorScheme];
   const interactive = useThemeInteractive();
@@ -113,6 +112,7 @@ export function LaborMarketDetailView() {
   } = useLaborMarketPayrollSection({
     mutedText: semantic.mutedText,
     green,
+    warning: interactive.warning,
     danger: interactive.danger,
   });
 
@@ -271,12 +271,12 @@ export function LaborMarketDetailView() {
       <LaborPayrollJobsCreatedCard
         semantic={semantic}
         colorScheme={colorScheme}
-        isDark={isDark}
         interactive={{
           danger: interactive.danger,
+          warning: interactive.warning,
           primary: interactive.primary,
-          dangerSoft: interactive.dangerSoft,
         }}
+        positiveColor={green}
         payrollLoading={payrollPending}
         payrollError={null}
         payrollObservationsRaw={payrollObservationsRaw}
