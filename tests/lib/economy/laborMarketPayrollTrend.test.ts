@@ -107,7 +107,7 @@ describe("buildPayrollHeroDisplay", () => {
   it("defaults to the latest month with break-even and trend context", () => {
     const hero = buildPayrollHeroDisplay(chart, null, colors);
     expect(hero.heroMetric).toBe("+90k");
-    expect(hero.contextLabel).toBe("Jobs added in March 2026 (latest)");
+    expect(hero.contextLabel).toBe("March 2026");
     expect(hero.breakEvenLabel).toBe(
       `${90 - PAYROLL_BREAK_EVEN_THOUSANDS}k above break-even`,
     );
@@ -117,7 +117,7 @@ describe("buildPayrollHeroDisplay", () => {
 
   it("flags positive months under break-even with the warning color", () => {
     const hero = buildPayrollHeroDisplay(chart, 1, colors);
-    expect(hero.contextLabel).toBe("Jobs added in February 2026");
+    expect(hero.contextLabel).toBe("February 2026");
     expect(hero.breakEvenLabel).toBe(
       `${PAYROLL_BREAK_EVEN_THOUSANDS - 30}k below break-even`,
     );

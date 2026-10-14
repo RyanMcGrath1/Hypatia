@@ -88,8 +88,10 @@ export type PayrollHeroDisplay = {
   breakEvenLabel: string;
   /** e.g. "3-month average +120k"; empty until enough months are available. */
   averageLabel: string;
-  /** e.g. "Jobs added in March 2026" — ties the headline number to its month. */
+  /** e.g. "March 2026" — ties the headline number to its month. */
   contextLabel: string;
+  /** e.g. "Mar 2026"; empty when there is no month to show. */
+  monthShortLabel: string;
   trend: PayrollHeroTrend;
 };
 
@@ -132,6 +134,15 @@ export function payrollMonthYearLabel(iso: string): string {
     return iso;
   }
   return d.toLocaleDateString("en-US", { month: "long", year: "numeric" });
+}
+
+/** Abbreviated month for compact UI, e.g. "Mar 2026". */
+export function payrollMonthYearShortLabel(iso: string): string {
+  const d = new Date(`${iso.trim()}T12:00:00`);
+  if (Number.isNaN(d.getTime())) {
+    return iso;
+  }
+  return d.toLocaleDateString("en-US", { month: "short", year: "numeric" });
 }
 
 /** Spoken/written magnitude, e.g. "150 thousand jobs" or "1.2 million jobs". */
@@ -268,6 +279,7 @@ export function buildPayrollHeroDisplay(
       heroMetric: "—",
       periodLabel: "—",
       contextLabel: "",
+      monthShortLabel: "",
       breakEvenLabel: "",
       averageLabel: "",
       trend: trendFromPayrollDelta(null, colors),
@@ -290,6 +302,7 @@ export function buildPayrollHeroDisplay(
       heroMetric: "—",
       periodLabel: payrollChart.periodLabel,
       contextLabel: "No data in this range",
+      monthShortLabel: "",
       breakEvenLabel: "",
       averageLabel: "",
       trend: trendFromPayrollDelta(null, colors),
@@ -298,7 +311,6 @@ export function buildPayrollHeroDisplay(
 
   const bar = bars[index]!;
   const delta = bar.momVsPriorThousands;
-  const isLatest = selectedIndex == null;
   const month = payrollMonthYearLabel(bar.observationDate);
   const trend = trendFromPayrollDelta(delta, colors);
   const average = payrollMovingAverage(bars)[index];
@@ -306,10 +318,8 @@ export function buildPayrollHeroDisplay(
   return {
     heroMetric: delta == null ? "—" : formatPayemsMomDeltaShort(delta),
     periodLabel: payrollPeriodBannerFromIso(bar.observationDate),
-    contextLabel:
-      delta == null
-        ? `No data for ${month}`
-        : `${trend.label} in ${month}${isLatest ? " (latest)" : ""}`,
+    contextLabel: delta == null ? `No data for ${month}` : month,
+    monthShortLabel: payrollMonthYearShortLabel(bar.observationDate),
     breakEvenLabel: delta == null ? "" : breakEvenComparison(delta),
     averageLabel:
       average == null

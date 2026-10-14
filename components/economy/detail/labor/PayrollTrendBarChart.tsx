@@ -211,7 +211,7 @@ export function PayrollTrendBarChart({
             style={[ax.yAxisColumn, { borderRightColor: colors.hairline }]}
           >
             <View style={ax.yAxisTrack}>
-              {axis.ticks.map((t) => (
+              {axis.ticks.filter((t) => t.emphasis).map((t) => (
                 <ThemedText
                   key={t.key}
                   style={[
@@ -394,29 +394,15 @@ export function PayrollTrendBarChart({
       </View>
 
       <View
-        style={styles.legend}
+        style={styles.legendItem}
         accessibilityElementsHidden
         importantForAccessibility="no-hide-descendants"
       >
-        <LegendSwatch color={colors.aboveBreakEven} label="Above break-even" muted={colors.mutedText} />
-        <LegendSwatch color={colors.belowBreakEven} label="Below break-even" muted={colors.mutedText} />
-        <LegendSwatch color={colors.loss} label="Job losses" muted={colors.mutedText} />
-        <View style={styles.legendItem}>
-          <View style={[styles.legendLine, { backgroundColor: colors.accent }]} />
-          <ThemedText style={[styles.legendText, { color: colors.mutedText }]}>
-            {PAYROLL_TREND_WINDOW_MONTHS}-month average
-          </ThemedText>
-        </View>
+        <View style={[styles.legendLine, { backgroundColor: colors.accent }]} />
+        <ThemedText style={[styles.legendText, { color: colors.mutedText }]}>
+          {PAYROLL_TREND_WINDOW_MONTHS}-month average
+        </ThemedText>
       </View>
-    </View>
-  );
-}
-
-function LegendSwatch({ color, label, muted }: { color: string; label: string; muted: string }) {
-  return (
-    <View style={styles.legendItem}>
-      <View style={[styles.legendSwatch, { backgroundColor: color }]} />
-      <ThemedText style={[styles.legendText, { color: muted }]}>{label}</ThemedText>
     </View>
   );
 }
@@ -459,22 +445,11 @@ const styles = StyleSheet.create({
   xLabelSelected: {
     fontFamily: Fonts.bodyBold,
   },
-  legend: {
-    flexDirection: "row",
-    flexWrap: "wrap",
-    columnGap: 14,
-    rowGap: 6,
-    marginTop: 10,
-  },
   legendItem: {
     flexDirection: "row",
     alignItems: "center",
     gap: 6,
-  },
-  legendSwatch: {
-    width: 10,
-    height: 10,
-    borderRadius: 2,
+    marginTop: 10,
   },
   legendLine: {
     width: 12,

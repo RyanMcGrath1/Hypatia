@@ -50,24 +50,28 @@ export const laborMarketDetailStyles = StyleSheet.create({
   heroTrendIcon: {
     flexShrink: 0,
   },
-  consensusRow: {
+  monthChip: {
+    flexShrink: 0,
+    alignSelf: "center",
     flexDirection: "row",
-    alignItems: "flex-start",
-    gap: 6,
-    marginBottom: Spacing.md,
+    alignItems: "center",
+    gap: 5,
+    minHeight: 28,
+    paddingHorizontal: 10,
+    borderRadius: Radius.full,
+    borderWidth: StyleSheet.hairlineWidth,
   },
-  heroSubline: {
+  monthChipText: {
     fontSize: 13,
     lineHeight: 18,
-    fontFamily: Fonts.bodyMedium,
-    marginTop: -Spacing.sm,
-    marginBottom: Spacing.md,
+    fontFamily: Fonts.bodySemiBold,
+    fontVariant: ["tabular-nums"],
   },
   consensusText: {
-    fontSize: 14,
+    fontSize: 15,
+    lineHeight: 20,
     fontFamily: Fonts.bodySemiBold,
-    flex: 1,
-    minWidth: 0,
+    marginBottom: Spacing.md,
   },
   chartArea: {
     marginTop: Spacing.sm,
@@ -143,12 +147,6 @@ export const laborMarketDetailStyles = StyleSheet.create({
   },
   barFill: {
     width: "100%",
-  },
-  chartHint: {
-    fontSize: 13,
-    lineHeight: 18,
-    fontFamily: Fonts.body,
-    marginTop: Spacing.sm,
   },
   metricTileCard: {
     overflow: "visible",

@@ -1,5 +1,5 @@
 import Feather from "@expo/vector-icons/Feather";
-import { View } from "react-native";
+import { Pressable, View } from "react-native";
 
 import { laborMarketDetailStyles as styles } from "@/components/economy/detail/labor/LaborMarketDetailView.styles";
 import {
@@ -105,9 +105,42 @@ export function LaborPayrollJobsCreatedCard({
             >
               JOBS ADDED OR LOST
             </ThemedText>
+            {payrollHeroDisplay.monthShortLabel ? (
+              <Pressable
+                disabled={!hasSelection}
+                accessibilityRole={hasSelection ? "button" : "text"}
+                accessibilityLabel={
+                  hasSelection
+                    ? `Showing ${payrollHeroDisplay.contextLabel}. Show latest month`
+                    : `Showing ${payrollHeroDisplay.contextLabel}, the latest month`
+                }
+                hitSlop={8}
+                onPress={() => onSelectBarIndex(null)}
+                style={({ pressed }) => [
+                  styles.monthChip,
+                  {
+                    backgroundColor: `${interactive.primary}1F`,
+                    borderColor: interactive.primary,
+                    opacity: pressed ? 0.6 : 1,
+                  },
+                ]}
+              >
+                <Feather name="calendar" size={13} color={interactive.primary} />
+                <ThemedText
+                  numberOfLines={1}
+                  style={[styles.monthChipText, { color: interactive.primary }]}
+                >
+                  {payrollHeroDisplay.monthShortLabel}
+                </ThemedText>
+              </Pressable>
+            ) : null}
           </View>
           <View style={styles.heroMetricRow}>
-            <View style={styles.heroMetricWithTrend}>
+            <View
+              accessible
+              accessibilityLabel={heroA11yLabel(payrollHeroDisplay)}
+              style={styles.heroMetricWithTrend}
+            >
               <ThemedText
                 style={[styles.heroMetric, { color: theme.text }]}
                 adjustsFontSizeToFit
@@ -124,21 +157,14 @@ export function LaborPayrollJobsCreatedCard({
               />
             </View>
           </View>
-          <View style={styles.consensusRow}>
+          {payrollHeroDisplay.breakEvenLabel || payrollHeroDisplay.contextLabel ? (
             <ThemedText
-              style={[
-                styles.consensusText,
-                { color: payrollHeroDisplay.trend.color },
-              ]}
+              accessibilityElementsHidden
+              importantForAccessibility="no"
+              numberOfLines={1}
+              style={[styles.consensusText, { color: semantic.mutedText }]}
             >
-              {payrollHeroDisplay.contextLabel}
-            </ThemedText>
-          </View>
-          {payrollHeroDisplay.breakEvenLabel || payrollHeroDisplay.averageLabel ? (
-            <ThemedText style={[styles.heroSubline, { color: semantic.mutedText }]}>
-              {[payrollHeroDisplay.breakEvenLabel, payrollHeroDisplay.averageLabel]
-                .filter(Boolean)
-                .join(" · ")}
+              {payrollHeroDisplay.breakEvenLabel || payrollHeroDisplay.contextLabel}
             </ThemedText>
           ) : null}
         </>
@@ -147,7 +173,6 @@ export function LaborPayrollJobsCreatedCard({
         {payrollLoading ? (
           <LaborPayrollChartSkeleton />
         ) : payrollChart?.bars?.length ? (
-          <>
           <PayrollTrendBarChart
             chart={payrollChart}
             axis={payrollAxis}
@@ -164,12 +189,6 @@ export function LaborPayrollJobsCreatedCard({
               surface: semantic.cardBackground,
             }}
           />
-          <ThemedText style={[styles.chartHint, { color: semantic.mutedText }]}>
-            {hasSelection
-              ? "Tap the same month again to return to the latest."
-              : "Tap or drag across the chart to see a month."}
-          </ThemedText>
-          </>
         ) : (
           <ThemedText
             style={[styles.payrollEmpty, { color: semantic.mutedText }]}
@@ -199,6 +218,17 @@ export function LaborPayrollJobsCreatedCard({
       />
     </EconomyCard>
   );
+}
+
+function heroA11yLabel(hero: PayrollHeroDisplay): string {
+  return [
+    hero.heroMetric === "—" ? "" : `${hero.heroMetric} jobs`,
+    hero.contextLabel,
+    hero.breakEvenLabel,
+    hero.averageLabel,
+  ]
+    .filter(Boolean)
+    .join(", ");
 }
 
 function buildPayrollChartSummary(chart: PayrollChartFromFred | null): string {
