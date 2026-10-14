@@ -11,7 +11,7 @@ import {
 } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 
-import { AppBrandBar } from "@/components/layout/AppBrandBar";
+import { TabLargeTitle } from "@/components/layout/TabLargeTitle";
 import { ThemedText } from "@/components/theme/ThemedText";
 import { ThemedView } from "@/components/theme/ThemedView";
 import { TAB_SCREEN_CONTENT_INSETS } from "@/constants/navigation/tabScreenContentInsets";
@@ -88,7 +88,7 @@ export default function ExploreScreen() {
         keyboardShouldPersistTaps="handled"
         showsVerticalScrollIndicator={false}
       >
-        <AppBrandBar icon="search" />
+        <TabLargeTitle title="Explore" />
 
         <View
           style={[
@@ -474,7 +474,7 @@ const styles = StyleSheet.create({
   },
   pillText: {
     color: Brand.white,
-    fontSize: 10,
+    fontSize: 11,
     fontWeight: "700",
     letterSpacing: 0.4,
   },
@@ -499,7 +499,7 @@ const styles = StyleSheet.create({
     gap: 4,
   },
   metricLabel: {
-    fontSize: 10,
+    fontSize: 11,
     fontWeight: "600",
     letterSpacing: 0.3,
   },

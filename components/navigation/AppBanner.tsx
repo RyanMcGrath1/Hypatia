@@ -57,7 +57,8 @@ export function AppBanner() {
         source={bannerLogo}
         style={styles.image}
         contentFit="contain"
-        accessibilityLabel="App banner"
+        accessibilityRole="image"
+        accessibilityLabel="Hypatia"
       />
 
       <Pressable

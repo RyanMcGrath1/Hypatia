@@ -1,5 +1,5 @@
 import Feather from "@expo/vector-icons/Feather";
-import type { Router } from "expo-router";
+import type { ImperativeRouter } from "expo-router";
 import { Platform, Pressable, View } from "react-native";
 
 import { economyDashboardStyles as styles } from "@/components/economy/tab/economyDashboardStyles";
@@ -28,7 +28,7 @@ type Semantic = {
 };
 
 export type EconomySectorFeedListProps = {
-  router: Router;
+  router: ImperativeRouter;
   feedRows: FeedRow[];
   semantic: Semantic;
   theme: (typeof Colors)[keyof typeof Colors];

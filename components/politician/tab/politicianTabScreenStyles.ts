@@ -209,7 +209,7 @@ export const politicianTabScreenStyles = StyleSheet.create({
     borderRadius: 6,
   },
   legTagText: {
-    fontSize: 10,
+    fontSize: 11,
     fontWeight: "700",
     letterSpacing: 0.3,
   },
@@ -247,7 +247,7 @@ export const politicianTabScreenStyles = StyleSheet.create({
     gap: 8,
   },
   finSubheading: {
-    fontSize: 10,
+    fontSize: 11,
     fontWeight: "700",
     letterSpacing: 0.4,
     marginBottom: 4,

@@ -379,7 +379,7 @@ const styles = StyleSheet.create({
     position: "absolute",
     width: SPARK_LABEL_WIDTH,
     textAlign: "center",
-    fontSize: 10,
+    fontSize: 11,
     fontFamily: Fonts.bodyMedium,
   },
   sectionHeadRow: {

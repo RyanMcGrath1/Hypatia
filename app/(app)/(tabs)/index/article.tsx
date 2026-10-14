@@ -321,7 +321,7 @@ const styles = StyleSheet.create({
     lineHeight: 22,
   },
   loadingOverlay: {
-    ...StyleSheet.absoluteFillObject,
+    ...StyleSheet.absoluteFill,
     justifyContent: "center",
     alignItems: "center",
     zIndex: 1,

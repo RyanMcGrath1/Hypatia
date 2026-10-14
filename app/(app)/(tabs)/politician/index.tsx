@@ -13,7 +13,7 @@ import {
 } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 
-import { AppBrandBar } from "@/components/layout/AppBrandBar";
+import { TabLargeTitle } from "@/components/layout/TabLargeTitle";
 import { PoliticianProfileDetail } from "@/components/politician/PoliticianProfileDetail";
 import { PoliticianMiniApprovalBars } from "@/components/politician/tab/PoliticianMiniApprovalBars";
 import { PoliticianSearchField } from "@/components/politician/tab/PoliticianSearchField";
@@ -148,7 +148,7 @@ export default function PoliticianScreen() {
           ]}
           showsVerticalScrollIndicator={false}
         >
-          <AppBrandBar icon="people" />
+          <TabLargeTitle title="Politicians" />
 
           <PoliticianSearchField
             searchRef={searchRef}

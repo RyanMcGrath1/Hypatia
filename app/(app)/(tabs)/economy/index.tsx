@@ -7,7 +7,7 @@ import { economyDashboardStyles as styles } from "@/components/economy/tab/econo
 import { EconomyFeedSkeletonList } from "@/components/economy/tab/EconomyFeedCardSkeleton";
 import { EconomySectorFeedList } from "@/components/economy/tab/EconomySectorFeedList";
 import { EconomySentimentHeroCard } from "@/components/economy/tab/EconomySentimentHeroCard";
-import { AppBrandBar } from "@/components/layout/AppBrandBar";
+import { TabLargeTitle } from "@/components/layout/TabLargeTitle";
 import { ThemedText } from "@/components/theme/ThemedText";
 import { ThemedView } from "@/components/theme/ThemedView";
 import { Colors } from "@/constants/theme/Colors";
@@ -72,9 +72,9 @@ export default function EconomyDashboardScreen() {
         showsVerticalScrollIndicator={false}
       >
         <View style={styles.topHeader}>
-          <AppBrandBar icon="bar-chart" />
+          <TabLargeTitle title="Economy" />
           <ThemedText style={[styles.pageMeta, { color: semantic.mutedText }]}>
-            UPDATED {displayAsOf}
+            Updated {displayAsOf}
           </ThemedText>
         </View>
 

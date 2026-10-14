@@ -262,7 +262,7 @@ const styles = StyleSheet.create({
   },
   spokeLabel: {
     position: "absolute",
-    fontSize: 10,
+    fontSize: 11,
     fontFamily: Fonts.bodySemiBold,
     lineHeight: 12,
   },
@@ -282,7 +282,7 @@ const styles = StyleSheet.create({
     gap: 6,
   },
   th: {
-    fontSize: 10,
+    fontSize: 11,
     fontFamily: Fonts.bodyBold,
     letterSpacing: 0.35,
     flex: 1.15,

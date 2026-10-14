@@ -1,5 +1,6 @@
 import { type ReactNode, useEffect, useRef } from 'react';
 import { Animated } from 'react-native';
+import { useReducedMotion } from 'react-native-reanimated';
 
 type AnimatedTabIconProps = {
   focused: boolean;
@@ -12,9 +13,15 @@ type AnimatedTabIconProps = {
  */
 export function AnimatedTabIcon({ focused, children }: AnimatedTabIconProps) {
   const scale = useRef(new Animated.Value(1)).current;
+  const reduceMotion = useReducedMotion();
 
   useEffect(() => {
     scale.stopAnimation();
+
+    if (reduceMotion) {
+      scale.setValue(1);
+      return;
+    }
 
     if (focused) {
       Animated.sequence([
@@ -39,7 +46,7 @@ export function AnimatedTabIcon({ focused, children }: AnimatedTabIconProps) {
         useNativeDriver: true,
       }).start();
     }
-  }, [focused, scale]);
+  }, [focused, reduceMotion, scale]);
 
   return (
     <Animated.View

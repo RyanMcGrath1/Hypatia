@@ -82,7 +82,7 @@ export const laborDemographicAnalysisStyles = StyleSheet.create({
     borderRadius: 3,
   },
   frequencyText: {
-    fontSize: 10,
+    fontSize: 11,
     fontFamily: Fonts.bodySemiBold,
     letterSpacing: 0.2,
   },
@@ -102,7 +102,7 @@ export const laborDemographicAnalysisStyles = StyleSheet.create({
     overflow: "hidden",
   },
   bucketLabel: {
-    fontSize: 10,
+    fontSize: 11,
     fontFamily: Fonts.bodySemiBold,
     letterSpacing: 0.15,
     marginBottom: 4,
@@ -140,7 +140,7 @@ export const laborDemographicAnalysisStyles = StyleSheet.create({
     gap: Spacing.sm,
   },
   insightKicker: {
-    fontSize: 10,
+    fontSize: 11,
     fontFamily: Fonts.bodyBold,
     letterSpacing: 0.6,
     textTransform: "uppercase",
