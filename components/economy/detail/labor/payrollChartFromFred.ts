@@ -20,9 +20,6 @@ export const PAYROLL_CHART_RANGE_PRESETS = [
 export type PayrollChartRangePreset = (typeof PAYROLL_CHART_RANGE_PRESETS)[number];
 export type PayrollChartRangeKey = PayrollChartRangePreset["key"];
 
-/** Fixed payroll chart viewport: each month slot is 1/7 of plot width; wider ranges scroll horizontally. */
-export const PAYROLL_CHART_VIEWPORT_MONTH_COUNT = 7;
-
 export type PayrollBarPoint = {
   label: string;
   /** FRED observation_date (YYYY-MM-DD) for this month slot. */
@@ -66,7 +63,7 @@ function formatMonthShort(dateStr: string): string {
   if (Number.isNaN(d.getTime())) {
     return dateStr.slice(0, 7);
   }
-  return d.toLocaleDateString("en-US", { month: "short" }).toUpperCase();
+  return d.toLocaleDateString("en-US", { month: "short" });
 }
 
 function formatPeriodBanner(dateStr: string): string {

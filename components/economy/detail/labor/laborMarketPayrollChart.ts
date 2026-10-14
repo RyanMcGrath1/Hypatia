@@ -17,11 +17,48 @@ export const PAYROLL_GUIDE_LOWER_Y =
   PAYROLL_DIVERGE_HALF_PX +
   PAYROLL_DIVERGE_GUTTER_PX +
   PAYROLL_DIVERGE_HALF_PX / 2;
-export const PAYROLL_ZERO_LINE_Y = PAYROLL_BARS_ROW_PAD_TOP + PAYROLL_DIVERGE_HALF_PX;
-export const PAYROLL_NEG_BAND_TOP =
-  PAYROLL_BARS_ROW_PAD_TOP + PAYROLL_DIVERGE_HALF_PX + PAYROLL_DIVERGE_GUTTER_PX;
 
 const PAYROLL_Y_TICK_LAB_DY = 7;
+
+/**
+ * Estimated monthly payroll gain needed to keep pace with labor-force growth (thousands).
+ * Not an official statistic; revisit as population and immigration estimates change.
+ */
+export const PAYROLL_BREAK_EVEN_THOUSANDS = 50;
+
+export const PAYROLL_TREND_WINDOW_MONTHS = 3;
+
+export type PayrollBarTone = "aboveBreakEven" | "belowBreakEven" | "loss";
+
+export function payrollBarTone(deltaThousands: number): PayrollBarTone {
+  if (deltaThousands < 0) {
+    return "loss";
+  }
+  return deltaThousands >= PAYROLL_BREAK_EVEN_THOUSANDS
+    ? "aboveBreakEven"
+    : "belowBreakEven";
+}
+
+/** Trailing average per bar; `null` until a full window of consecutive months has data. */
+export function payrollMovingAverage(
+  bars: PayrollBarPoint[],
+  windowMonths: number = PAYROLL_TREND_WINDOW_MONTHS,
+): (number | null)[] {
+  return bars.map((_, i) => {
+    if (i + 1 < windowMonths) {
+      return null;
+    }
+    let sum = 0;
+    for (let k = i - windowMonths + 1; k <= i; k++) {
+      const v = bars[k]!.momVsPriorThousands;
+      if (v == null) {
+        return null;
+      }
+      sum += v;
+    }
+    return sum / windowMonths;
+  });
+}
 
 export type PayrollAxisTick = {
   key: string;
@@ -47,6 +84,12 @@ export type PayrollHeroTrend = {
 export type PayrollHeroDisplay = {
   heroMetric: string;
   periodLabel: string;
+  /** e.g. "100k above break-even"; empty when the month has no data. */
+  breakEvenLabel: string;
+  /** e.g. "3-month average +120k"; empty until enough months are available. */
+  averageLabel: string;
+  /** e.g. "Jobs added in March 2026" — ties the headline number to its month. */
+  contextLabel: string;
   trend: PayrollHeroTrend;
 };
 
@@ -82,44 +125,59 @@ function niceSymmetricScaleThousands(maxAbs: number): number {
   return nf * pow;
 }
 
-/** Neutral fill for MoM bars until the user selects a month. */
-export function payrollMomBarUnselectedFill(scheme: "light" | "dark"): string {
-  return scheme === "dark" ? "#64748B" : "#CBD5E1";
+/** Full month name for chart descriptions, e.g. "March 2026". */
+export function payrollMonthYearLabel(iso: string): string {
+  const d = new Date(`${iso.trim()}T12:00:00`);
+  if (Number.isNaN(d.getTime())) {
+    return iso;
+  }
+  return d.toLocaleDateString("en-US", { month: "long", year: "numeric" });
 }
 
-export function payrollMomBarFillColor(
-  isPositive: boolean,
-  isSelected: boolean,
-  scheme: "light" | "dark",
-  positiveBase: string,
-  negativeBase: string,
-): string {
-  if (!isSelected) {
-    return payrollMomBarUnselectedFill(scheme);
+/** Spoken/written magnitude, e.g. "150 thousand jobs" or "1.2 million jobs". */
+export function payrollJobsSpoken(deltaThousands: number): string {
+  const abs = Math.abs(Math.round(deltaThousands));
+  if (abs >= 1000) {
+    return `${(abs / 1000).toFixed(1)} million jobs`;
   }
-  return isPositive ? positiveBase : negativeBase;
+  return `${abs} thousand jobs`;
 }
+
+export type PayrollTrendColors = {
+  mutedText: string;
+  green: string;
+  warning: string;
+  danger: string;
+};
 
 function trendFromPayrollDelta(
   delta: number | null | undefined,
-  mutedText: string,
-  green: string,
-  danger: string,
+  colors: PayrollTrendColors,
 ): PayrollHeroTrend {
   if (delta == null) {
-    return { icon: "minus", color: mutedText, label: "Latest payroll level" };
+    return { icon: "minus", color: colors.mutedText, label: "No data" };
   }
-  if (delta > 0) {
-    return { icon: "trending-up", color: green, label: "Jobs Created" };
+  if (delta === 0) {
+    return { icon: "minus", color: colors.mutedText, label: "No change" };
   }
-  if (delta < 0) {
-    return { icon: "trending-down", color: danger, label: "Jobs Lost" };
+  const tone = payrollBarTone(delta);
+  if (tone === "loss") {
+    return { icon: "trending-down", color: colors.danger, label: "Jobs lost" };
   }
   return {
-    icon: "minus",
-    color: mutedText,
-    label: "Unchanged vs prior month",
+    icon: "trending-up",
+    color: tone === "aboveBreakEven" ? colors.green : colors.warning,
+    label: "Jobs added",
   };
+}
+
+function breakEvenComparison(delta: number): string {
+  const diff = Math.round(delta - PAYROLL_BREAK_EVEN_THOUSANDS);
+  if (diff === 0) {
+    return "At break-even";
+  }
+  const amount = formatPayemsMomDeltaShort(Math.abs(diff)).replace(/^\+/, "");
+  return `${amount} ${diff > 0 ? "above" : "below"} break-even`;
 }
 
 export function buildPayrollAxisFromChart(
@@ -137,7 +195,12 @@ export function buildPayrollAxisFromChart(
     .map((b) => b.momVsPriorThousands)
     .filter((v): v is number => typeof v === "number");
   const rawMax =
-    values.length > 0 ? Math.max(...values.map((v) => Math.abs(v))) : 0;
+    values.length > 0
+      ? Math.max(
+          PAYROLL_BREAK_EVEN_THOUSANDS,
+          ...values.map((v) => Math.abs(v)),
+        )
+      : 0;
   if (rawMax <= 0) {
     return {
       scaleMax: 0,
@@ -197,51 +260,99 @@ export function buildPayrollAxisFromChart(
 
 export function buildPayrollHeroDisplay(
   payrollChart: PayrollChartFromFred | null,
-  selectedBar: PayrollBarPoint | undefined,
-  ctx: { mutedText: string; green: string; danger: string },
+  selectedIndex: number | null,
+  colors: PayrollTrendColors,
 ): PayrollHeroDisplay {
-  if (payrollChart == null) {
+  if (payrollChart == null || payrollChart.bars.length === 0) {
     return {
       heroMetric: "—",
       periodLabel: "—",
-      trend: trendFromPayrollDelta(null, ctx.mutedText, ctx.green, ctx.danger),
+      contextLabel: "",
+      breakEvenLabel: "",
+      averageLabel: "",
+      trend: trendFromPayrollDelta(null, colors),
     };
   }
 
-  const chartWideTrend = trendFromPayrollDelta(
-    payrollChart.monthOverMonthThousands,
-    ctx.mutedText,
-    ctx.green,
-    ctx.danger,
-  );
-
-  if (selectedBar == null) {
+  const bars = payrollChart.bars;
+  let index = selectedIndex;
+  if (index == null || bars[index] == null) {
+    index = -1;
+    for (let i = bars.length - 1; i >= 0; i--) {
+      if (bars[i]!.momVsPriorThousands != null) {
+        index = i;
+        break;
+      }
+    }
+  }
+  if (index < 0) {
     return {
-      heroMetric: payrollChart.heroMetric,
+      heroMetric: "—",
       periodLabel: payrollChart.periodLabel,
-      trend: chartWideTrend,
+      contextLabel: "No data in this range",
+      breakEvenLabel: "",
+      averageLabel: "",
+      trend: trendFromPayrollDelta(null, colors),
     };
   }
 
-  const hasBar = selectedBar.momVsPriorThousands != null;
-  const heroMetric = !hasBar
-    ? "—"
-    : formatPayemsMomDeltaShort(selectedBar.momVsPriorThousands!);
+  const bar = bars[index]!;
+  const delta = bar.momVsPriorThousands;
+  const isLatest = selectedIndex == null;
+  const month = payrollMonthYearLabel(bar.observationDate);
+  const trend = trendFromPayrollDelta(delta, colors);
+  const average = payrollMovingAverage(bars)[index];
 
-  const periodLabel = payrollPeriodBannerFromIso(selectedBar.observationDate);
+  return {
+    heroMetric: delta == null ? "—" : formatPayemsMomDeltaShort(delta),
+    periodLabel: payrollPeriodBannerFromIso(bar.observationDate),
+    contextLabel:
+      delta == null
+        ? `No data for ${month}`
+        : `${trend.label} in ${month}${isLatest ? " (latest)" : ""}`,
+    breakEvenLabel: delta == null ? "" : breakEvenComparison(delta),
+    averageLabel:
+      average == null
+        ? ""
+        : `${PAYROLL_TREND_WINDOW_MONTHS}-month average ${formatPayemsMomDeltaShort(average)}`,
+    trend,
+  };
+}
 
-  const trend = !hasBar
-    ? ({
-        icon: "minus" as const,
-        color: ctx.mutedText,
-        label: "No payroll data for this month",
-      } satisfies PayrollHeroTrend)
-    : trendFromPayrollDelta(
-        selectedBar.momVsPriorThousands,
-        ctx.mutedText,
-        ctx.green,
-        ctx.danger,
-      );
+const QUARTER_GROUPING_MAX_MONTHS = 12;
 
-  return { heroMetric, periodLabel, trend };
+export type AxisGroup = { key: string; start: number; end: number; text: string };
+
+/**
+ * Up to a year of months: calendar quarters labeled by month range ("Jan–Mar").
+ * Longer ranges: calendar years. Edge groups may be partial.
+ */
+export function groupBarsForAxis(bars: PayrollBarPoint[]): AxisGroup[] {
+  const byQuarter = bars.length <= QUARTER_GROUPING_MAX_MONTHS;
+  const groupKey = (iso: string) => {
+    const year = iso.slice(0, 4);
+    if (!byQuarter) return year;
+    const month = Number(iso.slice(5, 7));
+    return `${year}-Q${Math.ceil(month / 3)}`;
+  };
+  const groups: AxisGroup[] = [];
+  bars.forEach((bar, i) => {
+    const key = groupKey(bar.observationDate);
+    const last = groups[groups.length - 1];
+    if (last && last.key === key) {
+      last.end = i;
+    } else {
+      groups.push({ key, start: i, end: i, text: "" });
+    }
+  });
+  for (const g of groups) {
+    if (!byQuarter) {
+      g.text = g.key;
+      continue;
+    }
+    const first = bars[g.start]!.label;
+    const last = bars[g.end]!.label;
+    g.text = g.start === g.end ? first : `${first}–${last}`;
+  }
+  return groups;
 }

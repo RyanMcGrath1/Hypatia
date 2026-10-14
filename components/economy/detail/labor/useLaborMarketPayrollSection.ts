@@ -30,11 +30,12 @@ import {
 export type LaborMarketPayrollHeroTheme = {
   mutedText: string;
   green: string;
+  warning: string;
   danger: string;
 };
 
 export function useLaborMarketPayrollSection(heroTheme: LaborMarketPayrollHeroTheme) {
-  const { mutedText, green, danger } = heroTheme;
+  const { mutedText, green, warning, danger } = heroTheme;
 
   const [payrollFetchWindow, setPayrollFetchWindow] = useState(payrollDefaultYtdBoundsUtc);
 
@@ -197,19 +198,15 @@ export function useLaborMarketPayrollSection(heroTheme: LaborMarketPayrollHeroTh
     [],
   );
 
-  const selectedBar =
-    payrollChart != null && selectedBarIndex != null
-      ? payrollChart.bars[selectedBarIndex]
-      : undefined;
-
   const payrollHeroDisplay = useMemo(
     () =>
-      buildPayrollHeroDisplay(payrollChart, selectedBar, {
+      buildPayrollHeroDisplay(payrollChart, selectedBarIndex, {
         mutedText,
         green,
+        warning,
         danger,
       }),
-    [payrollChart, selectedBar, mutedText, green, danger],
+    [payrollChart, selectedBarIndex, mutedText, green, warning, danger],
   );
 
   const payrollAxis = useMemo(

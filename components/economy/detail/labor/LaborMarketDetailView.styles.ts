@@ -2,7 +2,6 @@ import { Platform, StyleSheet } from "react-native";
 
 import {
   PAYROLL_BARS_ROW_PAD_TOP,
-  PAYROLL_DIVERGE_HALF_PX,
   PAYROLL_Y_AXIS_TRACK_H,
 } from "@/components/economy/detail/labor/laborMarketPayrollChart";
 import { Radius, Spacing } from "@/constants/theme/ThemeTokens";
@@ -79,6 +78,13 @@ export const laborMarketDetailStyles = StyleSheet.create({
     gap: 6,
     marginBottom: Spacing.md,
   },
+  heroSubline: {
+    fontSize: 13,
+    lineHeight: 18,
+    fontFamily: Fonts.bodyMedium,
+    marginTop: -Spacing.sm,
+    marginBottom: Spacing.md,
+  },
   consensusText: {
     fontSize: 14,
     fontFamily: Fonts.bodySemiBold,
@@ -122,7 +128,7 @@ export const laborMarketDetailStyles = StyleSheet.create({
     alignItems: "stretch",
   },
   yAxisColumn: {
-    width: 64,
+    width: 48,
     flexShrink: 0,
     paddingLeft: 6,
     paddingRight: 6,
@@ -147,32 +153,6 @@ export const laborMarketDetailStyles = StyleSheet.create({
     lineHeight: 14,
     fontFamily: Fonts.bodyBold,
   },
-  chartPlotMain: {
-    flex: 1,
-    minWidth: 0,
-    position: "relative",
-  },
-  payrollPlotBand: {
-    position: "absolute",
-    left: 0,
-    right: 0,
-    zIndex: 0,
-  },
-  payrollGridLine: {
-    position: "absolute",
-    left: 0,
-    right: 0,
-    height: StyleSheet.hairlineWidth,
-    opacity: 0.52,
-    zIndex: 0,
-  },
-  zeroLine: {
-    position: "absolute",
-    left: 0,
-    right: 0,
-    height: StyleSheet.hairlineWidth,
-    zIndex: 1,
-  },
   barsRow: {
     flexDirection: "row",
     alignItems: "flex-end",
@@ -183,39 +163,14 @@ export const laborMarketDetailStyles = StyleSheet.create({
     minHeight: 170,
     zIndex: 2,
   },
-  barsScroll: {
-    zIndex: 2,
-    alignSelf: "stretch",
-  },
-  barCol: {
-    flex: 1,
-    minWidth: 0,
-    alignItems: "center",
-  },
-  barHalfTop: {
-    height: PAYROLL_DIVERGE_HALF_PX,
-    width: "100%",
-    justifyContent: "flex-end",
-    alignItems: "stretch",
-    marginBottom: 1,
-  },
-  barHalfBottom: {
-    height: PAYROLL_DIVERGE_HALF_PX,
-    width: "100%",
-    justifyContent: "flex-start",
-    alignItems: "stretch",
-    marginTop: 1,
-  },
   barFill: {
     width: "100%",
   },
-  monthLabel: {
-    fontSize: 11,
-    fontFamily: Fonts.bodySemiBold,
-    lineHeight: 14,
-    marginTop: 8,
-    width: "100%",
-    textAlign: "center",
+  chartHint: {
+    fontSize: 13,
+    lineHeight: 18,
+    fontFamily: Fonts.body,
+    marginTop: Spacing.sm,
   },
   metricTileCard: {
     overflow: "visible",
