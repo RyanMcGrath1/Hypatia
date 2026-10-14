@@ -370,7 +370,7 @@ const styles = StyleSheet.create({
     flexShrink: 0,
   },
   trendLabel: {
-    fontSize: 10,
+    fontSize: 11,
     fontFamily: Fonts.bodyBold,
     letterSpacing: 0.3,
   },
@@ -416,7 +416,7 @@ const styles = StyleSheet.create({
     borderRadius: 1,
   },
   targetCaption: {
-    fontSize: 10,
+    fontSize: 11,
     fontFamily: Fonts.bodySemiBold,
     marginTop: 6,
     textAlign: "center",
@@ -500,7 +500,7 @@ const styles = StyleSheet.create({
     marginBottom: Spacing.sm,
   },
   th: {
-    fontSize: 9,
+    fontSize: 11,
     fontFamily: Fonts.bodyBold,
     letterSpacing: 0.15,
   },

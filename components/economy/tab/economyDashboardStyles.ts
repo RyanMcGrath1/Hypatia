@@ -14,14 +14,11 @@ export const economyDashboardStyles = StyleSheet.create({
     gap: Spacing.sm,
   },
   topHeader: {
-    flexDirection: "row",
-    alignItems: "center",
-    justifyContent: "space-between",
-    gap: Spacing.sm,
+    gap: 2,
   },
   pageMeta: {
-    fontSize: 10,
-    textTransform: "uppercase",
+    fontSize: 13,
+    lineHeight: 18,
   },
   heroCard: {
     borderWidth: 1,
@@ -71,7 +68,7 @@ export const economyDashboardStyles = StyleSheet.create({
   gaugeSubtleLabel: {
     marginTop: 2,
     fontFamily: Fonts.bodyMedium,
-    fontSize: 10,
+    fontSize: 11,
     letterSpacing: 0.4,
   },
   ringWrap: {
@@ -88,7 +85,7 @@ export const economyDashboardStyles = StyleSheet.create({
     lineHeight: 38,
   },
   heroScoreLabel: {
-    fontSize: 10,
+    fontSize: 11,
     fontWeight: "600",
     letterSpacing: 0.4,
   },
@@ -114,7 +111,7 @@ export const economyDashboardStyles = StyleSheet.create({
     paddingLeft: 8,
   },
   heroStatLabel: {
-    fontSize: 9,
+    fontSize: 11,
     letterSpacing: 0.3,
   },
   heroStatValue: {
@@ -137,7 +134,7 @@ export const economyDashboardStyles = StyleSheet.create({
     paddingHorizontal: 12,
   },
   feedTitle: {
-    fontSize: 10,
+    fontSize: 11,
     fontWeight: "700",
     letterSpacing: 0.4,
   },
@@ -173,7 +170,7 @@ export const economyDashboardStyles = StyleSheet.create({
     borderRadius: 5,
   },
   feedTrendText: {
-    fontSize: 10,
+    fontSize: 11,
     fontWeight: "600",
   },
   sparklineRow: {
@@ -237,7 +234,7 @@ export const economyDashboardStyles = StyleSheet.create({
     alignItems: "center",
   },
   infoTitle: {
-    fontSize: 10,
+    fontSize: 11,
     letterSpacing: 0.4,
   },
   bulletRow: {

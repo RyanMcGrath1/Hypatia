@@ -1,4 +1,4 @@
-import { useBottomTabBarHeight } from "@react-navigation/bottom-tabs";
+import { useBottomTabBarHeight } from "expo-router/tabs";
 
 import FloatingTabBarBackground from "@/components/ui/FloatingTabBarBackground";
 

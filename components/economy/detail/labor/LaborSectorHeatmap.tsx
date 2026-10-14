@@ -343,7 +343,7 @@ const styles = StyleSheet.create({
     marginTop: Spacing.xs,
   },
   legendLabel: {
-    fontSize: 10,
+    fontSize: 11,
     fontFamily: Fonts.bodyMedium,
   },
   legendWrap: {
@@ -390,7 +390,7 @@ const styles = StyleSheet.create({
     gap: 4,
   },
   detailMetricKicker: {
-    fontSize: 9,
+    fontSize: 11,
     fontFamily: Fonts.bodyBold,
     letterSpacing: 0.35,
   },

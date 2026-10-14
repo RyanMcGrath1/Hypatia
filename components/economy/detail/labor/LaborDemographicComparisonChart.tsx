@@ -124,7 +124,7 @@ export function LaborDemographicComparisonChart({
                 key={`x-${tick.label}-${i}`}
                 style={[
                   chartStyles.xTick,
-                  { left: tick.x - 14, color: semantic.mutedText },
+                  { left: tick.x - 16, color: semantic.mutedText },
                 ]}
                 numberOfLines={1}
               >
@@ -186,14 +186,14 @@ const chartStyles = StyleSheet.create({
   yTick: {
     position: "absolute",
     right: 0,
-    fontSize: 9,
+    fontSize: 11,
     fontFamily: Fonts.bodySemiBold,
     lineHeight: 14,
     textAlign: "right",
     width: "100%",
   },
   yTickEmphasis: {
-    fontSize: 10,
+    fontSize: 11,
     fontFamily: Fonts.bodyBold,
   },
   plotMain: {
@@ -208,8 +208,8 @@ const chartStyles = StyleSheet.create({
   },
   xTick: {
     position: "absolute",
-    width: 28,
-    fontSize: 9,
+    width: 32,
+    fontSize: 11,
     fontFamily: Fonts.bodySemiBold,
     textAlign: "center",
   },

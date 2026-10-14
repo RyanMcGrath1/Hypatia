@@ -139,7 +139,7 @@ export const Colors = {
     contentBackground: Brand.darkTabCanvas,
     tint: tintDark,
     icon: "rgba(196, 197, 215, 0.55)",
-    tabIconDefault: "rgba(196, 197, 215, 0.45)",
+    tabIconDefault: "rgba(196, 197, 215, 0.7)",
     tabIconSelected: tintDark,
   },
 };

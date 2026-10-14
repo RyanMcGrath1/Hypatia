@@ -12,7 +12,6 @@ import Ionicons from "@expo/vector-icons/Ionicons";
 import { Image } from "expo-image";
 import { router } from "expo-router";
 
-import { AppBrandBar } from "@/components/layout/AppBrandBar";
 import { ScreenHeader } from "@/components/layout/ScreenHeader";
 import {
   NewsFeedSkeletonList,
@@ -245,7 +244,6 @@ export default function HomeScreen() {
   const listHeader = useMemo(
     () => (
       <View style={styles.listHeader}>
-        <AppBrandBar icon="newspaper" />
         <ScreenHeader
           title={getTimeOfDayGreeting()}
           subtitle={`${new Date().toLocaleDateString("en-US", {
@@ -447,7 +445,7 @@ const styles = StyleSheet.create({
     zIndex: 2,
   },
   categoryStampText: {
-    fontSize: 10,
+    fontSize: 11,
     fontWeight: "700",
     letterSpacing: 0.3,
     textTransform: "uppercase",

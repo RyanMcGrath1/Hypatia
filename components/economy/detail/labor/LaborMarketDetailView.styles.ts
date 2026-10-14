@@ -25,7 +25,7 @@ export const laborMarketDetailStyles = StyleSheet.create({
     marginBottom: Spacing.sm,
   },
   periodLabel: {
-    fontSize: 10,
+    fontSize: 11,
     fontFamily: Fonts.bodySemiBold,
     letterSpacing: 0.2,
     textAlign: "right",
@@ -137,7 +137,7 @@ export const laborMarketDetailStyles = StyleSheet.create({
     position: "absolute",
     left: 0,
     right: 0,
-    fontSize: 10,
+    fontSize: 11,
     fontFamily: Fonts.bodySemiBold,
     lineHeight: 14,
     textAlign: "right",
@@ -236,7 +236,7 @@ export const laborMarketDetailStyles = StyleSheet.create({
     marginVertical: 2,
   },
   splitMetricKicker: {
-    fontSize: 9,
+    fontSize: 11,
     fontFamily: Fonts.bodyBold,
     letterSpacing: 0.4,
     marginBottom: 4,
@@ -342,7 +342,7 @@ export const laborMarketDetailStyles = StyleSheet.create({
     marginBottom: Spacing.sm,
   },
   sectorRetryText: {
-    fontSize: 10,
+    fontSize: 11,
     fontFamily: Fonts.bodyBold,
     letterSpacing: 0.4,
   },
@@ -357,7 +357,7 @@ export const laborMarketDetailStyles = StyleSheet.create({
     gap: 4,
   },
   th: {
-    fontSize: 9,
+    fontSize: 11,
     fontFamily: Fonts.bodyBold,
     letterSpacing: 0.2,
     flex: 1.15,

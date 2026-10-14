@@ -259,7 +259,7 @@ export function InflationCpiChart({
                 style={[
                   styles.xLabel,
                   {
-                    left: chartContent.points[index]!.x - 18,
+                    left: chartContent.points[index]!.x - 20,
                     color: semantic.mutedText,
                   },
                 ]}
@@ -299,8 +299,8 @@ const styles = StyleSheet.create({
   },
   xLabel: {
     position: "absolute",
-    width: 36,
-    fontSize: 9,
+    width: 40,
+    fontSize: 11,
     fontFamily: Fonts.bodySemiBold,
     textAlign: "center",
   },

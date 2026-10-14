@@ -161,6 +161,13 @@ export function LaborPayrollJobsCreatedCard({
       return (
         <Pressable
           key={`${bar.observationDate}-${i}`}
+          accessibilityRole="button"
+          accessibilityLabel={
+            delta == null
+              ? `${bar.label}, no data`
+              : `${bar.label}, ${isPositive ? "gained" : "lost"} ${Math.round(magnitude)} thousand jobs`
+          }
+          accessibilityState={{ selected: isSelected, disabled: !isSelectable }}
           disabled={!isSelectable}
           onPress={() => onSelectBarIndex(i)}
           style={({ pressed }) => [

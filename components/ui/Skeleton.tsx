@@ -6,6 +6,7 @@ import {
   type StyleProp,
   type ViewStyle,
 } from "react-native";
+import { useReducedMotion } from "react-native-reanimated";
 
 import { Radius, getSemanticColors } from "@/constants/theme/ThemeTokens";
 import { useColorScheme } from "@/hooks/useColorScheme";
@@ -28,6 +29,7 @@ export function Skeleton({
   style,
 }: SkeletonProps) {
   const pulse = useRef(new Animated.Value(0.55)).current;
+  const reduceMotion = useReducedMotion();
   const colorScheme = useColorScheme() ?? "light";
   const semantic = getSemanticColors(colorScheme);
   const backgroundColor =
@@ -36,6 +38,10 @@ export function Skeleton({
       : semantic.cardSubtleBackground;
 
   useEffect(() => {
+    if (reduceMotion) {
+      pulse.setValue(0.75);
+      return;
+    }
     const loop = Animated.loop(
       Animated.sequence([
         Animated.timing(pulse, {
@@ -52,7 +58,7 @@ export function Skeleton({
     );
     loop.start();
     return () => loop.stop();
-  }, [pulse]);
+  }, [pulse, reduceMotion]);
 
   return (
     <Animated.View

@@ -319,7 +319,7 @@ export function MarketReactionDetailView() {
 
 const styles = StyleSheet.create({
   kicker: {
-    fontSize: 10,
+    fontSize: 11,
     fontFamily: Fonts.bodySemiBold,
     letterSpacing: 0.45,
     marginBottom: Spacing.sm,
@@ -357,7 +357,7 @@ const styles = StyleSheet.create({
     paddingHorizontal: 2,
   },
   xLabel: {
-    fontSize: 9,
+    fontSize: 11,
     fontFamily: Fonts.bodyMedium,
     flex: 1,
     textAlign: "center",
@@ -402,7 +402,7 @@ const styles = StyleSheet.create({
     borderRadius: Radius.full,
   },
   invertedBadgeText: {
-    fontSize: 10,
+    fontSize: 11,
     fontFamily: Fonts.bodyBold,
     letterSpacing: 0.4,
   },
@@ -430,7 +430,7 @@ const styles = StyleSheet.create({
   },
   th: {
     flex: 1.4,
-    fontSize: 9,
+    fontSize: 11,
     fontFamily: Fonts.bodyBold,
     letterSpacing: 0.35,
   },
@@ -491,14 +491,14 @@ const styles = StyleSheet.create({
     marginTop: Spacing.xs,
   },
   liveEngineImage: {
-    ...StyleSheet.absoluteFillObject,
+    ...StyleSheet.absoluteFill,
   },
   liveEngineScrim: {
-    ...StyleSheet.absoluteFillObject,
+    ...StyleSheet.absoluteFill,
     backgroundColor: "rgba(0,0,0,0.45)",
   },
   liveEngineBadge: {
-    ...StyleSheet.absoluteFillObject,
+    ...StyleSheet.absoluteFill,
     alignItems: "center",
     justifyContent: "center",
   },

@@ -385,7 +385,7 @@ const styles = StyleSheet.create({
     justifyContent: 'flex-end',
   },
   scrim: {
-    ...StyleSheet.absoluteFillObject,
+    ...StyleSheet.absoluteFill,
   },
   sheetWrap: {
     maxHeight: '92%',

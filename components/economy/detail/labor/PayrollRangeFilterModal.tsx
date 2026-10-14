@@ -686,7 +686,7 @@ const styles = StyleSheet.create({
     justifyContent: "flex-end",
   },
   scrim: {
-    ...StyleSheet.absoluteFillObject,
+    ...StyleSheet.absoluteFill,
   },
   sheet: {
     position: "absolute",
@@ -758,7 +758,7 @@ const styles = StyleSheet.create({
     lineHeight: 16,
   },
   dateCardKicker: {
-    fontSize: 10,
+    fontSize: 11,
     fontFamily: Fonts.bodyBold,
     letterSpacing: 0.55,
     marginBottom: 8,
@@ -777,7 +777,7 @@ const styles = StyleSheet.create({
     minWidth: 0,
   },
   sectionLabel: {
-    fontSize: 10,
+    fontSize: 11,
     fontFamily: Fonts.bodyBold,
     letterSpacing: 0.55,
     marginTop: Spacing.xs,

@@ -319,7 +319,7 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   fabOverlay: {
-    ...StyleSheet.absoluteFillObject,
+    ...StyleSheet.absoluteFill,
     justifyContent: "flex-end",
     alignItems: "flex-end",
   },
@@ -355,7 +355,7 @@ const styles = StyleSheet.create({
     letterSpacing: 0.3,
   },
   overviewUpdatedStamp: {
-    fontSize: 10,
+    fontSize: 11,
     textTransform: "uppercase",
     flexShrink: 0,
   },
