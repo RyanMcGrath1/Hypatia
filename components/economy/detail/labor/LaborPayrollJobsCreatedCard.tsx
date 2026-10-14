@@ -1,5 +1,6 @@
 import Feather from "@expo/vector-icons/Feather";
 import { Pressable, View } from "react-native";
+import Animated, { FadeInUp } from "react-native-reanimated";
 
 import { laborMarketDetailStyles as styles } from "@/components/economy/detail/labor/LaborMarketDetailView.styles";
 import {
@@ -141,14 +142,20 @@ export function LaborPayrollJobsCreatedCard({
               accessibilityLabel={heroA11yLabel(payrollHeroDisplay)}
               style={styles.heroMetricWithTrend}
             >
-              <ThemedText
-                style={[styles.heroMetric, { color: theme.text }]}
-                adjustsFontSizeToFit
-                minimumFontScale={0.7}
-                numberOfLines={1}
+              <Animated.View
+                key={payrollHeroDisplay.heroMetric}
+                entering={FadeInUp.duration(180)}
+                style={styles.heroMetricSlot}
               >
-                {payrollHeroDisplay.heroMetric}
-              </ThemedText>
+                <ThemedText
+                  style={[styles.heroMetric, { color: theme.text }]}
+                  adjustsFontSizeToFit
+                  minimumFontScale={0.7}
+                  numberOfLines={1}
+                >
+                  {payrollHeroDisplay.heroMetric}
+                </ThemedText>
+              </Animated.View>
               <Feather
                 name={payrollHeroDisplay.trend.icon}
                 size={26}

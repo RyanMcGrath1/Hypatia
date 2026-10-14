@@ -21,12 +21,14 @@ import {
 } from "@/components/economy/detail/shared/EconomyDetailShell";
 import { ThemedText } from "@/components/theme/ThemedText";
 import { DataRangeCapsule } from "@/components/ui/DataRangeCapsule";
+import { StaggeredEntrance } from "@/components/ui/StaggeredEntrance";
 import { Colors } from "@/constants/theme/Colors";
 import {
     getSemanticColors,
     Spacing,
     type AppColorScheme,
 } from "@/constants/theme/ThemeTokens";
+import { useCollapseOnScroll } from "@/hooks/useCollapseOnScroll";
 import { useColorScheme } from "@/hooks/useColorScheme";
 import { useEconomyTabDashboard } from "@/hooks/useEconomyTabDashboard";
 import { useEconomyLaborEarningsInflation } from "@/hooks/useEconomyLaborEarningsInflation";
@@ -167,6 +169,9 @@ export function LaborMarketDetailView() {
     yearlyTotalJobsBadgeLabel,
   ]);
 
+  const { collapsed: rangeCapsuleCollapsed, onScroll: onBodyScroll } =
+    useCollapseOnScroll();
+
   const floatingAction = useMemo(() => {
     if (payrollObservationsRaw.length === 0 || !payrollRangeLabel) {
       return null;
@@ -176,6 +181,7 @@ export function LaborMarketDetailView() {
         label={payrollRangeLabel}
         accessibilityLabel={payrollRangeA11yLabel}
         onPress={() => setRangeFilterOpen(true)}
+        collapsed={rangeCapsuleCollapsed}
       />
     );
   }, [
@@ -183,6 +189,7 @@ export function LaborMarketDetailView() {
     payrollRangeLabel,
     payrollRangeA11yLabel,
     setRangeFilterOpen,
+    rangeCapsuleCollapsed,
   ]);
 
   return (
@@ -193,7 +200,9 @@ export function LaborMarketDetailView() {
       inlineHeaderIcon="users"
       updatedDisplay={updatedDisplay}
       floatingAction={floatingAction}
+      onScroll={onBodyScroll}
     >
+      <StaggeredEntrance index={0}>
       <LaborPayrollJobsCreatedCard
         semantic={semantic}
         colorScheme={colorScheme}
@@ -218,7 +227,9 @@ export function LaborMarketDetailView() {
         onRequestCloseRangeFilter={onPayrollRangeFilterModalClose}
         primaryMetricCard={primaryMetricCard}
       />
+      </StaggeredEntrance>
 
+      <StaggeredEntrance index={1}>
       <EconomyCard>
         <View style={styles.tableHeaderRow}>
           <ThemedText style={[styles.tableTitle, { color: theme.text }]}>
@@ -407,7 +418,9 @@ export function LaborMarketDetailView() {
           </>
         )}
       </EconomyCard>
+      </StaggeredEntrance>
 
+      <StaggeredEntrance index={2}>
       <EconomyCard style={styles.metricTileCard}>
         {wagesInflationPending ? (
           <WagesInflationCardSkeleton />
@@ -501,7 +514,9 @@ export function LaborMarketDetailView() {
           </>
         )}
       </EconomyCard>
+      </StaggeredEntrance>
 
+      <StaggeredEntrance index={3}>
       <LaborDemographicAnalysisCard
         colorScheme={colorScheme}
         semantic={semantic}
@@ -511,6 +526,7 @@ export function LaborMarketDetailView() {
         }}
         payrollFetchWindow={payrollFetchWindow}
       />
+      </StaggeredEntrance>
     </EconomyDetailShell>
   );
 }

@@ -47,6 +47,10 @@ export const laborMarketDetailStyles = StyleSheet.create({
     letterSpacing: -0.5,
     lineHeight: 40,
   },
+  heroMetricSlot: {
+    flexShrink: 1,
+    minWidth: 0,
+  },
   heroTrendIcon: {
     flexShrink: 0,
   },

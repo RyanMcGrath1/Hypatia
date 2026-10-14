@@ -8,9 +8,13 @@ import {
   ScrollView,
   StyleSheet,
   View,
+  useWindowDimensions,
   type ScrollViewProps,
 } from "react-native";
+import { useSharedValue } from "react-native-reanimated";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
+
+import { ScrollRevealContext } from "@/components/ui/ScrollRevealContext";
 
 import { ThemedText } from "@/components/theme/ThemedText";
 import { ThemedView } from "@/components/theme/ThemedView";
@@ -95,12 +99,28 @@ export function EconomyDetailShell({
   const updated = useMemo(() => formatUpdatedEst(), []);
   const showTitleLiveFeed = showLiveFeed && updatedDisplay == null;
 
+  const { height: windowHeight } = useWindowDimensions();
+  const scrollY = useSharedValue(0);
+  const viewportHeight = useSharedValue(windowHeight);
+  const reveal = useMemo(
+    () => ({ scrollY, viewportHeight }),
+    [scrollY, viewportHeight],
+  );
+  const handleScroll: ScrollViewProps["onScroll"] = (e) => {
+    scrollY.set(e.nativeEvent.contentOffset.y);
+    onScroll?.(e);
+  };
+
   return (
     <ThemedView
       style={[styles.screen, { backgroundColor: semantic.screenBackground }]}
     >
+      <ScrollRevealContext.Provider value={reveal}>
       <View style={styles.screenBody}>
         <AnimatedScrollView
+          onLayout={(e) => {
+            viewportHeight.set(e.nativeEvent.layout.height);
+          }}
           style={styles.scrollView}
           contentContainerStyle={[
             styles.scroll,
@@ -114,7 +134,7 @@ export function EconomyDetailShell({
             },
           ]}
           showsVerticalScrollIndicator={false}
-          onScroll={onScroll}
+          onScroll={handleScroll}
           scrollEventThrottle={scrollEventThrottle}
         >
           {showBackButton ? (
@@ -303,6 +323,7 @@ export function EconomyDetailShell({
           </View>
         ) : null}
       </View>
+      </ScrollRevealContext.Provider>
     </ThemedView>
   );
 }

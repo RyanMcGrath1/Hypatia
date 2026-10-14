@@ -1,11 +1,22 @@
 import * as Haptics from "expo-haptics";
-import { useMemo, useRef, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import {
   StyleSheet,
   View,
   type AccessibilityActionEvent,
   type GestureResponderEvent,
 } from "react-native";
+import Animated, {
+  Easing,
+  ReduceMotion,
+  useAnimatedProps,
+  useReducedMotion,
+  useSharedValue,
+  withDelay,
+  withRepeat,
+  withTiming,
+  type SharedValue,
+} from "react-native-reanimated";
 import Svg, { Circle, Line, Path, Rect } from "react-native-svg";
 
 import { laborMarketDetailStyles } from "@/components/economy/detail/labor/LaborMarketDetailView.styles";
@@ -57,6 +68,39 @@ const ZERO_Y =
   PAYROLL_BARS_ROW_PAD_TOP + PAYROLL_DIVERGE_HALF_PX + PAYROLL_DIVERGE_GUTTER_PX / 2;
 const HALF_SPAN = PAYROLL_DIVERGE_HALF_PX + PAYROLL_DIVERGE_GUTTER_PX / 2;
 const MIN_GROUP_LABEL_W = 20;
+
+const AnimatedRect = Animated.createAnimatedComponent(Rect);
+const AnimatedPath = Animated.createAnimatedComponent(Path);
+const AnimatedCircle = Animated.createAnimatedComponent(Circle);
+
+/** Intro timeline (0→1): bars rise left to right, then the trend line draws, then the dot lands. */
+const INTRO_MS = 1100;
+const BAR_STAGGER_SPAN = 0.3;
+const BAR_GROW_SPAN = 0.4;
+const LINE_START = 0.45;
+const DOT_START = 0.9;
+const PULSE_MS = 1400;
+const PULSE_COUNT = 3;
+
+function progressBetween(t: number, start: number, span: number): number {
+  "worklet";
+  return Math.min(1, Math.max(0, (t - start) / span));
+}
+
+function easeOutCubic(t: number): number {
+  "worklet";
+  return 1 - (1 - t) ** 3;
+}
+
+function polylineLength(points: { x: number; y: number }[][]): number {
+  let total = 0;
+  for (const run of points) {
+    for (let i = 1; i < run.length; i++) {
+      total += Math.hypot(run[i]!.x - run[i - 1]!.x, run[i]!.y - run[i - 1]!.y);
+    }
+  }
+  return total;
+}
 function barGap(count: number): number {
   if (count <= 12) return 4;
   if (count <= 24) return 2;
@@ -130,22 +174,67 @@ export function PayrollTrendBarChart({
   }, [bars]);
   const focusIndex = selectedIndex ?? latestIndex;
 
-  const trendPath = useMemo(() => {
-    if (width === 0) return "";
-    let d = "";
-    let penDown = false;
+  const trend = useMemo(() => {
+    if (width === 0) return { d: "", length: 0 };
+    const runs: { x: number; y: number }[][] = [];
+    let current: { x: number; y: number }[] | null = null;
     averages.forEach((avg, i) => {
       if (avg == null) {
-        penDown = false;
+        current = null;
         return;
       }
-      d += `${penDown ? "L" : "M"}${centerFor(i).toFixed(1)},${yFor(avg).toFixed(1)}`;
-      penDown = true;
+      if (current == null) {
+        current = [];
+        runs.push(current);
+      }
+      current.push({ x: centerFor(i), y: yFor(avg) });
     });
-    return d;
+    const d = runs
+      .map((run) =>
+        run.map((p, k) => `${k === 0 ? "M" : "L"}${p.x.toFixed(1)},${p.y.toFixed(1)}`).join(""),
+      )
+      .join("");
+    return { d, length: polylineLength(runs) };
     // centerFor/yFor derive from width, slot, scaleMax
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [averages, width, slot, scaleMax]);
+
+  const reduceMotion = useReducedMotion();
+  const intro = useSharedValue(reduceMotion ? 1 : 0);
+  const pulse = useSharedValue(0);
+  const dataKey = `${count}:${bars[0]?.observationDate ?? ""}:${bars[count - 1]?.observationDate ?? ""}`;
+  const hasWidth = width > 0;
+
+  useEffect(() => {
+    if (!hasWidth) return;
+    pulse.value = 0;
+    if (reduceMotion) {
+      intro.value = 1;
+      return;
+    }
+    intro.value = 0;
+    intro.value = withTiming(1, {
+      duration: INTRO_MS,
+      easing: Easing.linear,
+      reduceMotion: ReduceMotion.System,
+    });
+    pulse.value = withDelay(
+      INTRO_MS,
+      withRepeat(withTiming(1, { duration: PULSE_MS, easing: Easing.out(Easing.quad) }), PULSE_COUNT, false),
+    );
+  }, [dataKey, hasWidth, reduceMotion, intro, pulse]);
+
+  const trendAnimatedProps = useAnimatedProps(() => ({
+    strokeDashoffset:
+      trend.length * (1 - easeOutCubic(progressBetween(intro.value, LINE_START, 1 - LINE_START))),
+  }));
+  const dotAnimatedProps = useAnimatedProps(() => ({
+    opacity: progressBetween(intro.value, DOT_START, 1 - DOT_START),
+  }));
+  const haloAnimatedProps = useAnimatedProps(() => ({
+    r: 3.5 + pulse.value * 9,
+    opacity: pulse.value === 0 ? 0 : 0.35 * (1 - pulse.value),
+  }));
 
   const xGroups = useMemo(() => groupBarsForAxis(bars), [bars]);
   const groupDividers = xGroups.map((g) => g.start).filter((i) => i > 0);
@@ -265,19 +354,17 @@ export function PayrollTrendBarChart({
                 {bars.map((bar, i) => {
                   const v = bar.momVsPriorThousands;
                   if (v == null || v === 0) return null;
-                  const y = yFor(v);
-                  const top = v > 0 ? y : ZERO_Y;
-                  const height = Math.max(1.5, Math.abs(y - ZERO_Y));
                   return (
-                    <Rect
+                    <GrowingBar
                       key={bar.observationDate}
+                      intro={intro}
+                      start={count > 1 ? (i / (count - 1)) * BAR_STAGGER_SPAN : 0}
                       x={xFor(i)}
-                      y={top}
                       width={slot}
-                      height={height}
-                      rx={Math.min(2, slot / 4)}
+                      height={Math.max(1.5, Math.abs(yFor(v) - ZERO_Y))}
+                      up={v > 0}
                       fill={toneColor(payrollBarTone(v), colors)}
-                      opacity={hasSelection && i !== selectedIndex ? 0.3 : 1}
+                      dimmed={hasSelection && i !== selectedIndex}
                     />
                   );
                 })}
@@ -299,25 +386,38 @@ export function PayrollTrendBarChart({
                   strokeDasharray="5 4"
                   opacity={0.7}
                 />
-                {trendPath ? (
-                  <Path
-                    d={trendPath}
+                {trend.d ? (
+                  <AnimatedPath
+                    d={trend.d}
                     stroke={colors.accent}
                     strokeWidth={2}
                     strokeLinejoin="round"
                     strokeLinecap="round"
+                    strokeDasharray={[trend.length + 1, trend.length + 1]}
                     fill="none"
+                    animatedProps={trendAnimatedProps}
                   />
                 ) : null}
                 {focusIndex >= 0 && averages[focusIndex] != null ? (
-                  <Circle
-                    cx={centerFor(focusIndex)}
-                    cy={yFor(averages[focusIndex]!)}
-                    r={3.5}
-                    fill={colors.accent}
-                    stroke={colors.surface}
-                    strokeWidth={1.5}
-                  />
+                  <>
+                    {!hasSelection ? (
+                      <AnimatedCircle
+                        cx={centerFor(focusIndex)}
+                        cy={yFor(averages[focusIndex]!)}
+                        fill={colors.accent}
+                        animatedProps={haloAnimatedProps}
+                      />
+                    ) : null}
+                    <AnimatedCircle
+                      cx={centerFor(focusIndex)}
+                      cy={yFor(averages[focusIndex]!)}
+                      r={3.5}
+                      fill={colors.accent}
+                      stroke={colors.surface}
+                      strokeWidth={1.5}
+                      animatedProps={dotAnimatedProps}
+                    />
+                  </>
                 ) : null}
               </Svg>
             ) : (
@@ -404,6 +504,45 @@ export function PayrollTrendBarChart({
         </ThemedText>
       </View>
     </View>
+  );
+}
+
+type GrowingBarProps = {
+  intro: SharedValue<number>;
+  /** Point on the intro timeline (0–1) where this bar starts rising. */
+  start: number;
+  x: number;
+  width: number;
+  height: number;
+  up: boolean;
+  fill: string;
+  dimmed: boolean;
+};
+
+/** Bar that rises out of the zero line during the intro and fades when another month is focused. */
+function GrowingBar({ intro, start, x, width, height, up, fill, dimmed }: GrowingBarProps) {
+  const dim = useSharedValue(dimmed ? 0.3 : 1);
+  useEffect(() => {
+    dim.value = withTiming(dimmed ? 0.3 : 1, { duration: 160, reduceMotion: ReduceMotion.System });
+  }, [dimmed, dim]);
+
+  const animatedProps = useAnimatedProps(() => {
+    const h = height * easeOutCubic(progressBetween(intro.value, start, BAR_GROW_SPAN));
+    return {
+      y: up ? ZERO_Y - h : ZERO_Y,
+      height: h,
+      opacity: dim.value,
+    };
+  });
+
+  return (
+    <AnimatedRect
+      x={x}
+      width={width}
+      rx={Math.min(2, width / 4)}
+      fill={fill}
+      animatedProps={animatedProps}
+    />
   );
 }
 
